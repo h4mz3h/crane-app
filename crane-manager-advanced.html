@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.6)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.7)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -26,7 +26,7 @@
         /* Navigation Buttons (Horizontal Row) */
         .navigation { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; margin-bottom: 15px; }
         .nav-btn { flex: 1; padding: 12px 5px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-family: inherit; color: #64748b; background: white; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-        .nav-btn span { font-size: 20px; margin-bottom: 2px; } /* Icon size */
+        .nav-btn span { font-size: 20px; margin-bottom: 2px; } 
         .nav-btn:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-2px); }
         .nav-btn.active { background: #eff6ff; color: #2563eb; border-color: #2563eb; box-shadow: 0 4px 6px rgba(37,99,235,0.1); }
         
@@ -48,7 +48,8 @@
         .form-group textarea { min-height: 80px; resize: vertical; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
-        .voice-btn, .cal-btn { width: 48px; height: 48px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; cursor: pointer; font-size: 20px; transition: transform 0.2s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3); }
+        /* Button Styles Fix */
+        .voice-btn, .cal-btn { width: 45px; height: 45px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; cursor: pointer; font-size: 20px; transition: transform 0.2s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3); }
         .voice-btn:active, .cal-btn:active { transform: scale(0.95); }
         .voice-btn.listening { animation: pulse 1.5s infinite; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
@@ -73,7 +74,6 @@
         .add-work-type input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
         .add-work-type button { padding: 10px 15px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
         
-        /* Customer List Styles */
         .customer-list { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
         .customer-item { padding: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
         .customer-item:hover { background: #f8fafc; }
@@ -123,7 +123,6 @@
         .section-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .hidden { display: none !important; }
         
-        /* Calendar Styles */
         .datepicker-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center; padding: 20px; opacity: 0; transition: opacity 0.3s; backdrop-filter: blur(2px); }
         .datepicker-modal.show { display: flex; opacity: 1; }
         .datepicker-content { background: white; padding: 20px; border-radius: 24px; max-width: 340px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
@@ -187,8 +186,8 @@
                         <label>📅 تاریخ</label>
                         <div class="input-wrapper">
                             <input type="text" id="date" required readonly>
-                            <button type="button" class="voice-btn" onclick="APP.startVoice('date')">🎤</button>
                             <button type="button" class="cal-btn" onclick="APP.showCal('date')">📅</button>
+                            <button type="button" class="voice-btn" onclick="APP.startVoice('date')">🎤</button>
                         </div>
                     </div>
                     <div class="form-group">
@@ -210,7 +209,7 @@
                         <label>🔧 نوع کار</label>
                         <select id="workType" required></select>
                         <div class="add-work-type">
-                            <input type="text" id="newWorkType" placeholder="نوع کار جدید...">
+                            <input type="text" id="newWorkType">
                             <button type="button" onclick="APP.addWorkType()">➕ افزودن</button>
                         </div>
                         <div id="workTypesList"></div>
