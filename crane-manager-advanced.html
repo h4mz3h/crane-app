@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.4)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.5)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -159,7 +159,7 @@
                     <div class="form-group">
                         <label>📅 تاریخ</label>
                         <div class="input-wrapper">
-                            <input type="text" id="date" placeholder="انتخاب کنید..." required readonly>
+                            <input type="text" id="date" required readonly>
                             <button type="button" class="voice-btn" onclick="APP.startVoice('date')">🎤</button>
                             <button type="button" class="cal-btn" onclick="APP.showCal('date')">📅</button>
                         </div>
@@ -167,7 +167,7 @@
                     <div class="form-group">
                         <label>👤 نام مشتری</label>
                         <div class="input-wrapper">
-                            <input type="text" id="customerName" placeholder="مثال: علی مرادی" required>
+                            <input type="text" id="customerName" required>
                             <button type="button" class="voice-btn" onclick="APP.startVoice('customerName')">🎤</button>
                         </div>
                         <div id="customerSuggestions" class="autocomplete-suggestions hidden"></div>
@@ -175,7 +175,7 @@
                     <div class="form-group">
                         <label>📞 شماره تلفن</label>
                         <div class="input-wrapper">
-                            <input type="tel" id="phone" placeholder="09123456789" required maxlength="11" pattern="09[0-9]{9}">
+                            <input type="tel" id="phone" required maxlength="11" pattern="09[0-9]{9}">
                             <button type="button" class="voice-btn" onclick="APP.startVoice('phone')">🎤</button>
                         </div>
                     </div>
@@ -191,7 +191,7 @@
                     <div class="form-group">
                         <label>💰 مبلغ (تومان)</label>
                         <div class="input-wrapper">
-                            <input type="text" id="amount" placeholder="مثال: ۵۰۰۰۰۰۰" required oninput="APP.formatAmount(this);APP.calcRemaining()">
+                            <input type="text" id="amount" required oninput="APP.formatAmount(this);APP.calcRemaining()">
                             <button type="button" class="voice-btn" onclick="APP.startVoice('amount')">🎤</button>
                         </div>
                     </div>
@@ -208,7 +208,7 @@
                         <div id="dueDateSection" class="due-date-section">
                             <label style="color: #dc2626; margin-bottom: 8px; display: block;">📆 تاریخ سررسید</label>
                             <div class="input-wrapper">
-                                <input type="text" id="dueDateDisplay" placeholder="انتخاب کنید..." readonly>
+                                <input type="text" id="dueDateDisplay" readonly>
                                 <button type="button" class="cal-btn" onclick="APP.showCal('dueDate')">📅</button>
                             </div>
                             <input type="hidden" id="dueDate">
@@ -217,11 +217,11 @@
                         <div id="partialPaymentSection" class="partial-payment">
                             <label style="color: #92400e; font-weight: bold; margin-bottom: 8px; display: block;">💵 مبلغ پرداخت شده</label>
                             <div class="input-wrapper" style="margin-bottom: 10px;">
-                                <input type="text" id="paidAmount" placeholder="مثال: ۲۰۰۰۰۰۰" oninput="APP.formatAmount(this);APP.calcRemaining()">
+                                <input type="text" id="paidAmount" oninput="APP.formatAmount(this);APP.calcRemaining()">
                                 <button type="button" class="voice-btn" onclick="APP.startVoice('paidAmount')">🎤</button>
                             </div>
                             <label style="color: #92400e; font-weight: bold; margin-bottom: 8px; display: block;">💰 مبلغ باقیمانده (بدهی)</label>
-                            <input type="text" id="remainingAmount" placeholder="محاسبه خودکار..." readonly style="background: #f1f5f9; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; width: 100%;">
+                            <input type="text" id="remainingAmount" readonly style="background: #f1f5f9; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; width: 100%;">
                             <p style="font-size: 12px; color: #92400e; margin-top: 8px;">💡 باقیمانده خودکار محاسبه می‌شود</p>
                         </div>
                     </div>
@@ -655,7 +655,9 @@ const APP = (function() {
     async function init(){try{console.log('🚀 Initializing...');await initDB();console.log('✅ DB ready');loadTypes();console.log('✅ Types loaded');await updateStats();console.log('✅ Stats updated');
     // --- دیگر تاریخ پیش‌فرض را پر نمی‌کنیم ---
     console.log('✅ Date set to empty');
-    await setupAuto();console.log('✅ Auto setup');if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();checkAlarms();setInterval(checkAlarms,60*60*1000);console.log('✅ Alarms setup');console.log('✅✅✅ App ready!');toast('✅ برنامه آماده است')}catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
+    await setupAuto();console.log('✅ Auto setup');if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();checkAlarms();setInterval(checkAlarms,60*60*1000);console.log('✅ Alarms setup');console.log('✅✅✅ App ready!');
+    // پیام شروع برنامه حذف شد
+    }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
     return{init,showPage,exportData,importData,submitWork,addWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal}
 })();
