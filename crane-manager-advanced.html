@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <meta name="version" content="4.0-final">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد v4.0</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد</title>
     <style>
         * {
             margin: 0;
@@ -1791,9 +1790,7 @@
                 return;
             }
             
-            container.innerHTML = customers.map(c => {
-                const escapedName = c.name.replace(/'/g, "\\'");
-                return `
+            container.innerHTML = customers.map(c => `
                 <div class="customer-item">
                     <div onclick="showCustomerDetail('${c.phone}')" style="flex: 1; cursor: pointer;">
                         <div class="customer-header">
@@ -1809,10 +1806,9 @@
                             <div class="customer-stat">💰 ${formatNumber(c.totalPaid + c.totalDebt)} تومان</div>
                         </div>
                     </div>
-                    <button class="btn-small btn-delete" onclick="event.stopPropagation(); showDeleteCustomerModal('${c.phone}', '${escapedName}', ${c.works.length}, ${c.totalPaid + c.totalDebt})" style="margin-right: 10px; align-self: center;">🗑️</button>
+                    <button class="btn-small btn-delete" onclick="event.stopPropagation(); showDeleteCustomerModal('${c.phone}', '${c.name}', ${c.works.length}, ${c.totalPaid + c.totalDebt})" style="margin-right: 10px; align-self: center;">🗑️</button>
                 </div>
-                `;
-            }).join('');
+            `).join('');
         }
 
         // Customer search
@@ -1866,9 +1862,7 @@
                         return;
                     }
                     
-                    container.innerHTML = customers.map(c => {
-                        const escapedName = c.name.replace(/'/g, "\\'");
-                        return `
+                    container.innerHTML = customers.map(c => `
                         <div class="customer-item">
                             <div onclick="showCustomerDetail('${c.phone}')" style="flex: 1; cursor: pointer;">
                                 <div class="customer-header">
@@ -1884,10 +1878,6 @@
                                     <div class="customer-stat">💰 ${formatNumber(c.totalPaid + c.totalDebt)} تومان</div>
                                 </div>
                             </div>
-                            <button class="btn-small btn-delete" onclick="event.stopPropagation(); showDeleteCustomerModal('${c.phone}', '${escapedName}', ${c.works.length}, ${c.totalPaid + c.totalDebt})" style="margin-right: 10px; align-self: center;">🗑️</button>
-                        </div>
-                        `;
-                    }).join('');
                             <button class="btn-small btn-delete" onclick="event.stopPropagation(); showDeleteCustomerModal('${c.phone}', '${c.name}', ${c.works.length}, ${c.totalPaid + c.totalDebt})" style="margin-right: 10px; align-self: center;">🗑️</button>
                         </div>
                     `).join('');
@@ -2673,11 +2663,6 @@
                 });
                 
                 console.log('App initialized successfully');
-                console.log('🎉 Version 4.0 Final - All features enabled');
-                console.log('✅ Persian Calendar: Ready');
-                console.log('✅ Work Types: Ready');
-                console.log('✅ Settle Debt: Ready');
-                console.log('✅ Multiple Phones: Ready');
             } catch (error) {
                 console.error('Failed to initialize app:', error);
                 showToast('❌ خطا در راه‌اندازی برنامه');
