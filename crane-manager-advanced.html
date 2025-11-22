@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.3)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.4)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -159,7 +159,7 @@
                     <div class="form-group">
                         <label>📅 تاریخ</label>
                         <div class="input-wrapper">
-                            <input type="text" id="date" placeholder="مثال: ۱۵ آذر ۱۴۰۳" required readonly>
+                            <input type="text" id="date" placeholder="انتخاب کنید..." required readonly>
                             <button type="button" class="voice-btn" onclick="APP.startVoice('date')">🎤</button>
                             <button type="button" class="cal-btn" onclick="APP.showCal('date')">📅</button>
                         </div>
@@ -555,7 +555,15 @@ const APP = (function() {
 
     function selectPayment(v,e){document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected');document.getElementById('paymentStatus').value=v;document.getElementById('dueDateSection').classList.remove('show');document.getElementById('partialPaymentSection').classList.remove('show');document.getElementById('dueDate').value='';document.getElementById('dueDateDisplay').value='';document.getElementById('paidAmount').value='';document.getElementById('remainingAmount').value='';if(v==='چک')document.getElementById('dueDateSection').classList.add('show');else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show')}
 
-    async function submitWork(e){e.preventDefault();const ps=document.getElementById('paymentStatus').value;if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}const ta=document.getElementById('amount').value.replace(/,/g,'');let ada=ta,pa=0;if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}const w={date:document.getElementById('date').value,customerName:document.getElementById('customerName').value,customerPhone:document.getElementById('phone').value,workType:document.getElementById('workType').value,amount:ta,paymentStatus:ps,dueDate:ps==='چک'?document.getElementById('dueDate').value:null,paidAmount:ps==='نسیه'?pa.toString():null,debtAmount:(ps==='نسیه'||ps==='چک')?ada.toString():null,isSettlement:false};try{const sb=document.getElementById('submitBtn');sb.disabled=true;sb.textContent='⏳ در حال ثبت...';if(editWorkId!==null){await updateWork(editWorkId,w);editWorkId=null;toast('✅ کار ویرایش شد');sb.textContent='✅ ثبت'}else{await addWork(w);toast('✅ کار جدید ثبت شد')}const cd=await getCust(w.customerPhone);await saveCust(w.customerPhone,w.customerName,cd?.note||'',cd?.phones);await updateStats();await setupAuto();document.getElementById('workForm').reset();document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));document.getElementById('dueDateSection').classList.remove('show');document.getElementById('partialPaymentSection').classList.remove('show');document.getElementById('paymentStatus').value='';const td=new Date(),p=toJalaali(td.getFullYear(),td.getMonth()+1,td.getDate());document.getElementById('date').value=fmtDate(p.year,p.month,p.day);sb.disabled=false;sb.textContent='✅ ثبت'}catch(er){console.error(er);toast('❌ خطا در ثبت اطلاعات');document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent=editWorkId!==null?'✏️ ویرایش':'✅ ثبت'}}
+    async function submitWork(e){e.preventDefault();const ps=document.getElementById('paymentStatus').value;if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}const ta=document.getElementById('amount').value.replace(/,/g,'');let ada=ta,pa=0;if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}const w={date:document.getElementById('date').value,customerName:document.getElementById('customerName').value,customerPhone:document.getElementById('phone').value,workType:document.getElementById('workType').value,amount:ta,paymentStatus:ps,dueDate:ps==='چک'?document.getElementById('dueDate').value:null,paidAmount:ps==='نسیه'?pa.toString():null,debtAmount:(ps==='نسیه'||ps==='چک')?ada.toString():null,isSettlement:false};try{const sb=document.getElementById('submitBtn');sb.disabled=true;sb.textContent='⏳ در حال ثبت...';if(editWorkId!==null){await updateWork(editWorkId,w);editWorkId=null;toast('✅ کار ویرایش شد');sb.textContent='✅ ثبت'}else{await addWork(w);toast('✅ کار جدید ثبت شد')}const cd=await getCust(w.customerPhone);await saveCust(w.customerPhone,w.customerName,cd?.note||'',cd?.phones);await updateStats();await setupAuto();
+    // --- تغییر: خالی کردن کامل فرم و تاریخ ---
+    document.getElementById('workForm').reset();
+    document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
+    document.getElementById('dueDateSection').classList.remove('show');
+    document.getElementById('partialPaymentSection').classList.remove('show');
+    document.getElementById('paymentStatus').value='';
+    document.getElementById('date').value=''; // خالی کردن فیلد تاریخ
+    sb.disabled=false;sb.textContent='✅ ثبت'}catch(er){console.error(er);toast('❌ خطا در ثبت اطلاعات');document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent=editWorkId!==null?'✏️ ویرایش':'✅ ثبت'}}
 
     function addWorkType(){const inp=document.getElementById('newWorkType'),nt=inp.value.trim();if(!nt){toast('⚠️ لطفاً نوع کار را وارد کنید');return}if(workTypes.includes(nt)){toast('⚠️ این نوع کار قبلاً اضافه شده است');return}workTypes.push(nt);saveTypes();updateTypeDropdown();document.getElementById('workType').value=nt;inp.value='';toast('✅ نوع کار جدید اضافه شد')}
 
@@ -644,7 +652,10 @@ const APP = (function() {
 
     function closeModal(id){document.getElementById(id).classList.remove('show')}
 
-    async function init(){try{console.log('🚀 Initializing...');await initDB();console.log('✅ DB ready');loadTypes();console.log('✅ Types loaded');await updateStats();console.log('✅ Stats updated');const td=new Date(),p=toJalaali(td.getFullYear(),td.getMonth()+1,td.getDate());document.getElementById('date').value=fmtDate(p.year,p.month,p.day);console.log('✅ Date set');await setupAuto();console.log('✅ Auto setup');if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();checkAlarms();setInterval(checkAlarms,60*60*1000);console.log('✅ Alarms setup');console.log('✅✅✅ App ready!');toast('✅ برنامه آماده است')}catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
+    async function init(){try{console.log('🚀 Initializing...');await initDB();console.log('✅ DB ready');loadTypes();console.log('✅ Types loaded');await updateStats();console.log('✅ Stats updated');
+    // --- دیگر تاریخ پیش‌فرض را پر نمی‌کنیم ---
+    console.log('✅ Date set to empty');
+    await setupAuto();console.log('✅ Auto setup');if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();checkAlarms();setInterval(checkAlarms,60*60*1000);console.log('✅ Alarms setup');console.log('✅✅✅ App ready!');toast('✅ برنامه آماده است')}catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
     return{init,showPage,exportData,importData,submitWork,addWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal}
 })();
