@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.7)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.8)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -16,14 +16,14 @@
         .header h1 { color: #2563eb; font-size: 18px; margin-bottom: 5px; line-height: 1.4; font-weight: 800; }
         .header p { color: #64748b; font-size: 13px; margin-bottom: 15px; }
         
-        /* Stats Grid (2x2 Layout) */
+        /* Stats Grid */
         .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 10px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .stat-box.debt { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
         .stat-box .label { font-size: 11px; opacity: 0.9; margin-bottom: 5px; white-space: nowrap; }
         .stat-box .value { font-size: 18px; font-weight: bold; }
         
-        /* Navigation Buttons (Horizontal Row) */
+        /* Navigation */
         .navigation { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; margin-bottom: 15px; }
         .nav-btn { flex: 1; padding: 12px 5px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-family: inherit; color: #64748b; background: white; display: flex; flex-direction: column; align-items: center; gap: 5px; }
         .nav-btn span { font-size: 20px; margin-bottom: 2px; } 
@@ -35,7 +35,7 @@
         .btn-export { background: #10b981; }
         .btn-import { background: #f59e0b; }
         
-        /* Common Page Styles */
+        /* Pages */
         .page { display: none; animation: fadeIn 0.3s ease; }
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -43,13 +43,44 @@
         .form-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; position: relative; }
         .form-group label { display: block; margin-bottom: 8px; color: #334155; font-weight: 700; font-size: 13px; }
-        .input-wrapper { display: flex; gap: 8px; align-items: center; }
-        .form-group input, .form-group select, .form-group textarea { flex: 1; padding: 14px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 16px; font-family: inherit; transition: all 0.3s; background: #f8fafc; }
-        .form-group textarea { min-height: 80px; resize: vertical; }
+        
+        /* --- FIX: Vertical Alignment of Inputs and Buttons --- */
+        .input-wrapper { display: flex; gap: 8px; align-items: stretch; height: 50px; } /* Fixed height for uniformity */
+        .form-group input, .form-group select, .form-group textarea, .custom-select-trigger { 
+            flex: 1; 
+            padding: 0 15px; /* Horizontal padding only */
+            border: 2px solid #e2e8f0; 
+            border-radius: 12px; 
+            font-size: 16px; 
+            font-family: inherit; 
+            transition: all 0.3s; 
+            background: #f8fafc; 
+            height: 100%; /* Fill wrapper height */
+            display: flex;
+            align-items: center; /* Vertically center text */
+            color: #334155;
+        }
+        .form-group textarea { height: auto; min-height: 80px; padding: 15px; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
-        /* Button Styles Fix */
-        .voice-btn, .cal-btn { width: 45px; height: 45px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; cursor: pointer; font-size: 20px; transition: transform 0.2s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3); }
+        .button-group { display: flex; gap: 8px; width: 100px; justify-content: flex-end; flex-shrink: 0; } /* Fixed width for buttons area */
+        .button-group.single { width: 45px; } /* When only 1 button exists */
+        
+        .voice-btn, .cal-btn { 
+            width: 45px; 
+            height: 100%; /* Fill wrapper height */
+            border: none; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+            color: white; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            font-size: 20px; 
+            transition: transform 0.2s; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3); 
+        }
         .voice-btn:active, .cal-btn:active { transform: scale(0.95); }
         .voice-btn.listening { animation: pulse 1.5s infinite; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
@@ -70,14 +101,25 @@
         .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         
-        .add-work-type { display: flex; gap: 8px; margin-top: 8px; }
-        .add-work-type input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
-        .add-work-type button { padding: 10px 15px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        /* Custom Work Type Selector (Drawer Style) */
+        .custom-select-trigger { cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .custom-select-trigger::after { content: '▼'; font-size: 12px; color: #94a3b8; margin-right: 10px; }
         
+        .work-type-modal-list { margin-top: 15px; max-height: 300px; overflow-y: auto; }
+        .work-type-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f1f5f9; transition: 0.2s; }
+        .work-type-row:last-child { border-bottom: none; }
+        .work-type-row:hover { background: #f8fafc; }
+        .work-type-label { font-weight: 600; color: #334155; cursor: pointer; flex: 1; }
+        .work-type-delete { background: #fee2e2; color: #ef4444; border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-right: 10px; transition: 0.2s; }
+        .work-type-delete:hover { background: #fecaca; }
+        .add-new-type-wrapper { display: flex; gap: 10px; padding: 15px; background: #f1f5f9; border-radius: 12px; margin-bottom: 10px; }
+        .add-new-type-input { flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; font-family: inherit; }
+        .add-new-type-btn { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
+
+        /* Customer List */
         .customer-list { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
         .customer-item { padding: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
         .customer-item:hover { background: #f8fafc; }
-        .customer-item:last-child { border-bottom: none; }
         .customer-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; width: 100%; }
         .customer-name { font-weight: 800; color: #1e293b; font-size: 15px; margin-bottom: 2px; }
         .customer-phone { color: #64748b; font-size: 13px; display: flex; align-items: center; gap: 4px; }
@@ -149,8 +191,6 @@
         .btn-settle { background: #2563eb; color: white; }
         .btn-delete { background: #ef4444; color: white; }
         .btn-edit { background: #f59e0b; color: white; }
-        
-        .work-type-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f8fafc; border-radius: 10px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 14px; color: #334155; }
     </style>
 </head>
 <body>
@@ -186,15 +226,19 @@
                         <label>📅 تاریخ</label>
                         <div class="input-wrapper">
                             <input type="text" id="date" required readonly>
-                            <button type="button" class="cal-btn" onclick="APP.showCal('date')">📅</button>
-                            <button type="button" class="voice-btn" onclick="APP.startVoice('date')">🎤</button>
+                            <div class="button-group">
+                                <button type="button" class="cal-btn" onclick="APP.showCal('date')">📅</button>
+                                <button type="button" class="voice-btn" onclick="APP.startVoice('date')">🎤</button>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>👤 نام مشتری</label>
                         <div class="input-wrapper">
                             <input type="text" id="customerName" required>
-                            <button type="button" class="voice-btn" onclick="APP.startVoice('customerName')">🎤</button>
+                            <div class="button-group single">
+                                <button type="button" class="voice-btn" onclick="APP.startVoice('customerName')">🎤</button>
+                            </div>
                         </div>
                         <div id="customerSuggestions" class="autocomplete-suggestions hidden"></div>
                     </div>
@@ -202,23 +246,25 @@
                         <label>📞 شماره تلفن</label>
                         <div class="input-wrapper">
                             <input type="tel" id="phone" required maxlength="11" pattern="09[0-9]{9}">
-                            <button type="button" class="voice-btn" onclick="APP.startVoice('phone')">🎤</button>
+                            <div class="button-group single">
+                                <button type="button" class="voice-btn" onclick="APP.startVoice('phone')">🎤</button>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>🔧 نوع کار</label>
-                        <select id="workType" required></select>
-                        <div class="add-work-type">
-                            <input type="text" id="newWorkType">
-                            <button type="button" onclick="APP.addWorkType()">➕ افزودن</button>
+                        <div class="custom-select-trigger input-wrapper" onclick="APP.openWorkTypeModal()">
+                            <span id="workTypeDisplay" style="padding-left: 15px; color: #94a3b8;">انتخاب کنید...</span>
+                            <input type="hidden" id="workType" required>
                         </div>
-                        <div id="workTypesList"></div>
                     </div>
                     <div class="form-group">
                         <label>💰 مبلغ (تومان)</label>
                         <div class="input-wrapper">
                             <input type="text" id="amount" required oninput="APP.formatAmount(this);APP.calcRemaining()">
-                            <button type="button" class="voice-btn" onclick="APP.startVoice('amount')">🎤</button>
+                            <div class="button-group single">
+                                <button type="button" class="voice-btn" onclick="APP.startVoice('amount')">🎤</button>
+                            </div>
                         </div>
                     </div>
                     <div class="form-group">
@@ -235,7 +281,9 @@
                             <label style="color: #dc2626; margin-bottom: 8px; display: block;">📆 تاریخ سررسید</label>
                             <div class="input-wrapper">
                                 <input type="text" id="dueDateDisplay" readonly>
-                                <button type="button" class="cal-btn" onclick="APP.showCal('dueDate')">📅</button>
+                                <div class="button-group single">
+                                    <button type="button" class="cal-btn" onclick="APP.showCal('dueDate')">📅</button>
+                                </div>
                             </div>
                             <input type="hidden" id="dueDate">
                             <p style="font-size: 12px; color: #dc2626; margin-top: 8px;">⏰ هشدار در ساعت ۷ صبح روز سررسید</p>
@@ -244,7 +292,9 @@
                             <label style="color: #92400e; font-weight: bold; margin-bottom: 8px; display: block;">💵 مبلغ پرداخت شده</label>
                             <div class="input-wrapper" style="margin-bottom: 10px;">
                                 <input type="text" id="paidAmount" oninput="APP.formatAmount(this);APP.calcRemaining()">
-                                <button type="button" class="voice-btn" onclick="APP.startVoice('paidAmount')">🎤</button>
+                                <div class="button-group single">
+                                    <button type="button" class="voice-btn" onclick="APP.startVoice('paidAmount')">🎤</button>
+                                </div>
                             </div>
                             <label style="color: #92400e; font-weight: bold; margin-bottom: 8px; display: block;">💰 مبلغ باقیمانده (بدهی)</label>
                             <input type="text" id="remainingAmount" readonly style="background: #f1f5f9; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; width: 100%;">
@@ -297,7 +347,9 @@
                     <label style="font-weight: bold; color: #854d0e; margin-bottom: 8px; display: block;">📝 یادداشت</label>
                     <div class="input-wrapper">
                         <textarea id="customerNote" placeholder="یادداشت..."></textarea>
-                        <button type="button" class="voice-btn" onclick="APP.startVoice('customerNote')">🎤</button>
+                        <div class="button-group single">
+                            <button type="button" class="voice-btn" onclick="APP.startVoice('customerNote')">🎤</button>
+                        </div>
                     </div>
                     <button class="btn btn-primary" style="margin-top: 10px;" onclick="APP.saveNote()">💾 ذخیره یادداشت</button>
                 </div>
@@ -308,6 +360,20 @@
     </div>
 
     <div class="toast" id="toast"></div>
+
+    <div class="modal" id="workTypeModal">
+        <div class="modal-content">
+            <div class="modal-header">🔧 انتخاب نوع کار</div>
+            <div class="add-new-type-wrapper">
+                <input type="text" id="newWorkTypeInModal" class="add-new-type-input" placeholder="نوع کار جدید...">
+                <button onclick="APP.addWorkTypeFromModal()" class="add-new-type-btn">افزودن</button>
+            </div>
+            <div id="workTypeListInModal" class="work-type-modal-list"></div>
+            <div class="modal-actions">
+                <button class="btn-close" onclick="APP.closeModal('workTypeModal')">بستن</button>
+            </div>
+        </div>
+    </div>
 
     <div class="modal" id="deleteModal">
         <div class="modal-content">
@@ -435,7 +501,6 @@ const APP = (function() {
     function fmtDate(y,m,d){return `${d} ${pMonths[m-1]} ${y}`}
     function fmt(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
     
-    // --- Alarm Sound ---
     function playAlarmSound() {
         if (window.AudioContext || window.webkitAudioContext) {
             try {
@@ -466,15 +531,59 @@ const APP = (function() {
 
     function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
 
-    function loadTypes(){const s=localStorage.getItem('workTypes');if(s)try{workTypes=JSON.parse(s)}catch(e){}updateTypeDropdown()}
+    function loadTypes(){const s=localStorage.getItem('workTypes');if(s)try{workTypes=JSON.parse(s)}catch(e){}}
     function saveTypes(){localStorage.setItem('workTypes',JSON.stringify(workTypes))}
-    function updateTypeDropdown(){const s=document.getElementById('workType');if(!s)return;const v=s.value;s.innerHTML='<option value="">انتخاب کنید...</option>';workTypes.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;s.appendChild(o)});if(v&&workTypes.includes(v))s.value=v;const c=document.getElementById('workTypesList');if(!c)return;c.innerHTML='';workTypes.forEach((t,i)=>{const d=document.createElement('div');d.className='work-type-item';d.innerHTML=`<span>${t}</span>`;const b=document.createElement('button');b.className='btn-small btn-delete';b.textContent='🗑️';b.onclick=()=>deleteType(i);d.appendChild(b);c.appendChild(d)})}
-    function deleteType(i){if(workTypes.length<=1){toast('⚠️ حداقل یک نوع کار باید باقی بماند');return}if(confirm(`آیا از حذف "${workTypes[i]}" مطمئن هستید؟`)){workTypes.splice(i,1);saveTypes();updateTypeDropdown();toast('✅ نوع کار حذف شد')}}
+    
+    // --- New Work Type Logic (Drawer) ---
+    function openWorkTypeModal() {
+        const list = document.getElementById('workTypeListInModal');
+        list.innerHTML = '';
+        workTypes.forEach((t, i) => {
+            const row = document.createElement('div');
+            row.className = 'work-type-row';
+            row.innerHTML = `
+                <span class="work-type-label" onclick="APP.selectWorkType('${t}')">${t}</span>
+                <button class="work-type-delete" onclick="APP.deleteType(${i})">🗑️</button>
+            `;
+            list.appendChild(row);
+        });
+        document.getElementById('workTypeModal').classList.add('show');
+    }
+    
+    function selectWorkType(val) {
+        document.getElementById('workType').value = val;
+        const display = document.getElementById('workTypeDisplay');
+        display.textContent = val;
+        display.style.color = '#1e293b';
+        closeModal('workTypeModal');
+    }
+    
+    function addWorkTypeFromModal() {
+        const inp = document.getElementById('newWorkTypeInModal');
+        const nt = inp.value.trim();
+        if(!nt){toast('⚠️ لطفاً نوع کار را وارد کنید');return}
+        if(workTypes.includes(nt)){toast('⚠️ تکراری است');return}
+        workTypes.push(nt);
+        saveTypes();
+        inp.value = '';
+        openWorkTypeModal(); // Re-render list
+        toast('✅ اضافه شد');
+    }
+
+    function deleteType(i){
+        if(workTypes.length<=1){toast('⚠️ حداقل یک مورد لازم است');return}
+        if(confirm(`حذف "${workTypes[i]}"؟`)){
+            workTypes.splice(i,1);
+            saveTypes();
+            openWorkTypeModal();
+            toast('✅ حذف شد');
+        }
+    }
 
     // --- Voice Logic ---
     if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){const S=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new S();recognition.lang='fa-IR';recognition.continuous=false;recognition.interimResults=false;recognition.onresult=e=>{const t=e.results[0][0].transcript;handleVoice(t)};recognition.onerror=()=>{toast('❌ خطا در تشخیص صدا');stopVoice()};recognition.onend=()=>stopVoice()}
     function startVoice(f){if(!recognition){toast('⚠️ مرورگر شما از ورودی صوتی پشتیبانی نمی‌کند');return}voiceField=f;try{recognition.start();toast('🎤 در حال گوش دادن...')}catch(e){stopVoice()}}
-    function stopVoice(){if(recognition)try{recognition.stop()}catch(e){}document.querySelectorAll('.voice-btn').forEach(b=>{b.classList.remove('listening');b.textContent='🎤'})}
+    function stopVoice(){if(recognition)try{recognition.stop()}catch(e){}document.querySelectorAll('.voice-btn').forEach(b=>{b.classList.remove('listening')})}
     function handleVoice(t){if(!voiceField)return;const f=document.getElementById(voiceField);if(!f)return;let c=t.trim();if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));if(voiceField==='amount'||voiceField==='paidAmount'){c=c.replace(/تومان|ریال|میلیون|هزار/g,'').trim().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));if(t.includes('میلیون')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000000).toString()}else if(t.includes('هزار')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000).toString()}}f.value=c;if(voiceField==='amount'||voiceField==='paidAmount'){formatAmount(f);calcRemaining()}toast(`✅ "${c}" ثبت شد`);stopVoice()}
 
     function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
@@ -562,7 +671,6 @@ const APP = (function() {
     function selectDate(d) {
         const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
         const gDateObj = toGregorian(window.dpCurY, window.dpCurM, d);
-        // FIX: Manually construct YYYY-MM-DD to avoid timezone shift
         const gy = gDateObj.getFullYear();
         const gm = String(gDateObj.getMonth() + 1).padStart(2, '0');
         const gd = String(gDateObj.getDate()).padStart(2, '0');
@@ -582,16 +690,15 @@ const APP = (function() {
     function selectPayment(v,e){document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected');document.getElementById('paymentStatus').value=v;document.getElementById('dueDateSection').classList.remove('show');document.getElementById('partialPaymentSection').classList.remove('show');document.getElementById('dueDate').value='';document.getElementById('dueDateDisplay').value='';document.getElementById('paidAmount').value='';document.getElementById('remainingAmount').value='';if(v==='چک')document.getElementById('dueDateSection').classList.add('show');else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show')}
 
     async function submitWork(e){e.preventDefault();const ps=document.getElementById('paymentStatus').value;if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}const ta=document.getElementById('amount').value.replace(/,/g,'');let ada=ta,pa=0;if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}const w={date:document.getElementById('date').value,customerName:document.getElementById('customerName').value,customerPhone:document.getElementById('phone').value,workType:document.getElementById('workType').value,amount:ta,paymentStatus:ps,dueDate:ps==='چک'?document.getElementById('dueDate').value:null,paidAmount:ps==='نسیه'?pa.toString():null,debtAmount:(ps==='نسیه'||ps==='چک')?ada.toString():null,isSettlement:false};try{const sb=document.getElementById('submitBtn');sb.disabled=true;sb.textContent='⏳ در حال ثبت...';if(editWorkId!==null){await updateWork(editWorkId,w);editWorkId=null;toast('✅ کار ویرایش شد');sb.textContent='✅ ثبت'}else{await addWork(w);toast('✅ کار جدید ثبت شد')}const cd=await getCust(w.customerPhone);await saveCust(w.customerPhone,w.customerName,cd?.note||'',cd?.phones);await updateStats();await setupAuto();
-    // --- تغییر: خالی کردن کامل فرم و تاریخ ---
     document.getElementById('workForm').reset();
     document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
     document.getElementById('dueDateSection').classList.remove('show');
     document.getElementById('partialPaymentSection').classList.remove('show');
     document.getElementById('paymentStatus').value='';
-    document.getElementById('date').value=''; // خالی کردن فیلد تاریخ
+    document.getElementById('date').value='';
+    document.getElementById('workTypeDisplay').textContent = 'انتخاب کنید...';
+    document.getElementById('workTypeDisplay').style.color = '#94a3b8';
     sb.disabled=false;sb.textContent='✅ ثبت'}catch(er){console.error(er);toast('❌ خطا در ثبت اطلاعات');document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent=editWorkId!==null?'✏️ ویرایش':'✅ ثبت'}}
-
-    function addWorkType(){const inp=document.getElementById('newWorkType'),nt=inp.value.trim();if(!nt){toast('⚠️ لطفاً نوع کار را وارد کنید');return}if(workTypes.includes(nt)){toast('⚠️ این نوع کار قبلاً اضافه شده است');return}workTypes.push(nt);saveTypes();updateTypeDropdown();document.getElementById('workType').value=nt;inp.value='';toast('✅ نوع کار جدید اضافه شد')}
 
     async function updateStats(){try{const ws=await getWorks(),up=new Set(ws.map(w=>w.customerPhone));document.getElementById('totalCustomers').textContent=fmt(up.size);
     const tr=ws.reduce((s,w)=>{
@@ -623,7 +730,13 @@ const APP = (function() {
 
     async function saveNote(){if(!currentCustomerPhone)return;try{const nt=document.getElementById('customerNote').value,ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);if(cw){const cd=await getCust(currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,nt,cd?.phones);toast('✅ یادداشت ذخیره شد');await showCustomerDetail(currentCustomerPhone);await renderCustomers()}}catch(e){console.error(e);toast('❌ خطا در ذخیره یادداشت')}}
 
-    async function editWork(id){try{editWorkId=id;const w=await getWork(id);if(!w)return;showPage('add-work');document.getElementById('date').value=w.date;document.getElementById('customerName').value=w.customerName;document.getElementById('phone').value=w.customerPhone;document.getElementById('workType').value=w.workType;document.getElementById('amount').value=w.amount;document.querySelectorAll('#page-add-work .payment-option').forEach(o=>{if(o.textContent.includes(w.paymentStatus))o.classList.add('selected');else o.classList.remove('selected')});document.getElementById('paymentStatus').value=w.paymentStatus;
+    async function editWork(id){try{editWorkId=id;const w=await getWork(id);if(!w)return;showPage('add-work');document.getElementById('date').value=w.date;document.getElementById('customerName').value=w.customerName;document.getElementById('phone').value=w.customerPhone;
+    // Update for new select style
+    document.getElementById('workType').value=w.workType;
+    document.getElementById('workTypeDisplay').textContent=w.workType;
+    document.getElementById('workTypeDisplay').style.color='#1e293b';
+    
+    document.getElementById('amount').value=w.amount;document.querySelectorAll('#page-add-work .payment-option').forEach(o=>{if(o.textContent.includes(w.paymentStatus))o.classList.add('selected');else o.classList.remove('selected')});document.getElementById('paymentStatus').value=w.paymentStatus;
     if(w.paymentStatus==='چک'&&w.dueDate){
         document.getElementById('dueDateSection').classList.add('show');
         const parts = w.dueDate.split('-');
@@ -672,20 +785,18 @@ const APP = (function() {
 
     async function exportData(){try{const ws=await getWorks(),t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.getAll();r.onsuccess=()=>{const cs=r.result,d={version:3,exportDate:new Date().toISOString(),workTypes,works:ws.map(w=>{const{id,...rest}=w;return rest}),customers:cs},b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast(`✅ بکاپ ${ws.length} کار ذخیره شد`)}}catch(e){console.error(e);toast('❌ خطا در ذخیره بکاپ')}}
 
-    async function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async function(ev){try{const d=JSON.parse(ev.target.result);if(!d.works||!Array.isArray(d.works)){toast('❌ فایل بکاپ نامعتبر است');return}if(!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: داده‌های فعلی حذف خواهند شد!`))return;const t=db.transaction([WORKS,CUSTOMERS],'readwrite'),ws=t.objectStore(WORKS),cs=t.objectStore(CUSTOMERS);ws.clear();cs.clear();if(d.workTypes&&Array.isArray(d.workTypes)){workTypes=d.workTypes;saveTypes();updateTypeDropdown()}for(const w of d.works)await addWork(w);if(d.customers&&Array.isArray(d.customers))for(const c of d.customers)await saveCust(c.phone,c.name,c.note,c.phones);await updateStats();await setupAuto();toast(`✅ ${d.works.length} کار بازگردانی شد`)}catch(er){console.error(er);toast('❌ خطا در بازگردانی بکاپ')}};r.readAsText(f);e.target.value=''}
+    async function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async function(ev){try{const d=JSON.parse(ev.target.result);if(!d.works||!Array.isArray(d.works)){toast('❌ فایل بکاپ نامعتبر است');return}if(!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: داده‌های فعلی حذف خواهند شد!`))return;const t=db.transaction([WORKS,CUSTOMERS],'readwrite'),ws=t.objectStore(WORKS),cs=t.objectStore(CUSTOMERS);ws.clear();cs.clear();if(d.workTypes&&Array.isArray(d.workTypes)){workTypes=d.workTypes;saveTypes()}for(const w of d.works)await addWork(w);if(d.customers&&Array.isArray(d.customers))for(const c of d.customers)await saveCust(c.phone,c.name,c.note,c.phones);await updateStats();await setupAuto();toast(`✅ ${d.works.length} کار بازگردانی شد`)}catch(er){console.error(er);toast('❌ خطا در بازگردانی بکاپ')}};r.readAsText(f);e.target.value=''}
 
     function showPage(pg){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));const p=document.getElementById(`page-${pg}`);if(p)p.classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>{if(b.textContent.includes('ثبت')&&pg==='add-work')b.classList.add('active');else if(b.textContent.includes('مشتریان')&&pg==='customers')b.classList.add('active');else if(b.textContent.includes('بدهکاران')&&pg==='debtors')b.classList.add('active')});if(pg==='customers')renderCustomers();else if(pg==='debtors')renderDebtors()}
 
     function closeModal(id){document.getElementById(id).classList.remove('show')}
 
     async function init(){try{console.log('🚀 Initializing...');await initDB();console.log('✅ DB ready');loadTypes();console.log('✅ Types loaded');await updateStats();console.log('✅ Stats updated');
-    // --- دیگر تاریخ پیش‌فرض را پر نمی‌کنیم ---
     console.log('✅ Date set to empty');
     await setupAuto();console.log('✅ Auto setup');if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();checkAlarms();setInterval(checkAlarms,60*60*1000);console.log('✅ Alarms setup');console.log('✅✅✅ App ready!');
-    // پیام شروع برنامه حذف شد
     }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
-    return{init,showPage,exportData,importData,submitWork,addWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal}
+    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal}
 })();
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
