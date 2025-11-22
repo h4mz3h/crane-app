@@ -5,129 +5,153 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.5)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.6)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
         .container { max-width: 600px; margin: 0 auto; }
-        .header { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); margin-bottom: 20px; text-align: center; }
-        .header h1 { color: #2563eb; font-size: 20px; margin-bottom: 5px; line-height: 1.4; }
-        .header p { color: #64748b; font-size: 14px; }
-        .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
-        .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 10px; text-align: center; }
+        
+        /* Header Styling */
+        .header { background: white; padding: 20px 15px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 20px; text-align: center; }
+        .header h1 { color: #2563eb; font-size: 18px; margin-bottom: 5px; line-height: 1.4; font-weight: 800; }
+        .header p { color: #64748b; font-size: 13px; margin-bottom: 15px; }
+        
+        /* Stats Grid (2x2 Layout) */
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 10px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .stat-box.debt { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
-        .stat-box .label { font-size: 12px; opacity: 0.9; margin-bottom: 5px; }
-        .stat-box .value { font-size: 20px; font-weight: bold; }
-        .navigation { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
-        .nav-btn { padding: 12px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; color: white; background: rgba(255,255,255,0.2); }
-        .nav-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-2px); }
-        .nav-btn.active { background: white; color: #2563eb; }
-        .page { display: none; }
+        .stat-box .label { font-size: 11px; opacity: 0.9; margin-bottom: 5px; white-space: nowrap; }
+        .stat-box .value { font-size: 18px; font-weight: bold; }
+        
+        /* Navigation Buttons (Horizontal Row) */
+        .navigation { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; margin-bottom: 15px; }
+        .nav-btn { flex: 1; padding: 12px 5px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-family: inherit; color: #64748b; background: white; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .nav-btn span { font-size: 20px; margin-bottom: 2px; } /* Icon size */
+        .nav-btn:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-2px); }
+        .nav-btn.active { background: #eff6ff; color: #2563eb; border-color: #2563eb; box-shadow: 0 4px 6px rgba(37,99,235,0.1); }
+        
+        .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .btn-action { padding: 12px; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-export { background: #10b981; }
+        .btn-import { background: #f59e0b; }
+        
+        /* Common Page Styles */
+        .page { display: none; animation: fadeIn 0.3s ease; }
         .page.active { display: block; }
-        .form-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); margin-bottom: 20px; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .form-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; position: relative; }
-        .form-group label { display: block; margin-bottom: 5px; color: #334155; font-weight: 600; font-size: 14px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #334155; font-weight: 700; font-size: 13px; }
         .input-wrapper { display: flex; gap: 8px; align-items: center; }
-        .form-group input, .form-group select, .form-group textarea { flex: 1; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; font-family: inherit; transition: all 0.3s; }
+        .form-group input, .form-group select, .form-group textarea { flex: 1; padding: 14px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 16px; font-family: inherit; transition: all 0.3s; background: #f8fafc; }
         .form-group textarea { min-height: 80px; resize: vertical; }
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        .voice-btn, .cal-btn { width: 45px; height: 45px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; cursor: pointer; font-size: 18px; transition: transform 0.2s; flex-shrink: 0; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        
+        .voice-btn, .cal-btn { width: 48px; height: 48px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; cursor: pointer; font-size: 20px; transition: transform 0.2s; flex-shrink: 0; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3); }
         .voice-btn:active, .cal-btn:active { transform: scale(0.95); }
         .voice-btn.listening { animation: pulse 1.5s infinite; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        
         .payment-status { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
-        .payment-option { padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; font-size: 14px; background: white; }
+        .payment-option { padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s; font-size: 13px; background: white; font-weight: 600; color: #64748b; }
         .payment-option:hover { background: #f1f5f9; }
-        .payment-option.selected { background: #dbeafe; border-color: #2563eb; color: #2563eb; font-weight: bold; }
+        .payment-option.selected { background: #eff6ff; border-color: #2563eb; color: #2563eb; font-weight: bold; }
         .payment-option.debt { grid-column: span 2; }
-        .due-date-section, .partial-payment { display: none; margin-top: 10px; padding: 15px; background: #fef2f2; border-radius: 8px; border: 2px solid #fecaca; }
-        .partial-payment { background: #fef3c7; border-color: #fbbf24; }
-        .due-date-section.show, .partial-payment.show { display: block; }
-        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        
+        .due-date-section, .partial-payment { display: none; margin-top: 15px; padding: 15px; background: #fef2f2; border-radius: 12px; border: 2px solid #fecaca; }
+        .partial-payment { background: #fffbeb; border-color: #fcd34d; }
+        .due-date-section.show, .partial-payment.show { display: block; animation: slideDown 0.3s ease; }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        
         .add-work-type { display: flex; gap: 8px; margin-top: 8px; }
-        .add-work-type input { flex: 1; padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px; }
-        .add-work-type button { padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
-        .customer-list { background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
-        .customer-item { padding: 15px 20px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+        .add-work-type input { flex: 1; padding: 10px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
+        .add-work-type button { padding: 10px 15px; background: #10b981; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        
+        /* Customer List Styles */
+        .customer-list { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
+        .customer-item { padding: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
         .customer-item:hover { background: #f8fafc; }
         .customer-item:last-child { border-bottom: none; }
-        .customer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .customer-name { font-weight: bold; color: #1e293b; font-size: 16px; }
-        .customer-phone { color: #64748b; font-size: 14px; margin-top: 3px; }
-        .customer-stats { display: flex; gap: 15px; font-size: 13px; color: #64748b; margin-top: 8px; }
-        .customer-stat { display: flex; align-items: center; gap: 5px; }
-        .debt-badge { background: #fee2e2; color: #dc2626; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
-        .debt-item { padding: 15px 20px; border-bottom: 1px solid #f1f5f9; background: white; }
-        .debt-item:last-child { border-bottom: none; }
-        .debt-item.overdue { background: #fef2f2; border-right: 4px solid #dc2626; }
-        .debt-item.upcoming { background: #fffbeb; border-right: 4px solid #f59e0b; }
-        .work-history-item { padding: 15px; background: #f8fafc; border-radius: 8px; margin-bottom: 10px; }
-        .work-history-item.settlement { background: #d1fae5; border: 2px solid #10b981; }
-        .work-history-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; }
-        .work-date { color: #2563eb; font-weight: bold; font-size: 14px; }
-        .work-amount { color: #059669; font-weight: bold; }
-        .work-details { display: grid; gap: 5px; font-size: 14px; color: #64748b; }
-        .payment-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-top: 5px; }
+        .customer-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; width: 100%; }
+        .customer-name { font-weight: 800; color: #1e293b; font-size: 15px; margin-bottom: 2px; }
+        .customer-phone { color: #64748b; font-size: 13px; display: flex; align-items: center; gap: 4px; }
+        .customer-stats { display: flex; gap: 10px; font-size: 12px; color: #64748b; margin-top: 8px; background: #f8fafc; padding: 6px 10px; border-radius: 8px; width: fit-content; }
+        .debt-badge { background: #fee2e2; color: #dc2626; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; display: inline-block; }
+        
+        .debt-item { padding: 15px; border-bottom: 1px solid #f1f5f9; background: white; position: relative; overflow: hidden; }
+        .debt-item.overdue::before { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 4px; background: #ef4444; }
+        .debt-item.upcoming::before { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 4px; background: #f59e0b; }
+        
+        .work-history-item { padding: 15px; background: #f8fafc; border-radius: 12px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
+        .work-history-item.settlement { background: #ecfdf5; border-color: #d1fae5; }
+        .work-history-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+        .work-date { color: #334155; font-weight: bold; font-size: 14px; background: #e2e8f0; padding: 2px 8px; border-radius: 6px; }
+        .work-amount { color: #059669; font-weight: 800; font-size: 15px; }
+        .work-details { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: #64748b; }
+        
+        .payment-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-top: 5px; width: fit-content; }
         .payment-badge.paid { background: #d1fae5; color: #059669; }
         .payment-badge.debt { background: #fee2e2; color: #dc2626; }
         .payment-badge.check { background: #fef3c7; color: #d97706; }
         .payment-badge.settlement { background: #10b981; color: white; }
-        .back-btn { padding: 10px 20px; background: #94a3b8; color: white; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 15px; font-weight: bold; font-family: inherit; }
-        .customer-notes { background: #fefce8; padding: 15px; border-radius: 8px; margin-top: 15px; border: 2px solid #fef08a; }
-        .customer-notes textarea { width: 100%; min-height: 60px; border: 2px solid #e2e8f0; border-radius: 6px; padding: 10px; font-family: inherit; resize: vertical; }
-        .phones-section { background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #bae6fd; }
-        .phones-section h4 { color: #0c4a6e; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-        .phone-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: white; border-radius: 5px; margin-bottom: 5px; }
-        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: #1e293b; color: white; padding: 12px 24px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: transform 0.3s; z-index: 1000; max-width: 90%; }
+        
+        .back-btn { padding: 10px 20px; background: #cbd5e1; color: #334155; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 15px; font-weight: bold; font-family: inherit; display: flex; align-items: center; gap: 5px; }
+        .customer-notes { background: #fffbeb; padding: 15px; border-radius: 12px; margin-top: 15px; border: 2px solid #fcd34d; }
+        .phones-section { background: #f0f9ff; padding: 15px; border-radius: 12px; margin: 15px 0; border: 2px solid #bae6fd; }
+        .phones-section h4 { color: #0369a1; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+        .phone-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: white; border-radius: 8px; margin-bottom: 5px; font-weight: 500; color: #334155; }
+        
+        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: #1e293b; color: white; padding: 14px 24px; border-radius: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999; max-width: 90%; font-size: 14px; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
         .toast.show { transform: translateX(-50%) translateY(0); }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
-        .modal.show { display: flex; }
-        .modal-content { background: white; padding: 25px; border-radius: 15px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto; }
-        .modal-header { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 15px; text-align: center; }
-        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
-        .empty-state { text-align: center; padding: 40px 20px; color: #94a3b8; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(3px); }
+        .modal.show { display: flex; animation: fadeIn 0.2s; }
+        .modal-content { background: white; padding: 25px; border-radius: 24px; max-width: 350px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); transform: scale(0.9); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        @keyframes popIn { to { transform: scale(1); } }
+        .modal-header { font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 20px; text-align: center; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 25px; }
+        
+        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .search-box { padding: 15px; border-bottom: 2px solid #f1f5f9; }
-        .search-box input { width: 100%; padding: 10px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
+        .search-box input { width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; background: #f8fafc; }
         .section-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .hidden { display: none !important; }
         
-        .datepicker-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center; padding: 20px; opacity: 0; transition: opacity 0.3s; }
+        /* Calendar Styles */
+        .datepicker-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center; padding: 20px; opacity: 0; transition: opacity 0.3s; backdrop-filter: blur(2px); }
         .datepicker-modal.show { display: flex; opacity: 1; }
-        .datepicker-content { background: white; padding: 20px; border-radius: 15px; max-width: 350px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
-        .datepicker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #e2e8f0; }
-        .datepicker-header button { width: 36px; height: 36px; border: none; background: #eff6ff; color: #2563eb; border-radius: 8px; font-size: 18px; cursor: pointer; transition: all 0.2s; font-weight: bold; }
-        .datepicker-header button:hover { background: #2563eb; color: white; }
-        .datepicker-header span { font-weight: bold; color: #1e293b; font-size: 16px; }
-        .datepicker-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 5px; text-align: center; }
-        .datepicker-weekdays span { font-size: 12px; color: #64748b; font-weight: bold; }
-        .datepicker-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 15px; }
-        .datepicker-days button { padding: 8px; border: 1px solid #e2e8f0; background: white; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; height: 40px; }
-        .datepicker-days button:hover { background: #dbeafe; border-color: #2563eb; color: #2563eb; }
-        .datepicker-days button.today { border-color: #2563eb; color: #2563eb; font-weight: bold; }
-        .datepicker-days button.selected { background: #2563eb; color: white; border-color: #2563eb; }
-        .btn-close { width: 100%; padding: 12px; border: none; background: #94a3b8; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: inherit; }
+        .datepicker-content { background: white; padding: 20px; border-radius: 24px; max-width: 340px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+        .datepicker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0; }
+        .datepicker-header button { width: 40px; height: 40px; border: none; background: #f1f5f9; color: #334155; border-radius: 12px; font-size: 18px; cursor: pointer; transition: all 0.2s; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+        .datepicker-header button:hover { background: #e2e8f0; }
+        .datepicker-header span { font-weight: 800; color: #1e293b; font-size: 16px; }
+        .datepicker-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 10px; text-align: center; }
+        .datepicker-weekdays span { font-size: 12px; color: #94a3b8; font-weight: bold; }
+        .datepicker-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 20px; }
+        .datepicker-days button { padding: 0; border: none; background: white; border-radius: 10px; cursor: pointer; font-size: 14px; transition: all 0.2s; height: 40px; width: 100%; display: flex; align-items: center; justify-content: center; color: #334155; font-weight: 500; }
+        .datepicker-days button:hover { background: #f1f5f9; color: #2563eb; }
+        .datepicker-days button.today { border: 2px solid #2563eb; color: #2563eb; font-weight: bold; }
+        .datepicker-days button.selected { background: #2563eb; color: white; font-weight: bold; border: none; box-shadow: 0 4px 10px rgba(37,99,235,0.3); }
+        .btn-close { width: 100%; padding: 14px; border: none; background: #f1f5f9; color: #475569; border-radius: 12px; font-weight: bold; cursor: pointer; font-family: inherit; transition: all 0.2s; }
+        .btn-close:hover { background: #e2e8f0; }
         
-        .autocomplete-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .autocomplete-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; }
+        .autocomplete-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+        .autocomplete-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; }
         .autocomplete-item:hover { background: #f8fafc; }
         .autocomplete-item strong { color: #2563eb; }
-        .btn-small { padding: 6px 12px; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; transition: all 0.2s; font-family: inherit; font-weight: bold; }
+        .btn-small { padding: 6px 12px; border: none; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; font-family: inherit; font-weight: bold; }
         .btn-call { background: #10b981; color: white; }
         .btn-settle { background: #2563eb; color: white; }
         .btn-delete { background: #ef4444; color: white; }
         .btn-edit { background: #f59e0b; color: white; }
-        .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .btn-action { padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; color: white; }
-        .btn-export { background: #10b981; }
-        .btn-import { background: #f59e0b; }
-        .work-type-item { display: flex; align-items: center; justify-content: space-between; padding: 8px; background: #f1f5f9; border-radius: 5px; margin-bottom: 5px; }
-        @media (max-width: 480px) {
-            .stats, .navigation, .payment-status { grid-template-columns: 1fr; }
-            .payment-option.debt { grid-column: span 1; }
-        }
+        
+        .work-type-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f8fafc; border-radius: 10px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 14px; color: #334155; }
     </style>
 </head>
 <body>
@@ -135,17 +159,20 @@
         <div class="header">
             <h1>🏗️ مدیریت مشتریان - جرثقیل حسین کُرد</h1>
             <p>ثبت و پیگیری مشتریان و بدهی‌ها</p>
+            
             <div class="stats">
                 <div class="stat-box"><div class="label">👥 تعداد مشتریان</div><div class="value" id="totalCustomers">0</div></div>
                 <div class="stat-box"><div class="label">💰 مجموع درآمد</div><div class="value" id="totalRevenue">0</div></div>
                 <div class="stat-box debt"><div class="label">🔴 بدهی‌ها</div><div class="value" id="totalDebt">0</div></div>
                 <div class="stat-box debt"><div class="label">👥 بدهکاران</div><div class="value" id="debtorCount">0</div></div>
             </div>
+
             <div class="navigation">
-                <button class="nav-btn active" onclick="APP.showPage('add-work')">➕ ثبت کار</button>
-                <button class="nav-btn" onclick="APP.showPage('customers')">👥 مشتریان</button>
-                <button class="nav-btn" onclick="APP.showPage('debtors')">💰 بدهکاران</button>
+                <button class="nav-btn active" onclick="APP.showPage('add-work')"><span>➕</span>ثبت کار</button>
+                <button class="nav-btn" onclick="APP.showPage('customers')"><span>👥</span>مشتریان</button>
+                <button class="nav-btn" onclick="APP.showPage('debtors')"><span>💰</span>بدهکاران</button>
             </div>
+
             <div class="action-buttons">
                 <button class="btn-action btn-export" onclick="APP.exportData()">📥 دریافت بکاپ</button>
                 <button class="btn-action btn-import" onclick="document.getElementById('importFile').click()">📤 بازگردانی</button>
@@ -183,7 +210,7 @@
                         <label>🔧 نوع کار</label>
                         <select id="workType" required></select>
                         <div class="add-work-type">
-                            <input type="text" id="newWorkType" placeholder="">
+                            <input type="text" id="newWorkType" placeholder="نوع کار جدید...">
                             <button type="button" onclick="APP.addWorkType()">➕ افزودن</button>
                         </div>
                         <div id="workTypesList"></div>
@@ -233,7 +260,7 @@
         <div id="page-customers" class="page">
             <div class="customer-list">
                 <div class="section-header"><span>👥 لیست مشتریان</span><span id="customerListCount">0 مورد</span></div>
-                <div class="search-box"><input type="text" id="customerSearch" placeholder="🔍 جستجو بر اساس نام یا شماره..." oninput="APP.renderCustomers()"></div>
+                <div class="search-box"><input type="text" id="customerSearch" placeholder="🔍 جستجو..." oninput="APP.renderCustomers()"></div>
                 <div id="customersList"></div>
             </div>
         </div>
@@ -270,7 +297,7 @@
                 <div class="customer-notes">
                     <label style="font-weight: bold; color: #854d0e; margin-bottom: 8px; display: block;">📝 یادداشت</label>
                     <div class="input-wrapper">
-                        <textarea id="customerNote" placeholder="مثال: مشتری خوش‌حساب..."></textarea>
+                        <textarea id="customerNote" placeholder="یادداشت..."></textarea>
                         <button type="button" class="voice-btn" onclick="APP.startVoice('customerNote')">🎤</button>
                     </div>
                     <button class="btn btn-primary" style="margin-top: 10px;" onclick="APP.saveNote()">💾 ذخیره یادداشت</button>
