@@ -1,0 +1,1538 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="مدیریت مشتریان جرثقیل">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2563eb;
+            font-size: 20px;
+            margin-bottom: 5px;
+            line-height: 1.4;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-box.debt {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .stat-box .label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .stat-box .value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .navigation {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .nav-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            color: white;
+            background: rgba(255,255,255,0.2);
+        }
+
+        .nav-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .nav-btn.active {
+            background: white;
+            color: #2563eb;
+        }
+
+        .page {
+            display: none;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        .form-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #334155;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-group textarea {
+            min-height: 80px;
+            resize: vertical;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .voice-btn {
+            width: 45px;
+            height: 45px;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .voice-btn:active {
+            transform: scale(0.95);
+        }
+
+        .voice-btn.listening {
+            animation: pulse 1.5s infinite;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .payment-status {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .payment-option {
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .payment-option:hover {
+            background: #f1f5f9;
+        }
+
+        .payment-option.selected {
+            background: #dbeafe;
+            border-color: #2563eb;
+            color: #2563eb;
+            font-weight: bold;
+        }
+
+        .payment-option.debt {
+            grid-column: span 2;
+        }
+
+        .due-date-section {
+            display: none;
+            margin-top: 10px;
+            padding: 15px;
+            background: #fef2f2;
+            border-radius: 8px;
+            border: 2px solid #fecaca;
+        }
+
+        .due-date-section.show {
+            display: block;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .add-work-type {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .add-work-type input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .add-work-type button {
+            padding: 8px 16px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .customer-list {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .customer-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .customer-item:hover {
+            background: #f8fafc;
+        }
+
+        .customer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .customer-name {
+            font-weight: bold;
+            color: #1e293b;
+            font-size: 16px;
+        }
+
+        .customer-phone {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .customer-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 13px;
+            color: #64748b;
+        }
+
+        .customer-stat {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .debt-badge {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .debt-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            background: white;
+        }
+
+        .debt-item.overdue {
+            background: #fef2f2;
+            border-right: 4px solid #dc2626;
+        }
+
+        .debt-item.upcoming {
+            background: #fffbeb;
+            border-right: 4px solid #f59e0b;
+        }
+
+        .work-history-item {
+            padding: 15px;
+            background: #f8fafc;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+
+        .work-history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 8px;
+        }
+
+        .work-date {
+            color: #2563eb;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .work-amount {
+            color: #059669;
+            font-weight: bold;
+        }
+
+        .work-details {
+            display: grid;
+            gap: 5px;
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .payment-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .payment-badge.paid {
+            background: #d1fae5;
+            color: #059669;
+        }
+
+        .payment-badge.debt {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+
+        .payment-badge.check {
+            background: #fef3c7;
+            color: #d97706;
+        }
+
+        .back-btn {
+            padding: 10px 20px;
+            background: #94a3b8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .customer-notes {
+            background: #fefce8;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border: 2px solid #fef08a;
+        }
+
+        .customer-notes textarea {
+            width: 100%;
+            min-height: 60px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 10px;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+            z-index: 1000;
+            max-width: 90%;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #94a3b8;
+        }
+
+        .search-box {
+            padding: 15px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .section-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 20px;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .report-section {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .report-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+
+        .report-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .report-item:last-child {
+            border-bottom: none;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+            font-weight: bold;
+        }
+
+        .btn-call {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-settle {
+            background: #2563eb;
+            color: white;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn-action {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            color: white;
+        }
+
+        .btn-export {
+            background: #10b981;
+        }
+
+        .btn-import {
+            background: #f59e0b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>مدیریت مشتریان - جرثقیل حسین کُرد</h1>
+            <p>ثبت و پیگیری مشتریان و بدهی‌ها</p>
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="label">تعداد مشتریان</div>
+                    <div class="value" id="totalCustomers">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">مجموع درآمد</div>
+                    <div class="value" id="totalRevenue">0</div>
+                </div>
+                <div class="stat-box debt">
+                    <div class="label">بدهی‌ها</div>
+                    <div class="value" id="totalDebt">0</div>
+                </div>
+                <div class="stat-box debt">
+                    <div class="label">بدهکاران</div>
+                    <div class="value" id="debtorCount">0</div>
+                </div>
+            </div>
+            <div class="navigation">
+                <button class="nav-btn active" onclick="showPage('add-work')">➕ ثبت کار</button>
+                <button class="nav-btn" onclick="showPage('customers')">👥 مشتریان</button>
+                <button class="nav-btn" onclick="showPage('debtors')">💰 بدهکاران</button>
+            </div>
+            <div class="action-buttons">
+                <button class="btn-action btn-export" onclick="exportData()">📥 دریافت بکاپ</button>
+                <button class="btn-action btn-import" onclick="document.getElementById('importFile').click()">📤 بازگردانی</button>
+            </div>
+            <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)">
+        </div>
+
+        <!-- Page: Add Work -->
+        <div id="page-add-work" class="page active">
+            <div class="form-card">
+                <form id="workForm">
+                    <div class="form-group">
+                        <label>📅 تاریخ</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="date" placeholder="مثال: ۱۵ آذر ۱۴۰۳" required>
+                            <button type="button" class="voice-btn" onclick="startVoiceInput('date')">🎤</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>👤 نام مشتری</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="customerName" placeholder="مثال: علی مرادی" required>
+                            <button type="button" class="voice-btn" onclick="startVoiceInput('customerName')">🎤</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>📞 شماره تلفن</label>
+                        <div class="input-wrapper">
+                            <input type="tel" id="phone" placeholder="09123456789" required>
+                            <button type="button" class="voice-btn" onclick="startVoiceInput('phone')">🎤</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>🔧 نوع کار</label>
+                        <select id="workType" required>
+                            <option value="">انتخاب کنید...</option>
+                        </select>
+                        <div class="add-work-type">
+                            <input type="text" id="newWorkType" placeholder="نوع کار جدید...">
+                            <button type="button" onclick="addNewWorkType()">➕ افزودن</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>💰 مبلغ (تومان)</label>
+                        <div class="input-wrapper">
+                            <input type="text" id="amount" placeholder="مثال: ۵۰۰۰۰۰۰" required>
+                            <button type="button" class="voice-btn" onclick="startVoiceInput('amount')">🎤</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>💳 وضعیت پرداخت</label>
+                        <div class="payment-status">
+                            <div class="payment-option" data-value="نقدی" onclick="selectPayment('نقدی')">💵 نقدی</div>
+                            <div class="payment-option" data-value="کارت به کارت" onclick="selectPayment('کارت به کارت')">💳 کارت به کارت</div>
+                            <div class="payment-option" data-value="کارتخوان" onclick="selectPayment('کارتخوان')">🏧 کارتخوان</div>
+                            <div class="payment-option" data-value="نسیه" onclick="selectPayment('نسیه')">⏳ نسیه</div>
+                            <div class="payment-option payment-option debt" data-value="چک" onclick="selectPayment('چک')">📝 چک</div>
+                        </div>
+                        <input type="hidden" id="paymentStatus" required>
+                        
+                        <div id="dueDateSection" class="due-date-section">
+                            <label style="color: #dc2626; margin-bottom: 8px; display: block;">📆 تاریخ سررسید</label>
+                            <input type="date" id="dueDate" style="width: 100%;">
+                            <p style="font-size: 12px; color: #dc2626; margin-top: 8px;">
+                                ⏰ هشدار در ساعت ۷ صبح روز سررسید
+                            </p>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">✅ ثبت کار</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Page: Customers -->
+        <div id="page-customers" class="page">
+            <div class="customer-list">
+                <div class="section-header">
+                    <span>👥 لیست مشتریان</span>
+                    <span id="customerListCount">0 مورد</span>
+                </div>
+                <div class="search-box">
+                    <input type="text" id="customerSearch" placeholder="🔍 جستجو بر اساس نام یا شماره...">
+                </div>
+                <div id="customersList"></div>
+            </div>
+        </div>
+
+        <!-- Page: Debtors -->
+        <div id="page-debtors" class="page">
+            <div class="customer-list">
+                <div class="section-header">
+                    <span>💰 بدهکاران</span>
+                    <span id="debtorListCount">0 مورد</span>
+                </div>
+                <div id="debtorsList"></div>
+            </div>
+        </div>
+
+        <!-- Page: Customer Detail -->
+        <div id="page-customer-detail" class="page">
+            <button class="back-btn" onclick="showPage('customers')">🔙 بازگشت</button>
+            
+            <div class="form-card">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <h2 id="detailCustomerName" style="color: #2563eb; margin-bottom: 5px;"></h2>
+                    <p id="detailCustomerPhone" style="color: #64748b;"></p>
+                </div>
+
+                <div class="stats" style="margin-bottom: 20px;">
+                    <div class="stat-box">
+                        <div class="label">تعداد کارها</div>
+                        <div class="value" id="detailWorkCount">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">مجموع پرداختی</div>
+                        <div class="value" id="detailTotalPaid">0</div>
+                    </div>
+                    <div class="stat-box debt">
+                        <div class="label">بدهی فعلی</div>
+                        <div class="value" id="detailCurrentDebt">0</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="label">آخرین کار</div>
+                        <div class="value" id="detailLastWork" style="font-size: 14px;">-</div>
+                    </div>
+                </div>
+
+                <div class="customer-notes">
+                    <label style="font-weight: bold; color: #854d0e; margin-bottom: 8px; display: block;">📝 یادداشت</label>
+                    <div class="input-wrapper">
+                        <textarea id="customerNote" placeholder="مثال: مشتری خوش‌حساب..."></textarea>
+                        <button type="button" class="voice-btn" onclick="startVoiceInput('customerNote')">🎤</button>
+                    </div>
+                    <button class="btn btn-primary" style="margin-top: 10px;" onclick="saveCustomerNote()">💾 ذخیره یادداشت</button>
+                </div>
+
+                <h3 style="margin: 20px 0 15px; color: #1e293b;">📋 سوابق کاری:</h3>
+                <div id="workHistory"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Database setup
+        let db;
+        const DB_NAME = 'CraneManagerProDB';
+        const DB_VERSION = 2;
+        const WORKS_STORE = 'works';
+        const CUSTOMERS_STORE = 'customers';
+
+        // Initialize IndexedDB
+        async function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    
+                    if (!db.objectStoreNames.contains(WORKS_STORE)) {
+                        const workStore = db.createObjectStore(WORKS_STORE, { keyPath: 'id', autoIncrement: true });
+                        workStore.createIndex('customerPhone', 'customerPhone', { unique: false });
+                        workStore.createIndex('date', 'date', { unique: false });
+                        workStore.createIndex('paymentStatus', 'paymentStatus', { unique: false });
+                    }
+                    
+                    if (!db.objectStoreNames.contains(CUSTOMERS_STORE)) {
+                        const custStore = db.createObjectStore(CUSTOMERS_STORE, { keyPath: 'phone' });
+                        custStore.createIndex('name', 'name', { unique: false });
+                    }
+                };
+            });
+        }
+
+        // Work types management
+        let workTypes = ['تانکر آب', 'سوله', 'حمل مصالح', 'نصب تیرآهن', 'بلند کردن بار', 'کانکس', 'سایر'];
+        
+        function loadWorkTypes() {
+            const saved = localStorage.getItem('workTypes');
+            if (saved) workTypes = JSON.parse(saved);
+            updateWorkTypeDropdown();
+        }
+
+        function saveWorkTypes() {
+            localStorage.setItem('workTypes', JSON.stringify(workTypes));
+        }
+
+        function updateWorkTypeDropdown() {
+            const select = document.getElementById('workType');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">انتخاب کنید...</option>';
+            workTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+            if (currentValue && workTypes.includes(currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        function addNewWorkType() {
+            const input = document.getElementById('newWorkType');
+            const newType = input.value.trim();
+            
+            if (!newType) {
+                showToast('⚠️ لطفاً نوع کار را وارد کنید');
+                return;
+            }
+            
+            if (workTypes.includes(newType)) {
+                showToast('⚠️ این نوع کار قبلاً اضافه شده است');
+                return;
+            }
+            
+            workTypes.push(newType);
+            saveWorkTypes();
+            updateWorkTypeDropdown();
+            document.getElementById('workType').value = newType;
+            input.value = '';
+            showToast('✅ نوع کار جدید اضافه شد');
+        }
+
+        // Payment status selection
+        function selectPayment(value) {
+            document.querySelectorAll('.payment-option').forEach(opt => opt.classList.remove('selected'));
+            event.target.classList.add('selected');
+            document.getElementById('paymentStatus').value = value;
+            
+            const dueDateSection = document.getElementById('dueDateSection');
+            if (value === 'چک' || value === 'نسیه') {
+                dueDateSection.classList.add('show');
+                document.getElementById('dueDate').required = true;
+            } else {
+                dueDateSection.classList.remove('show');
+                document.getElementById('dueDate').required = false;
+                document.getElementById('dueDate').value = '';
+            }
+        }
+
+        // Voice recognition
+        let recognition = null;
+        let currentVoiceField = null;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'fa-IR';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                handleVoiceResult(transcript);
+            };
+
+            recognition.onerror = function(event) {
+                showToast('خطا در تشخیص صدا');
+                stopVoiceInput();
+            };
+
+            recognition.onend = function() {
+                stopVoiceInput();
+            };
+        }
+
+        function startVoiceInput(fieldName) {
+            if (!recognition) {
+                showToast('مرورگر شما از ورودی صوتی پشتیبانی نمی‌کند');
+                return;
+            }
+
+            currentVoiceField = fieldName;
+            const btn = event.target;
+            btn.classList.add('listening');
+            btn.textContent = '🔴';
+            
+            try {
+                recognition.start();
+                showToast('در حال گوش دادن...');
+            } catch (error) {
+                stopVoiceInput();
+            }
+        }
+
+        function stopVoiceInput() {
+            if (recognition) recognition.stop();
+            document.querySelectorAll('.voice-btn').forEach(btn => {
+                btn.classList.remove('listening');
+                btn.textContent = '🎤';
+            });
+        }
+
+        function handleVoiceResult(text) {
+            if (!currentVoiceField) return;
+            const field = document.getElementById(currentVoiceField);
+            let cleanText = text.trim();
+
+            if (currentVoiceField === 'phone') {
+                cleanText = cleanText.replace(/\s+/g, '');
+                cleanText = cleanText.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+                                     .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+            }
+
+            if (currentVoiceField === 'amount') {
+                cleanText = cleanText.replace(/تومان|ریال|میلیون/g, '').trim();
+                cleanText = cleanText.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+                                     .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+                
+                if (text.includes('میلیون')) {
+                    const num = parseFloat(cleanText.replace(/[^0-9.]/g, ''));
+                    if (!isNaN(num)) cleanText = (num * 1000000).toString();
+                }
+            }
+
+            field.value = cleanText;
+            showToast(`✅ "${cleanText}" ثبت شد`);
+            stopVoiceInput();
+        }
+
+        // Database operations
+        async function addWork(work) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([WORKS_STORE], 'readwrite');
+                const store = transaction.objectStore(WORKS_STORE);
+                const request = store.add(work);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getAllWorks() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([WORKS_STORE], 'readonly');
+                const store = transaction.objectStore(WORKS_STORE);
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function updateWork(id, work) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([WORKS_STORE], 'readwrite');
+                const store = transaction.objectStore(WORKS_STORE);
+                const request = store.put({ ...work, id });
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function saveCustomerData(phone, name, note = '') {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([CUSTOMERS_STORE], 'readwrite');
+                const store = transaction.objectStore(CUSTOMERS_STORE);
+                const request = store.put({ phone, name, note });
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getCustomerData(phone) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([CUSTOMERS_STORE], 'readonly');
+                const store = transaction.objectStore(CUSTOMERS_STORE);
+                const request = store.get(phone);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Utility functions
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function showPage(pageName) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById(`page-${pageName}`).classList.add('active');
+            event.target.classList.add('active');
+            
+            if (pageName === 'customers') renderCustomersList();
+            if (pageName === 'debtors') renderDebtorsList();
+        }
+
+        // Statistics
+        async function updateStats() {
+            const works = await getAllWorks();
+            
+            const uniquePhones = new Set(works.map(w => w.customerPhone));
+            document.getElementById('totalCustomers').textContent = formatNumber(uniquePhones.size);
+            
+            const totalRev = works.reduce((sum, w) => {
+                const amount = parseFloat(w.amount.replace(/,/g, '') || 0);
+                return sum + amount;
+            }, 0);
+            document.getElementById('totalRevenue').textContent = formatNumber(totalRev);
+            
+            const debts = works.filter(w => w.paymentStatus === 'نسیه' || w.paymentStatus === 'چک');
+            const totalDebt = debts.reduce((sum, w) => sum + parseFloat(w.amount.replace(/,/g, '') || 0), 0);
+            document.getElementById('totalDebt').textContent = formatNumber(totalDebt);
+            
+            const debtors = new Set(debts.map(w => w.customerPhone));
+            document.getElementById('debtorCount').textContent = formatNumber(debtors.size);
+        }
+
+        // Customers list
+        async function renderCustomersList() {
+            const works = await getAllWorks();
+            const customerMap = new Map();
+            
+            works.forEach(work => {
+                const phone = work.customerPhone;
+                if (!customerMap.has(phone)) {
+                    customerMap.set(phone, {
+                        name: work.customerName,
+                        phone: phone,
+                        works: [],
+                        totalPaid: 0,
+                        totalDebt: 0
+                    });
+                }
+                
+                const customer = customerMap.get(phone);
+                customer.works.push(work);
+                
+                const amount = parseFloat(work.amount.replace(/,/g, '') || 0);
+                if (work.paymentStatus === 'نسیه' || work.paymentStatus === 'چک') {
+                    customer.totalDebt += amount;
+                } else {
+                    customer.totalPaid += amount;
+                }
+            });
+            
+            const customers = Array.from(customerMap.values()).sort((a, b) => b.works.length - a.works.length);
+            
+            const container = document.getElementById('customersList');
+            document.getElementById('customerListCount').textContent = `${customers.length} مورد`;
+            
+            if (customers.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>هنوز مشتری‌ای ثبت نشده است</p></div>';
+                return;
+            }
+            
+            container.innerHTML = customers.map(c => `
+                <div class="customer-item" onclick="showCustomerDetail('${c.phone}')">
+                    <div class="customer-header">
+                        <div>
+                            <div class="customer-name">${c.name}</div>
+                            <div class="customer-phone">📞 ${c.phone}</div>
+                        </div>
+                        ${c.totalDebt > 0 ? `<div class="debt-badge">بدهی: ${formatNumber(c.totalDebt)}</div>` : ''}
+                    </div>
+                    <div class="customer-stats">
+                        <div class="customer-stat">🔧 ${c.works.length} کار</div>
+                        <div class="customer-stat">💰 ${formatNumber(c.totalPaid + c.totalDebt)} تومان</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Customer search
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('customerSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', async (e) => {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const works = await getAllWorks();
+                    const customerMap = new Map();
+                    
+                    works.forEach(work => {
+                        const phone = work.customerPhone;
+                        if (!customerMap.has(phone)) {
+                            customerMap.set(phone, {
+                                name: work.customerName,
+                                phone: phone,
+                                works: [],
+                                totalPaid: 0,
+                                totalDebt: 0
+                            });
+                        }
+                        
+                        const customer = customerMap.get(phone);
+                        customer.works.push(work);
+                        
+                        const amount = parseFloat(work.amount.replace(/,/g, '') || 0);
+                        if (work.paymentStatus === 'نسیه' || work.paymentStatus === 'چک') {
+                            customer.totalDebt += amount;
+                        } else {
+                            customer.totalPaid += amount;
+                        }
+                    });
+                    
+                    let customers = Array.from(customerMap.values());
+                    
+                    if (searchTerm) {
+                        customers = customers.filter(c => 
+                            c.name.toLowerCase().includes(searchTerm) ||
+                            c.phone.includes(searchTerm)
+                        );
+                    }
+                    
+                    customers.sort((a, b) => b.works.length - a.works.length);
+                    
+                    const container = document.getElementById('customersList');
+                    document.getElementById('customerListCount').textContent = `${customers.length} مورد`;
+                    
+                    if (customers.length === 0) {
+                        container.innerHTML = '<div class="empty-state"><p>مشتری‌ای یافت نشد</p></div>';
+                        return;
+                    }
+                    
+                    container.innerHTML = customers.map(c => `
+                        <div class="customer-item" onclick="showCustomerDetail('${c.phone}')">
+                            <div class="customer-header">
+                                <div>
+                                    <div class="customer-name">${c.name}</div>
+                                    <div class="customer-phone">📞 ${c.phone}</div>
+                                </div>
+                                ${c.totalDebt > 0 ? `<div class="debt-badge">بدهی: ${formatNumber(c.totalDebt)}</div>` : ''}
+                            </div>
+                            <div class="customer-stats">
+                                <div class="customer-stat">🔧 ${c.works.length} کار</div>
+                                <div class="customer-stat">💰 ${formatNumber(c.totalPaid + c.totalDebt)} تومان</div>
+                            </div>
+                        </div>
+                    `).join('');
+                });
+            }
+        });
+
+        // Customer detail
+        let currentCustomerPhone = null;
+
+        async function showCustomerDetail(phone) {
+            currentCustomerPhone = phone;
+            const works = await getAllWorks();
+            const customerWorks = works.filter(w => w.customerPhone === phone).sort((a, b) => (b.id || 0) - (a.id || 0));
+            
+            if (customerWorks.length === 0) return;
+            
+            const customerData = await getCustomerData(phone);
+            
+            document.getElementById('detailCustomerName').textContent = customerWorks[0].customerName;
+            document.getElementById('detailCustomerPhone').textContent = `📞 ${phone}`;
+            document.getElementById('customerNote').value = customerData?.note || '';
+            
+            const totalPaid = customerWorks.filter(w => !['نسیه', 'چک'].includes(w.paymentStatus))
+                .reduce((sum, w) => sum + parseFloat(w.amount.replace(/,/g, '') || 0), 0);
+            const totalDebt = customerWorks.filter(w => ['نسیه', 'چک'].includes(w.paymentStatus))
+                .reduce((sum, w) => sum + parseFloat(w.amount.replace(/,/g, '') || 0), 0);
+            
+            document.getElementById('detailWorkCount').textContent = customerWorks.length;
+            document.getElementById('detailTotalPaid').textContent = formatNumber(totalPaid);
+            document.getElementById('detailCurrentDebt').textContent = formatNumber(totalDebt);
+            
+            const lastWork = customerWorks[0];
+            document.getElementById('detailLastWork').textContent = `${lastWork.date} - ${lastWork.workType}`;
+            
+            const historyContainer = document.getElementById('workHistory');
+            historyContainer.innerHTML = customerWorks.map(work => {
+                let badge = '';
+                if (work.paymentStatus === 'نسیه' || work.paymentStatus === 'چک') {
+                    const badgeClass = work.paymentStatus === 'چک' ? 'check' : 'debt';
+                    badge = `<span class="payment-badge ${badgeClass}">${work.paymentStatus}${work.dueDate ? ' - سررسید: ' + new Date(work.dueDate).toLocaleDateString('fa-IR') : ''}</span>`;
+                } else {
+                    badge = `<span class="payment-badge paid">✅ ${work.paymentStatus}</span>`;
+                }
+                
+                return `
+                    <div class="work-history-item">
+                        <div class="work-history-header">
+                            <div class="work-date">📅 ${work.date}</div>
+                            <div class="work-amount">${formatNumber(work.amount)} تومان</div>
+                        </div>
+                        <div class="work-details">
+                            <div>🔧 ${work.workType}</div>
+                            <div>${badge}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            showPage('customer-detail');
+        }
+
+        async function saveCustomerNote() {
+            if (!currentCustomerPhone) return;
+            
+            const note = document.getElementById('customerNote').value;
+            const works = await getAllWorks();
+            const customerWork = works.find(w => w.customerPhone === currentCustomerPhone);
+            
+            if (customerWork) {
+                await saveCustomerData(currentCustomerPhone, customerWork.customerName, note);
+                showToast('✅ یادداشت ذخیره شد');
+            }
+        }
+
+        // Debtors list
+        async function renderDebtorsList() {
+            const works = await getAllWorks();
+            const debtMap = new Map();
+            
+            works.filter(w => w.paymentStatus === 'نسیه' || w.paymentStatus === 'چک').forEach(work => {
+                const phone = work.customerPhone;
+                if (!debtMap.has(phone)) {
+                    debtMap.set(phone, {
+                        name: work.customerName,
+                        phone: phone,
+                        debts: []
+                    });
+                }
+                debtMap.get(phone).debts.push(work);
+            });
+            
+            let debtors = Array.from(debtMap.values());
+            const today = new Date();
+            
+            debtors.forEach(debtor => {
+                debtor.totalDebt = debtor.debts.reduce((sum, d) => sum + parseFloat(d.amount.replace(/,/g, '') || 0), 0);
+                debtor.nearestDue = debtor.debts
+                    .filter(d => d.dueDate)
+                    .sort((a, b) => new Date(a.dueDate) - new Date(b.dueDate))[0];
+                
+                if (debtor.nearestDue) {
+                    const dueDate = new Date(debtor.nearestDue.dueDate);
+                    debtor.daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24));
+                } else {
+                    debtor.daysUntilDue = 999;
+                }
+            });
+            
+            debtors.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+            
+            const container = document.getElementById('debtorsList');
+            document.getElementById('debtorListCount').textContent = `${debtors.length} مورد - مجموع: ${formatNumber(debtors.reduce((sum, d) => sum + d.totalDebt, 0))} تومان`;
+            
+            if (debtors.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>بدهکاری وجود ندارد! 🎉</p></div>';
+                return;
+            }
+            
+            container.innerHTML = debtors.map(debtor => {
+                let statusClass = '';
+                let statusText = '';
+                
+                if (debtor.nearestDue) {
+                    if (debtor.daysUntilDue < 0) {
+                        statusClass = 'overdue';
+                        statusText = `🔴 ${Math.abs(debtor.daysUntilDue)} روز گذشته!`;
+                    } else if (debtor.daysUntilDue <= 3) {
+                        statusClass = 'upcoming';
+                        statusText = `🟡 ${debtor.daysUntilDue} روز دیگر`;
+                    } else {
+                        statusClass = '';
+                        statusText = `🟢 ${debtor.daysUntilDue} روز دیگر`;
+                    }
+                }
+                
+                return `
+                    <div class="debt-item ${statusClass}">
+                        <div class="customer-header">
+                            <div>
+                                <div class="customer-name">${debtor.name}</div>
+                                <div class="customer-phone">📞 ${debtor.phone}</div>
+                            </div>
+                        </div>
+                        <div style="margin: 10px 0;">
+                            <div style="font-size: 18px; font-weight: bold; color: #dc2626;">
+                                بدهی: ${formatNumber(debtor.totalDebt)} تومان
+                            </div>
+                            ${debtor.nearestDue ? `
+                                <div style="font-size: 14px; color: #64748b; margin-top: 5px;">
+                                    سررسید: ${new Date(debtor.nearestDue.dueDate).toLocaleDateString('fa-IR')} ${statusText}
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <button class="btn-small btn-call" onclick="window.location.href='tel:${debtor.phone}'">📞 تماس</button>
+                            <button class="btn-small btn-settle" onclick="showCustomerDetail('${debtor.phone}')">📋 مشاهده کارتابل</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Check alarms
+        function checkAlarms() {
+            getAllWorks().then(works => {
+                const today = new Date();
+                today.setHours(7, 0, 0, 0);
+                
+                works.filter(w => w.paymentStatus === 'چک' && w.dueDate).forEach(work => {
+                    const dueDate = new Date(work.dueDate);
+                    dueDate.setHours(7, 0, 0, 0);
+                    
+                    if (dueDate.getTime() === today.getTime()) {
+                        if (Notification.permission === 'granted') {
+                            new Notification('🔔 یادآوری سررسید چک', {
+                                body: `چک ${work.customerName} به مبلغ ${formatNumber(work.amount)} تومان امروز سررسید دارد!`,
+                                icon: 'icon-192.png'
+                            });
+                        }
+                        showToast(`⏰ یادآوری: چک ${work.customerName} - ${formatNumber(work.amount)} تومان`);
+                    }
+                });
+            });
+        }
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        // Check alarms every hour
+        setInterval(checkAlarms, 60 * 60 * 1000);
+
+        // Export data
+        async function exportData() {
+            try {
+                const works = await getAllWorks();
+                const transaction = db.transaction([CUSTOMERS_STORE], 'readonly');
+                const store = transaction.objectStore(CUSTOMERS_STORE);
+                const customersRequest = store.getAll();
+                
+                customersRequest.onsuccess = () => {
+                    const customers = customersRequest.result;
+                    const data = {
+                        version: 2,
+                        exportDate: new Date().toISOString(),
+                        workTypes: workTypes,
+                        works: works.map(r => {
+                            const { id, ...rest } = r;
+                            return rest;
+                        }),
+                        customers: customers
+                    };
+                    
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    
+                    showToast(`✅ بکاپ ${works.length} کار ذخیره شد`);
+                };
+            } catch (error) {
+                showToast('❌ خطا در ذخیره بکاپ');
+            }
+        }
+
+        // Import data
+        async function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (!data.works || !Array.isArray(data.works)) {
+                        showToast('❌ فایل بکاپ نامعتبر است');
+                        return;
+                    }
+                    
+                    const confirmImport = confirm(
+                        `آیا می‌خواهید ${data.works.length} کار را بازگردانی کنید؟\n\n` +
+                        `⚠️ توجه: داده‌های فعلی حذف خواهند شد!`
+                    );
+                    
+                    if (!confirmImport) return;
+                    
+                    // Clear existing data
+                    const transaction = db.transaction([WORKS_STORE, CUSTOMERS_STORE], 'readwrite');
+                    const worksStore = transaction.objectStore(WORKS_STORE);
+                    const customersStore = transaction.objectStore(CUSTOMERS_STORE);
+                    
+                    await worksStore.clear();
+                    await customersStore.clear();
+                    
+                    // Import work types
+                    if (data.workTypes && Array.isArray(data.workTypes)) {
+                        workTypes = data.workTypes;
+                        saveWorkTypes();
+                        updateWorkTypeDropdown();
+                    }
+                    
+                    // Import works
+                    for (const work of data.works) {
+                        await addWork(work);
+                    }
+                    
+                    // Import customers
+                    if (data.customers && Array.isArray(data.customers)) {
+                        for (const customer of data.customers) {
+                            await saveCustomerData(customer.phone, customer.name, customer.note);
+                        }
+                    }
+                    
+                    await updateStats();
+                    showToast(`✅ ${data.works.length} کار بازگردانی شد`);
+                } catch (error) {
+                    showToast('❌ خطا در بازگردانی بکاپ');
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // Form submission
+        document.getElementById('workForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const paymentStatus = document.getElementById('paymentStatus').value;
+            if (!paymentStatus) {
+                showToast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');
+                return;
+            }
+            
+            const work = {
+                date: document.getElementById('date').value,
+                customerName: document.getElementById('customerName').value,
+                customerPhone: document.getElementById('phone').value,
+                workType: document.getElementById('workType').value,
+                amount: document.getElementById('amount').value.replace(/,/g, ''),
+                paymentStatus: paymentStatus,
+                dueDate: (paymentStatus === 'چک' || paymentStatus === 'نسیه') ? document.getElementById('dueDate').value : null
+            };
+
+            try {
+                await addWork(work);
+                await saveCustomerData(work.customerPhone, work.customerName);
+                await updateStats();
+                showToast('✅ کار جدید ثبت شد');
+                this.reset();
+                document.querySelectorAll('.payment-option').forEach(opt => opt.classList.remove('selected'));
+                document.getElementById('dueDateSection').classList.remove('show');
+                document.getElementById('paymentStatus').value = '';
+            } catch (error) {
+                showToast('❌ خطا در ثبت اطلاعات');
+            }
+        });
+
+        // Initialize app
+        async function initApp() {
+            try {
+                await initDB();
+                loadWorkTypes();
+                await updateStats();
+                checkAlarms();
+                console.log('App initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize app:', error);
+                showToast('❌ خطا در راه‌اندازی برنامه');
+            }
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
