@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="مدیریت مشتریان جرثقیل">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%232563eb' width='100' height='100'/%3E%3Ctext x='50' y='65' font-size='60' text-anchor='middle' fill='white'%3E🏗️%3C/text%3E%3C/svg%3E">
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            padding-bottom: 80px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            color: #2563eb;
+            font-size: 22px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-box .label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+
+        .stat-box .value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .btn-action {
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+            color: white;
+        }
+
+        .btn-export {
+            background: #10b981;
+        }
+
+        .btn-import {
+            background: #f59e0b;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            opacity: 0.9;
+        }
+
+        .form-card {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            color: #334155;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .form-group input,
+        .form-group select {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .voice-btn {
+            width: 45px;
+            height: 45px;
+            border: none;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .voice-btn:active {
+            transform: scale(0.95);
+        }
+
+        .voice-btn.listening {
+            animation: pulse 1.5s infinite;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .add-work-type {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .add-work-type input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .add-work-type button {
+            padding: 8px 16px;
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-work-type button:hover {
+            background: #059669;
+        }
+
+        .records-list {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+
+        .records-header {
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-box {
+            padding: 15px;
+            border-bottom: 2px solid #f1f5f9;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .record-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f1f5f9;
+            transition: background 0.2s;
+        }
+
+        .record-item:hover {
+            background: #f8fafc;
+        }
+
+        .record-item:last-child {
+            border-bottom: none;
+        }
+
+        .record-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 10px;
+        }
+
+        .record-date {
+            color: #2563eb;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .record-amount {
+            color: #059669;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .record-details {
+            display: grid;
+            gap: 5px;
+            font-size: 14px;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+
+        .record-detail {
+            display: flex;
+            gap: 5px;
+        }
+
+        .record-detail strong {
+            color: #334155;
+            min-width: 80px;
+        }
+
+        .record-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+
+        .btn-edit {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-call {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-small:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            padding: 15px;
+            background: #f8fafc;
+        }
+
+        .pagination button {
+            padding: 8px 16px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            border-color: #2563eb;
+            color: #2563eb;
+        }
+
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .pagination span {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1e293b;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+            z-index: 1000;
+            max-width: 90%;
+        }
+
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .modal-header {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #64748b;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏗️ مدیریت مشتریان - جرثقیل حسین کُرد</h1>
+            <p>ثبت و پیگیری مشتریان</p>
+            <div class="stats">
+                <div class="stat-box">
+                    <div class="label">تعداد مشتریان</div>
+                    <div class="value" id="totalCount">0</div>
+                </div>
+                <div class="stat-box">
+                    <div class="label">مجموع درآمد</div>
+                    <div class="value" id="totalAmount">0</div>
+                </div>
+            </div>
+            <div class="action-buttons">
+                <button class="btn-action btn-export" onclick="exportData()">📥 دریافت بکاپ</button>
+                <button class="btn-action btn-import" onclick="document.getElementById('importFile').click()">📤 بازگردانی بکاپ</button>
+            </div>
+            <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(event)">
+        </div>
+
+        <div class="form-card">
+            <form id="workForm">
+                <div class="form-group">
+                    <label>📅 تاریخ</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="date" placeholder="مثال: ۱۵ آذر ۱۴۰۳" required>
+                        <button type="button" class="voice-btn" onclick="startVoiceInput('date')" title="ورودی صوتی">🎤</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>👤 نام مشتری</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="customerName" placeholder="مثال: علی مرادی">
+                        <button type="button" class="voice-btn" onclick="startVoiceInput('customerName')" title="ورودی صوتی">🎤</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>📞 شماره تلفن</label>
+                    <div class="input-wrapper">
+                        <input type="tel" id="phone" placeholder="09123456789" required>
+                        <button type="button" class="voice-btn" onclick="startVoiceInput('phone')" title="ورودی صوتی">🎤</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>🔧 نوع کار</label>
+                    <select id="workType" required>
+                        <option value="">انتخاب کنید...</option>
+                    </select>
+                    <div class="add-work-type">
+                        <input type="text" id="newWorkType" placeholder="نوع کار جدید...">
+                        <button type="button" onclick="addNewWorkType()">➕ افزودن</button>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>💰 مبلغ (تومان)</label>
+                    <div class="input-wrapper">
+                        <input type="text" id="amount" placeholder="مثال: ۵۰۰۰۰۰۰" required>
+                        <button type="button" class="voice-btn" onclick="startVoiceInput('amount')" title="ورودی صوتی">🎤</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">✅ ثبت مشتری</button>
+            </form>
+        </div>
+
+        <div class="records-list">
+            <div class="records-header">
+                <h2>📋 لیست مشتریان</h2>
+                <span id="recordCount">0 مورد</span>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 جستجو بر اساس نام، شماره یا نوع کار...">
+            </div>
+            <div id="recordsList"></div>
+            <div class="pagination">
+                <button id="prevPage" onclick="changePage(-1)">قبلی</button>
+                <span id="pageInfo">صفحه 1</span>
+                <button id="nextPage" onclick="changePage(1)">بعدی</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="modal" id="deleteModal">
+        <div class="modal-content">
+            <div class="modal-header">⚠️ حذف مشتری</div>
+            <p style="text-align: center; color: #64748b; margin-bottom: 20px;">آیا از حذف این مشتری مطمئن هستید؟</p>
+            <div class="modal-actions">
+                <button class="btn btn-primary" style="background: #94a3b8;" onclick="closeDeleteModal()">انصراف</button>
+                <button class="btn btn-primary" style="background: #ef4444;" onclick="confirmDelete()">حذف</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // IndexedDB setup for better performance
+        let db;
+        const DB_NAME = 'CraneManagerDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'customers';
+
+        // Initialize IndexedDB
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        objectStore.createIndex('phone', 'phone', { unique: false });
+                        objectStore.createIndex('date', 'date', { unique: false });
+                        objectStore.createIndex('customerName', 'customerName', { unique: false });
+                    }
+                };
+            });
+        }
+
+        // Database operations
+        async function addRecord(record) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.add(record);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function getAllRecords() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function updateRecord(id, record) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.put({ ...record, id });
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function deleteRecord(id) {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.delete(id);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function clearAllRecords() {
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const objectStore = transaction.objectStore(STORE_NAME);
+                const request = objectStore.clear();
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // Work types management
+        let workTypes = ['تانکر آب', 'سوله', 'حمل مصالح', 'نصب تیرآهن', 'بلند کردن بار', 'کانکس', 'سایر'];
+        
+        function loadWorkTypes() {
+            const saved = localStorage.getItem('workTypes');
+            if (saved) {
+                workTypes = JSON.parse(saved);
+            }
+            updateWorkTypeDropdown();
+        }
+
+        function saveWorkTypes() {
+            localStorage.setItem('workTypes', JSON.stringify(workTypes));
+        }
+
+        function updateWorkTypeDropdown() {
+            const select = document.getElementById('workType');
+            const currentValue = select.value;
+            select.innerHTML = '<option value="">انتخاب کنید...</option>';
+            workTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type;
+                option.textContent = type;
+                select.appendChild(option);
+            });
+            if (currentValue && workTypes.includes(currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        function addNewWorkType() {
+            const input = document.getElementById('newWorkType');
+            const newType = input.value.trim();
+            
+            if (!newType) {
+                showToast('⚠️ لطفاً نوع کار را وارد کنید');
+                return;
+            }
+            
+            if (workTypes.includes(newType)) {
+                showToast('⚠️ این نوع کار قبلاً اضافه شده است');
+                return;
+            }
+            
+            workTypes.push(newType);
+            saveWorkTypes();
+            updateWorkTypeDropdown();
+            document.getElementById('workType').value = newType;
+            input.value = '';
+            showToast('✅ نوع کار جدید اضافه شد');
+        }
+
+        // Pagination
+        let currentPage = 1;
+        const recordsPerPage = 50;
+        let allRecords = [];
+        let filteredRecords = [];
+
+        // Voice recognition
+        let recognition = null;
+        let currentVoiceField = null;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.lang = 'fa-IR';
+            recognition.continuous = false;
+            recognition.interimResults = false;
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                handleVoiceResult(transcript);
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error', event.error);
+                showToast('خطا در تشخیص صدا');
+                stopVoiceInput();
+            };
+
+            recognition.onend = function() {
+                stopVoiceInput();
+            };
+        }
+
+        function startVoiceInput(fieldName) {
+            if (!recognition) {
+                showToast('مرورگر شما از ورودی صوتی پشتیبانی نمی‌کند');
+                return;
+            }
+
+            currentVoiceField = fieldName;
+            const btn = event.target;
+            btn.classList.add('listening');
+            btn.textContent = '🔴';
+            
+            try {
+                recognition.start();
+                showToast('در حال گوش دادن...');
+            } catch (error) {
+                stopVoiceInput();
+            }
+        }
+
+        function stopVoiceInput() {
+            if (recognition) {
+                recognition.stop();
+            }
+            document.querySelectorAll('.voice-btn').forEach(btn => {
+                btn.classList.remove('listening');
+                btn.textContent = '🎤';
+            });
+        }
+
+        function handleVoiceResult(text) {
+            if (!currentVoiceField) return;
+
+            const field = document.getElementById(currentVoiceField);
+            let cleanText = text.trim();
+
+            if (currentVoiceField === 'phone') {
+                cleanText = cleanText.replace(/\s+/g, '');
+                cleanText = cleanText.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+                                     .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+            }
+
+            if (currentVoiceField === 'amount') {
+                cleanText = cleanText.replace(/تومان|ریال|میلیون/g, '').trim();
+                cleanText = cleanText.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+                                     .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+                
+                if (text.includes('میلیون')) {
+                    const num = parseFloat(cleanText.replace(/[^0-9.]/g, ''));
+                    if (!isNaN(num)) {
+                        cleanText = (num * 1000000).toString();
+                    }
+                }
+            }
+
+            field.value = cleanText;
+            showToast(`✅ "${cleanText}" ثبت شد`);
+            stopVoiceInput();
+        }
+
+        function formatNumber(num) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        }
+
+        async function updateStats() {
+            const records = await getAllRecords();
+            document.getElementById('totalCount').textContent = formatNumber(records.length);
+            const total = records.reduce((sum, r) => sum + parseFloat(r.amount.replace(/,/g, '') || 0), 0);
+            document.getElementById('totalAmount').textContent = formatNumber(total);
+        }
+
+        async function loadAndRenderRecords(searchTerm = '') {
+            allRecords = await getAllRecords();
+            allRecords.sort((a, b) => (b.id || 0) - (a.id || 0));
+            
+            if (searchTerm) {
+                filteredRecords = allRecords.filter(record => 
+                    (record.customerName && record.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (record.phone && record.phone.includes(searchTerm)) ||
+                    (record.workType && record.workType.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                    (record.date && record.date.includes(searchTerm))
+                );
+            } else {
+                filteredRecords = allRecords;
+            }
+            
+            currentPage = 1;
+            renderCurrentPage();
+        }
+
+        function renderCurrentPage() {
+            const recordsList = document.getElementById('recordsList');
+            const start = (currentPage - 1) * recordsPerPage;
+            const end = start + recordsPerPage;
+            const pageRecords = filteredRecords.slice(start, end);
+            
+            const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+            document.getElementById('recordCount').textContent = `${filteredRecords.length} مورد`;
+            document.getElementById('pageInfo').textContent = `صفحه ${currentPage} از ${totalPages || 1}`;
+            document.getElementById('prevPage').disabled = currentPage === 1;
+            document.getElementById('nextPage').disabled = currentPage >= totalPages;
+
+            if (pageRecords.length === 0) {
+                recordsList.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <p>هیچ مشتری‌ای یافت نشد</p>
+                    </div>
+                `;
+                return;
+            }
+
+            recordsList.innerHTML = pageRecords.map(record => `
+                <div class="record-item">
+                    <div class="record-header">
+                        <div class="record-date">📅 ${record.date}</div>
+                        <div class="record-amount">${formatNumber(record.amount)} تومان</div>
+                    </div>
+                    <div class="record-details">
+                        ${record.customerName ? `<div class="record-detail"><strong>👤 نام:</strong> <span>${record.customerName}</span></div>` : ''}
+                        <div class="record-detail"><strong>📞 تلفن:</strong> <span>${record.phone}</span></div>
+                        <div class="record-detail"><strong>🔧 نوع کار:</strong> <span>${record.workType}</span></div>
+                    </div>
+                    <div class="record-actions">
+                        <button class="btn-small btn-call" onclick="callNumber('${record.phone}')">📞 تماس</button>
+                        <button class="btn-small btn-edit" onclick="editRecord(${record.id})">✏️ ویرایش</button>
+                        <button class="btn-small btn-delete" onclick="showDeleteModal(${record.id})">🗑️ حذف</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function changePage(delta) {
+            const totalPages = Math.ceil(filteredRecords.length / recordsPerPage);
+            const newPage = currentPage + delta;
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentPage = newPage;
+                renderCurrentPage();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+        }
+
+        function callNumber(phone) {
+            window.location.href = `tel:${phone}`;
+        }
+
+        let editingId = null;
+
+        async function editRecord(id) {
+            editingId = id;
+            const records = await getAllRecords();
+            const record = records.find(r => r.id === id);
+            
+            if (!record) return;
+            
+            document.getElementById('date').value = record.date;
+            document.getElementById('customerName').value = record.customerName || '';
+            document.getElementById('phone').value = record.phone;
+            document.getElementById('workType').value = record.workType;
+            document.getElementById('amount').value = record.amount;
+            
+            document.querySelector('.btn-primary').textContent = '✏️ ویرایش مشتری';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            showToast('در حال ویرایش...');
+        }
+
+        let deleteId = null;
+
+        function showDeleteModal(id) {
+            deleteId = id;
+            document.getElementById('deleteModal').classList.add('show');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('show');
+            deleteId = null;
+        }
+
+        async function confirmDelete() {
+            if (deleteId !== null) {
+                await deleteRecord(deleteId);
+                await updateStats();
+                await loadAndRenderRecords(document.getElementById('searchInput').value);
+                showToast('✅ مشتری حذف شد');
+                closeDeleteModal();
+            }
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        // Export data
+        async function exportData() {
+            try {
+                const records = await getAllRecords();
+                const data = {
+                    version: 1,
+                    exportDate: new Date().toISOString(),
+                    workTypes: workTypes,
+                    records: records.map(r => {
+                        const { id, ...rest } = r;
+                        return rest;
+                    })
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                showToast(`✅ بکاپ ${records.length} مشتری ذخیره شد`);
+            } catch (error) {
+                showToast('❌ خطا در ذخیره بکاپ');
+                console.error(error);
+            }
+        }
+
+        // Import data
+        async function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    
+                    if (!data.records || !Array.isArray(data.records)) {
+                        showToast('❌ فایل بکاپ نامعتبر است');
+                        return;
+                    }
+                    
+                    const confirmImport = confirm(
+                        `آیا می‌خواهید ${data.records.length} مشتری را بازگردانی کنید؟\n\n` +
+                        `⚠️ توجه: داده‌های فعلی حذف خواهند شد!`
+                    );
+                    
+                    if (!confirmImport) return;
+                    
+                    // Clear existing data
+                    await clearAllRecords();
+                    
+                    // Import work types
+                    if (data.workTypes && Array.isArray(data.workTypes)) {
+                        workTypes = data.workTypes;
+                        saveWorkTypes();
+                        updateWorkTypeDropdown();
+                    }
+                    
+                    // Import records
+                    for (const record of data.records) {
+                        await addRecord(record);
+                    }
+                    
+                    await updateStats();
+                    await loadAndRenderRecords();
+                    showToast(`✅ ${data.records.length} مشتری بازگردانی شد`);
+                } catch (error) {
+                    showToast('❌ خطا در بازگردانی بکاپ');
+                    console.error(error);
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // Form submission
+        document.getElementById('workForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const record = {
+                date: document.getElementById('date').value,
+                customerName: document.getElementById('customerName').value,
+                phone: document.getElementById('phone').value,
+                workType: document.getElementById('workType').value,
+                amount: document.getElementById('amount').value.replace(/,/g, '')
+            };
+
+            try {
+                if (editingId !== null) {
+                    await updateRecord(editingId, record);
+                    editingId = null;
+                    showToast('✅ مشتری ویرایش شد');
+                    document.querySelector('.btn-primary').textContent = '✅ ثبت مشتری';
+                } else {
+                    await addRecord(record);
+                    showToast('✅ مشتری جدید ثبت شد');
+                }
+
+                await updateStats();
+                await loadAndRenderRecords(document.getElementById('searchInput').value);
+                this.reset();
+            } catch (error) {
+                showToast('❌ خطا در ثبت اطلاعات');
+                console.error(error);
+            }
+        });
+
+        // Search
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            loadAndRenderRecords(e.target.value);
+        });
+
+        // Close modal on outside click
+        document.getElementById('deleteModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeDeleteModal();
+            }
+        });
+
+        // Initialize app
+        async function initApp() {
+            try {
+                await initDB();
+                loadWorkTypes();
+                await updateStats();
+                await loadAndRenderRecords();
+                console.log('App initialized successfully');
+            } catch (error) {
+                console.error('Failed to initialize app:', error);
+                showToast('❌ خطا در راه‌اندازی برنامه');
+            }
+        }
+
+        initApp();
+    </script>
+</body>
+</html>
