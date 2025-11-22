@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.2)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.3)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -536,7 +536,12 @@ const APP = (function() {
     function selectDate(d) {
         const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
         const gDateObj = toGregorian(window.dpCurY, window.dpCurM, d);
-        const gDateIso = gDateObj.toISOString().split('T')[0]; // YYYY-MM-DD
+        // FIX: Manually construct YYYY-MM-DD to avoid timezone shift
+        const gy = gDateObj.getFullYear();
+        const gm = String(gDateObj.getMonth() + 1).padStart(2, '0');
+        const gd = String(gDateObj.getDate()).padStart(2, '0');
+        const gDateIso = `${gy}-${gm}-${gd}`;
+        
         if(window.dpTarget === 'date') {
             document.getElementById('date').value = pDateStr;
         } else if (window.dpTarget === 'dueDate') {
@@ -554,15 +559,11 @@ const APP = (function() {
 
     function addWorkType(){const inp=document.getElementById('newWorkType'),nt=inp.value.trim();if(!nt){toast('⚠️ لطفاً نوع کار را وارد کنید');return}if(workTypes.includes(nt)){toast('⚠️ این نوع کار قبلاً اضافه شده است');return}workTypes.push(nt);saveTypes();updateTypeDropdown();document.getElementById('workType').value=nt;inp.value='';toast('✅ نوع کار جدید اضافه شد')}
 
-    // --- اصلاح محاسبه درآمد (شامل تسویه حساب) ---
     async function updateStats(){try{const ws=await getWorks(),up=new Set(ws.map(w=>w.customerPhone));document.getElementById('totalCustomers').textContent=fmt(up.size);
     const tr=ws.reduce((s,w)=>{
         const am=parseFloat(w.amount.replace(/,/g,'')||0);
-        // اگر تسویه بدهی است، مبلغش درآمد محسوب می‌شود
         if(w.isSettlement) return s + am;
-        // اگر کار نقدی است، کل مبلغ درآمد است
         if(w.paymentStatus==='نقدی'||w.paymentStatus==='کارت به کارت'||w.paymentStatus==='کارتخوان'){return s+am}
-        // اگر نسیه است، فقط مبلغ پرداخت شده درآمد است
         else if(w.paymentStatus==='نسیه'&&w.paidAmount){return s+parseFloat(w.paidAmount.replace(/,/g,'')||0)}
         return s
     },0);
@@ -572,11 +573,9 @@ const APP = (function() {
     async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w);if(!c.lastWorkDate||w.date>c.lastWorkDate){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date}const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));cs.sort((a,b)=>b.works.length-a.works.length);const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone">📞 ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
 
     async function showCustomerDetail(ph){try{console.log('showCustomerDetail called with phone:',ph);currentCustomerPhone=ph;const ws=await getWorks();console.log('Total works:',ws.length);const cws=ws.filter(w=>w.customerPhone===ph).sort((a,b)=>(b.id||0)-(a.id||0));console.log('Customer works:',cws.length);if(cws.length===0){console.log('No works found for customer');return}const cd=await getCust(ph);console.log('Customer data:',cd);document.getElementById('detailCustomerName').textContent=cws[0].customerName;document.getElementById('detailCustomerPhone').textContent=`📞 ${ph}`;document.getElementById('customerNote').value=cd?.note||'';const tp=cws.reduce((s,w)=>{const am=parseFloat(w.amount.replace(/,/g,'')||0);if(!['نسیه','چک'].includes(w.paymentStatus))return s+am;else if(w.paymentStatus==='نسیه'&&w.paidAmount)return s+parseFloat(w.paidAmount.replace(/,/g,'')||0);return s},0);const dbs=cws.filter(w=>['نسیه','چک'].includes(w.paymentStatus)&&!w.isSettlement),sts=cws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('detailWorkCount').textContent=cws.length;document.getElementById('detailTotalPaid').textContent=fmt(tp);document.getElementById('detailCurrentDebt').textContent=fmt(td);const sb=document.getElementById('settleDebtBtn');if(td>0){sb.classList.remove('hidden');settleData={phone:ph,amount:td,name:cws[0].customerName}}else sb.classList.add('hidden');const phs=cd?.phones||[ph],pc=document.getElementById('phoneNumbersList');pc.innerHTML='';phs.forEach((p,i)=>{const pi=document.createElement('div');pi.className='phone-item';pi.innerHTML=`<span>📞 ${p}${i===0?' (اصلی)':''}</span>`;if(phs.length>1&&i>0){const del=document.createElement('button');del.className='btn-small btn-delete';del.textContent='🗑️';del.onclick=()=>deletePhone(ph,p);pi.appendChild(del)}pc.appendChild(pi)});const lw=cws[0];document.getElementById('detailLastWork').textContent=`${lw.date} - ${lw.workType}`;const nd=document.getElementById('customerNoteDisplay'),nt=document.getElementById('customerNoteText');if(cd?.note){nt.textContent=cd.note;nd.classList.remove('hidden')}else nd.classList.add('hidden');const hc=document.getElementById('workHistory');hc.innerHTML='';
-    // --- اصلاح نمایش تاریخ (جلوگیری از تغییر روز) ---
     cws.forEach(w=>{const wi=document.createElement('div');wi.className='work-history-item';if(w.isSettlement)wi.classList.add('settlement');let bg='',dueDateTxt='';
     if(w.dueDate){
         try{
-            // پردازش رشته تاریخ مستقیم برای جلوگیری از مشکل Timezone
             const parts = w.dueDate.split('-');
             if(parts.length === 3) {
                 const pd = toJalaali(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
@@ -593,7 +592,6 @@ const APP = (function() {
     async function editWork(id){try{editWorkId=id;const w=await getWork(id);if(!w)return;showPage('add-work');document.getElementById('date').value=w.date;document.getElementById('customerName').value=w.customerName;document.getElementById('phone').value=w.customerPhone;document.getElementById('workType').value=w.workType;document.getElementById('amount').value=w.amount;document.querySelectorAll('#page-add-work .payment-option').forEach(o=>{if(o.textContent.includes(w.paymentStatus))o.classList.add('selected');else o.classList.remove('selected')});document.getElementById('paymentStatus').value=w.paymentStatus;
     if(w.paymentStatus==='چک'&&w.dueDate){
         document.getElementById('dueDateSection').classList.add('show');
-        // اصلاح نمایش تاریخ در ادیت
         const parts = w.dueDate.split('-');
         if(parts.length===3) {
              const p=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
@@ -620,7 +618,6 @@ const APP = (function() {
     if(d.nearestDue){
         if(d.daysUntilDue<0){sc='overdue';st=`🔴 ${Math.abs(d.daysUntilDue)} روز گذشته!`}else if(d.daysUntilDue<=3){sc='upcoming';st=`🟡 ${d.daysUntilDue} روز دیگر`}else st=`🟢 ${d.daysUntilDue} روز دیگر`;if(sc)di.classList.add(sc);
         try{
-             // اصلاح نمایش تاریخ در لیست بدهکاران
              const parts = d.nearestDue.dueDate.split('-');
              if(parts.length===3) {
                  const pd=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
@@ -630,14 +627,10 @@ const APP = (function() {
     }
     di.innerHTML=`<div class="customer-header"><div><div class="customer-name">${d.name}</div><div class="customer-phone">📞 ${d.phone}</div></div></div><div style="margin:10px 0;"><div style="font-size:18px;font-weight:bold;color:#dc2626;">بدهی: ${fmt(d.totalDebt)} تومان</div>${d.nearestDue?`<div style="font-size:14px;color:#64748b;margin-top:5px;">سررسید: ${dueDateTxt} ${st}</div>`:''}</div><div style="display:flex;gap:8px;"><button class="btn-small btn-call">📞 تماس</button><button class="btn-small btn-settle">📋 مشاهده کارتابل</button></div>`;di.querySelector('.btn-call').onclick=()=>window.location.href=`tel:${d.phone}`;di.querySelector('.btn-settle').onclick=()=>showCustomerDetail(d.phone);cn.appendChild(di)});console.log('renderDebtors completed')}catch(e){console.error('Error in renderDebtors:',e);toast('❌ خطا در بارگذاری لیست بدهکاران')}}
 
-    // --- هشدار صوتی و ویبره ---
     function checkAlarms(){getWorks().then(ws=>{const td=new Date();td.setHours(7,0,0,0);ws.filter(w=>w.paymentStatus==='چک'&&w.dueDate).forEach(w=>{const dd=new Date(w.dueDate);dd.setHours(7,0,0,0);if(dd.getTime()===td.getTime()){
         if('Notification'in window&&Notification.permission==='granted') {
-             // اضافه کردن ویبره به نوتیفیکیشن
              new Notification('🔔 یادآوری سررسید چک',{body:`چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`, vibrate: [200, 100, 200]});
-             // پخش صدا
              playAlarmSound();
-             // ویبره گوشی (اگر مرورگر اجازه دهد)
              if(navigator.vibrate) navigator.vibrate([300, 100, 300]);
         }
         toast(`⏰ یادآوری: چک ${w.customerName} - ${fmt(w.amount)} تومان`);
