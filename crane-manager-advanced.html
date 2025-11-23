@@ -837,19 +837,14 @@ const APP = (function() {
     async function deletePhone(mp,pd){if(mp===pd){toast('⚠️ نمی‌توانید شماره اصلی را حذف کنید');return}if(!confirm(`آیا از حذف شماره ${pd} مطمئن هستید؟`))return;try{const cd=await getCust(mp);let phs=cd?.phones||[mp];phs=phs.filter(p=>p!==pd);const ws=await getWorks(),cw=ws.find(w=>w.customerPhone===mp);await saveCust(mp,cw.customerName,cd?.note||'',phs);await showCustomerDetail(mp);toast('✅ شماره حذف شد')}catch(e){console.error(e);toast('❌ خطا در حذف شماره')}}
 
     function showSettleModal(){
-        if(!settleData)return;
-        settlePayment=null;
-        document.getElementById('settleCustomerName').textContent=settleData.name;
-        document.getElementById('settleDebtAmount').textContent=fmt(settleData.amount);
-        document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));
-        
-        // ADDED: Set default date to Today
-        const td=new Date();
-        const j=toJalaali(td.getFullYear(),td.getMonth()+1,td.getDate());
-        document.getElementById('settleDate').value=fmtDate(j.year,j.month,j.day);
-        
-        document.getElementById('settleDebtModal').classList.add('show');
-    }
+            if(!settleData)return;
+            settlePayment=null;
+            document.getElementById('settleCustomerName').textContent=settleData.name;
+            document.getElementById('settleDebtAmount').textContent=fmt(settleData.amount);
+            document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));
+            document.getElementById('settleDate').value = ''; 
+            document.getElementById('settleDebtModal').classList.add('show');
+        }
     
     function selectSettlePayment(v,e){settlePayment=v;document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected')}
     
