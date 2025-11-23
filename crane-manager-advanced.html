@@ -760,14 +760,18 @@ const APP = (function() {
     }
     
     function selectDate(d) {
-        const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
-        const gDateObj = toGregorian(window.dpCurY, window.dpCurM, d);
-        const gy = gDateObj.getFullYear();
-        const gm = String(gDateObj.getMonth() + 1).padStart(2, '0');
-        const gd = String(gDateObj.getDate()).padStart(2, '0');
+        const year = window.dpCurY || new Date().getFullYear();
+        const month = window.dpCurM || new Date().getMonth() + 1;
+        const day = d || 1;
+
+        const pDateStr = fmtDate(year, month, day);
+        const gDate = toGregorian(year, month, day);
+        const gy = gDate.getFullYear();
+        const gm = String(gDate.getMonth() + 1).padStart(2, '0');
+        const gd = String(gDate.getDate()).padStart(2, '0');
         const gDateIso = `${gy}-${gm}-${gd}`;
-       
-        if(window.dpTarget === 'date') {
+
+        if (window.dpTarget === 'date') {
             document.getElementById('date').value = pDateStr;
         } else if (window.dpTarget === 'dueDate') {
             document.getElementById('dueDateDisplay').value = pDateStr;
