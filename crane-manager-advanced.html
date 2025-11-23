@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.3)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.4)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -432,7 +432,10 @@
             <div style="margin: 20px 0;">
                 <label style="font-weight: bold; color: #1e293b; margin-bottom: 8px; display: block;">📅 تاریخ تسویه</label>
                 <div class="input-wrapper" style="margin-bottom: 15px;">
-                    <input type="text" id="settleDate" class="date-input" readonly onclick="APP.showCal('settleDate')">
+                    <input type="text" id="settleDate" class="date-input" readonly onclick="APP.showCal('settleDate')" placeholder="انتخاب تاریخ...">
+                    <div class="button-group">
+                        <button type="button" class="voice-btn" onclick="APP.startVoice('settleDate')">🎤</button>
+                    </div>
                 </div>
 
                 <label style="font-weight: bold; color: #1e293b; margin-bottom: 10px; display: block;">💳 نوع پرداخت</label>
@@ -632,7 +635,7 @@ const APP = (function() {
         let c=t.trim();
         
         // Apply number normalization for Date, Phone, Amount
-        if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount') {
+        if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount' || voiceField === 'settleDate') {
             c = normalizePersianNumbers(c);
         }
 
@@ -831,10 +834,8 @@ const APP = (function() {
         document.getElementById('settleDebtAmount').textContent=fmt(settleData.amount);
         document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));
         
-        // --- Set current date as default ---
-        const td = new Date();
-        const j = toJalaali(td.getFullYear(), td.getMonth() + 1, td.getDate());
-        document.getElementById('settleDate').value = fmtDate(j.year, j.month, j.day);
+        // --- Empty Default Value ---
+        document.getElementById('settleDate').value = '';
         
         document.getElementById('settleDebtModal').classList.add('show');
     }
