@@ -5,25 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.3 - اصلاح شده)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.4 - فقط عدد)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
         .container { max-width: 600px; margin: 0 auto; }
         
-        /* Header Styling */
         .header { background: white; padding: 20px 15px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 20px; text-align: center; }
         .header h1 { color: #2563eb; font-size: 18px; margin-bottom: 5px; line-height: 1.4; font-weight: 800; }
         .header p { color: #64748b; font-size: 13px; margin-bottom: 15px; }
         
-        /* Stats Grid */
         .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 10px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .stat-box.debt { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
         .stat-box .label { font-size: 11px; opacity: 0.9; margin-bottom: 5px; white-space: nowrap; }
         .stat-box .value { font-size: 18px; font-weight: bold; }
         
-        /* Navigation */
         .navigation { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; margin-bottom: 15px; }
         .nav-btn { flex: 1; padding: 12px 5px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-family: inherit; color: #64748b; background: white; display: flex; flex-direction: column; align-items: center; gap: 5px; }
         .nav-btn span { font-size: 20px; margin-bottom: 2px; } 
@@ -35,7 +32,6 @@
         .btn-export { background: #10b981; }
         .btn-import { background: #f59e0b; }
         
-        /* Pages */
         .page { display: none; animation: fadeIn 0.3s ease; }
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -44,7 +40,6 @@
         .form-group { margin-bottom: 15px; position: relative; }
         .form-group label { display: block; margin-bottom: 8px; color: #334155; font-weight: 700; font-size: 13px; }
         
-        /* --- Aligned Inputs and Buttons --- */
         .input-wrapper { display: flex; gap: 8px; align-items: stretch; height: 50px; } 
         .form-group input, .form-group select, .custom-select-trigger { 
             flex: 1; 
@@ -61,7 +56,6 @@
             color: #334155;
         }
         
-        /* Fix for Customer Note Textarea */
         .customer-notes textarea, .form-group textarea {
             flex: 1;
             width: 100%;
@@ -81,8 +75,6 @@
         }
 
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .customer-notes textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        
-        /* Input that triggers calendar */
         .date-input { cursor: pointer; }
 
         .button-group { display: flex; gap: 8px; width: 45px; justify-content: flex-end; flex-shrink: 0; } 
@@ -122,7 +114,6 @@
         .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         
-        /* Work Type Drawer */
         .custom-select-trigger { cursor: pointer; display: flex; justify-content: space-between; align-items: center; height: 50px; width: 100%; padding: 0 15px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc; font-size: 16px; color: #334155; box-sizing: border-box; }
         .custom-select-trigger::after { content: '▼'; font-size: 12px; color: #94a3b8; margin-right: 10px; }
         .work-type-modal-list { margin-top: 15px; max-height: 300px; overflow-y: auto; }
@@ -136,7 +127,6 @@
         .add-new-type-input { flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; font-family: inherit; }
         .add-new-type-btn { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-        /* Customer List */
         .customer-list { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
         .customer-item { padding: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
         .customer-item:hover { background: #f8fafc; }
@@ -465,7 +455,6 @@ const APP = (function() {
     let recognition=null, voiceField=null, allCustomers=[];
     const pMonths=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 
-    // --- توابع دقیق تقویم جلالی ---
     function toJalaali(gy,gm,gd){
         var g_d_m=[0,31,59,90,120,151,181,212,243,273,304,334];
         var jy=(gy<=1600)?0:979;
@@ -534,7 +523,6 @@ const APP = (function() {
         }
     }
 
-    // --- Database Functions ---
     async function initDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onerror=()=>rej(r.error);r.onsuccess=()=>{db=r.result;res(db)};r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains(WORKS)){const s=d.createObjectStore(WORKS,{keyPath:'id',autoIncrement:true});s.createIndex('customerPhone','customerPhone',{unique:false});s.createIndex('date','date',{unique:false});s.createIndex('paymentStatus','paymentStatus',{unique:false})}if(!d.objectStoreNames.contains(CUSTOMERS)){const s=d.createObjectStore(CUSTOMERS,{keyPath:'phone'});s.createIndex('name','name',{unique:false})}}})}
     async function addWork(w){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readwrite'),s=t.objectStore(WORKS),r=s.add(w);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
     async function getWorks(){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readonly'),s=t.objectStore(WORKS),r=s.getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -581,7 +569,7 @@ const APP = (function() {
         workTypes.push(nt);
         saveTypes();
         inp.value = '';
-        openWorkTypeModal(); // Re-render list
+        openWorkTypeModal(); 
         toast('✅ اضافه شد');
     }
 
@@ -595,14 +583,13 @@ const APP = (function() {
         }
     }
 
-    // --- Voice Logic with ADVANCED Text-to-Number Converter ---
+    // --- Voice Logic ---
     if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){const S=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new S();recognition.lang='fa-IR';recognition.continuous=false;recognition.interimResults=false;recognition.onresult=e=>{const t=e.results[0][0].transcript;handleVoice(t)};recognition.onerror=()=>{toast('❌ خطا در تشخیص صدا');stopVoice()};recognition.onend=()=>stopVoice()}
     function startVoice(f){if(!recognition){toast('⚠️ مرورگر شما از ورودی صوتی پشتیبانی نمی‌کند');return}voiceField=f;try{recognition.start();toast('🎤 در حال گوش دادن...')}catch(e){stopVoice()}}
     function stopVoice(){if(recognition)try{recognition.stop()}catch(e){}document.querySelectorAll('.voice-btn').forEach(b=>{b.classList.remove('listening')})}
     
-    // --- تابع تبدیل متن فارسی به عدد (اصلاح شده و دقیق) ---
     function persianTextToNumber(text) {
-        // حذف کلمات اضافی و نرمال‌سازی
+        // نرمال‌سازی: حذف "و" و فاصله‌های اضافی
         text = text.replace(/و/g, ' ').replace(/  +/g, ' ').trim(); 
         
         const units = {
@@ -615,37 +602,35 @@ const APP = (function() {
             'صد': 100, 'هزار': 1000, 'میلیون': 1000000, 'میلیارد': 1000000000, 'تومن': 1, 'تومان': 1, 'ریال': 1
         };
 
-        // تبدیل اعداد فارسی/انگلیسی داخل متن به رقم
+        // تبدیل اعداد فارسی/انگلیسی داخل متن به عدد واقعی انگلیسی (مثلا "۲" به "2")
         text = text.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d));
 
         let words = text.split(' ');
         let totalValue = 0;
-        let currentGroupValue = 0; // برای جمع کردن اعداد قبل از ضرب‌کننده (مثلا "دو" قبل از "هزار")
+        let currentGroupValue = 0; 
         
         for (let i = 0; i < words.length; i++) {
             let word = words[i];
-            
-            // هندل کردن کلمات محاوره‌ای
             if (word === 'پونصد') word = 'پانصد'; 
             if (word === 'تومن' || word === 'تومان' || word === 'ریال') continue; 
 
-            let val = 0;
-
-            // 1. اگر کلمه عدد است (مثلا "2" یا "500")
+            // 1. اگر کلمه یک عدد مستقیم است (مثلا "2" در "2 میلیون")
             if (!isNaN(word)) {
-                val = parseFloat(word);
-                // اگر عدد بعدی "هزار" یا "میلیون" نبود، همینجا اضافه کن
+                let val = parseFloat(word);
+                // آیا کلمه بعدی یک ضریب بزرگ است؟ (مثل میلیون/هزار)
+                // اگر بله، این عدد را نگه دار تا در آن ضرب شود
+                // اگر خیر، همینطوری به جمع اضافه کن
                 if (i + 1 < words.length && magnitudes[words[i+1]]) {
-                    currentGroupValue += val;
+                     currentGroupValue += val;
                 } else {
-                     totalValue += val; // عدد خالی بود، اضافه کن به کل
+                     totalValue += val; 
                 }
             }
-            // 2. اعداد یکان و دهگان
+            // 2. اعداد حروفی (یک، ده، ...)
             else if (units[word] !== undefined) {
                 currentGroupValue += units[word];
             } 
-            // 3. اعداد ترکیبی صدگان (دویست، سیصد...)
+            // 3. اعداد ترکیبی صدگان
             else if (word.includes('صد') || word === 'پانصد') {
                  if(word === 'دویست') currentGroupValue += 200;
                  else if(word === 'سیصد') currentGroupValue += 300;
@@ -659,13 +644,12 @@ const APP = (function() {
             }
             // 4. مقیاس‌ها (هزار، میلیون...)
             else if (magnitudes[word]) {
-                if (currentGroupValue === 0) currentGroupValue = 1; // برای حالت "هزار" خالی که یعنی "یک هزار"
+                if (currentGroupValue === 0) currentGroupValue = 1; 
                 totalValue += currentGroupValue * magnitudes[word];
                 currentGroupValue = 0;
             }
         }
-        
-        totalValue += currentGroupValue; // اضافه کردن باقیمانده
+        totalValue += currentGroupValue; 
         return totalValue;
     }
 
@@ -675,32 +659,30 @@ const APP = (function() {
         if(!f)return;
         let c=t.trim();
         
-        // --- اصلاح شده: استفاده از تابع هوشمند برای مبلغ و نسیه ---
+        // --- بخش مهم: پردازش سخت‌گیرانه مبلغ ---
         if(voiceField === 'amount' || voiceField === 'paidAmount'){
-             // اگر کاربر عدد خالی گفت (مثلا "25000") هم کار میکند، اگر متن گفت (دو میلیون) هم کار میکند
              try {
-                // اول سعی کن اعداد فارسی متن را به انگلیسی تبدیل کنی برای اطمینان
-                let textNormalized = c.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-                
-                // آیا کل متن فقط عدد است؟
-                if (!isNaN(parseFloat(textNormalized)) && isFinite(textNormalized) && !c.includes('میلیون') && !c.includes('هزار') && !c.includes('صد')) {
-                    c = textNormalized; // فقط عدد را بگذار
+                // 1. اول سعی می‌کنیم متن را به عدد تبدیل کنیم
+                let numVal = persianTextToNumber(c);
+                if (numVal > 0) {
+                    c = numVal.toString();
                 } else {
-                    // متن است، تبدیل کن
-                    let num = persianTextToNumber(c);
-                    if (num > 0) {
-                        c = num.toString();
-                    }
+                    // اگر تابع بالا نتوانست (مثلا عدد ساده گفت)، فقط اعداد را از متن می‌کشیم بیرون
+                    c = c.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
                 }
+
+                // 2. حذف نهایی تمام حروف (فقط 0 تا 9 بماند)
+                // این خط تضمین می‌کند "میلیون" یا "تومان" هرگز وارد کادر نشود
+                c = c.toString().replace(/[^0-9]/g, ''); 
+
              } catch(e) {
                  console.error("Error converting voice to number", e);
              }
         }
-        // -----------------------------------------------------------
+        // ------------------------------------------
 
         if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
         
-        // نرمال سازی برای تاریخ
         if(voiceField === 'date') {
              const map = {'یک': '1', 'دو': '2', 'سه': '3', 'چهار': '4', 'پنج': '5', 'شش': '6', 'هفت': '7', 'هشت': '8', 'نه': '9', 'ده': '10', 'یازده': '11', 'دوازده': '12', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9', '۰': '0'};
              for (let word in map) { let regex = new RegExp(word, 'g'); c = c.replace(regex, map[word]); }
@@ -712,10 +694,9 @@ const APP = (function() {
         stopVoice()
     }
 
-    function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
+    function formatAmount(inp){let v=inp.value.replace(/,/g,'').replace(/[^0-9]/g,'');if(v){inp.value=fmt(v)}else{inp.value=''}} // Strict formatting
     function calcRemaining(){const t=parseFloat(document.getElementById('amount').value.replace(/,/g,'')||0),p=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0),r=t-p;document.getElementById('remainingAmount').value=r>=0?fmt(r):'0'}
 
-    // --- Logic جدید تقویم ---
     function showCal(target){
         let el = document.getElementById(target==='dueDate'?'dueDateDisplay':target);
         let initialVal = el.value;
@@ -774,7 +755,7 @@ const APP = (function() {
         daysContainer.innerHTML = '';
         const daysInMonth = jalaliMonthLength(window.dpCurY, window.dpCurM);
         const gDateFirst = toGregorian(window.dpCurY, window.dpCurM, 1);
-        let startDay = gDateFirst.getDay() + 1; // 0=Sun, 6=Sat in JS. We want 0=Sat.
+        let startDay = gDateFirst.getDay() + 1; 
         if(startDay === 7) startDay = 0; 
         for(let i=0; i<startDay; i++) {
             daysContainer.appendChild(document.createElement('div'));
@@ -797,7 +778,6 @@ const APP = (function() {
     function selectDate(d) {
         const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
         const gDateObj = toGregorian(window.dpCurY, window.dpCurM, d);
-        // FIX: Manually construct YYYY-MM-DD to avoid timezone shift
         const gy = gDateObj.getFullYear();
         const gm = String(gDateObj.getMonth() + 1).padStart(2, '0');
         const gd = String(gDateObj.getDate()).padStart(2, '0');
@@ -858,11 +838,9 @@ const APP = (function() {
     async function saveNote(){if(!currentCustomerPhone)return;try{const nt=document.getElementById('customerNote').value,ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);if(cw){const cd=await getCust(currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,nt,cd?.phones);toast('✅ یادداشت ذخیره شد');await showCustomerDetail(currentCustomerPhone);await renderCustomers()}}catch(e){console.error(e);toast('❌ خطا در ذخیره یادداشت')}}
 
     async function editWork(id){try{editWorkId=id;const w=await getWork(id);if(!w)return;showPage('add-work');document.getElementById('date').value=w.date;document.getElementById('customerName').value=w.customerName;document.getElementById('phone').value=w.customerPhone;
-    // Update for new select style
     document.getElementById('workType').value=w.workType;
     document.getElementById('workTypeDisplay').textContent=w.workType;
     document.getElementById('workTypeDisplay').style.color='#1e293b';
-    
     document.getElementById('amount').value=w.amount;document.querySelectorAll('#page-add-work .payment-option').forEach(o=>{if(o.textContent.includes(w.paymentStatus))o.classList.add('selected');else o.classList.remove('selected')});document.getElementById('paymentStatus').value=w.paymentStatus;
     if(w.paymentStatus==='چک'&&w.dueDate){
         document.getElementById('dueDateSection').classList.add('show');
@@ -919,7 +897,6 @@ const APP = (function() {
     function closeModal(id){document.getElementById(id).classList.remove('show')}
 
     async function init(){try{console.log('🚀 Initializing...');await initDB();console.log('✅ DB ready');loadTypes();console.log('✅ Types loaded');await updateStats();console.log('✅ Stats updated');
-    console.log('✅ Date set to empty');
     await setupAuto();console.log('✅ Auto setup');if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();checkAlarms();setInterval(checkAlarms,60*60*1000);console.log('✅ Alarms setup');console.log('✅✅✅ App ready!');
     }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
