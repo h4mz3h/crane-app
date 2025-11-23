@@ -5,124 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.2)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.5)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
         .container { max-width: 600px; margin: 0 auto; }
-        
-        /* Header Styling */
         .header { background: white; padding: 20px 15px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 20px; text-align: center; }
         .header h1 { color: #2563eb; font-size: 18px; margin-bottom: 5px; line-height: 1.4; font-weight: 800; }
         .header p { color: #64748b; font-size: 13px; margin-bottom: 15px; }
-        
-        /* Stats Grid */
         .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 10px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .stat-box.debt { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
         .stat-box .label { font-size: 11px; opacity: 0.9; margin-bottom: 5px; white-space: nowrap; }
         .stat-box .value { font-size: 18px; font-weight: bold; }
-        
-        /* Navigation */
         .navigation { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; margin-bottom: 15px; }
         .nav-btn { flex: 1; padding: 12px 5px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-family: inherit; color: #64748b; background: white; display: flex; flex-direction: column; align-items: center; gap: 5px; }
         .nav-btn span { font-size: 20px; margin-bottom: 2px; } 
         .nav-btn:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-2px); }
         .nav-btn.active { background: #eff6ff; color: #2563eb; border-color: #2563eb; box-shadow: 0 4px 6px rgba(37,99,235,0.1); }
-        
         .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
         .btn-action { padding: 12px; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; }
         .btn-export { background: #10b981; }
         .btn-import { background: #f59e0b; }
-        
-        /* Pages */
         .page { display: none; animation: fadeIn 0.3s ease; }
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
         .form-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; position: relative; }
         .form-group label { display: block; margin-bottom: 8px; color: #334155; font-weight: 700; font-size: 13px; }
-        
-        /* --- Aligned Inputs and Buttons --- */
         .input-wrapper { display: flex; gap: 8px; align-items: stretch; height: 50px; } 
-        .form-group input, .form-group select, .custom-select-trigger { 
-            flex: 1; 
-            padding: 0 15px; 
-            border: 2px solid #e2e8f0; 
-            border-radius: 12px; 
-            font-size: 16px; 
-            font-family: inherit; 
-            transition: all 0.3s; 
-            background: #f8fafc; 
-            height: 100%; 
-            display: flex;
-            align-items: center; 
-            color: #334155;
-        }
-        
-        /* Fix for Customer Note Textarea */
-        .customer-notes textarea, .form-group textarea {
-            flex: 1;
-            width: 100%;
-            height: 50px !important;
-            min-height: 50px !important;
-            max-height: 50px !important;
-            padding: 12px 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            background: #f8fafc;
-            font-size: 16px;
-            font-family: inherit;
-            color: #334155;
-            resize: none;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-
+        .form-group input, .form-group select, .custom-select-trigger { flex: 1; padding: 0 15px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 16px; font-family: inherit; transition: all 0.3s; background: #f8fafc; height: 100%; display: flex; align-items: center; color: #334155; }
+        .customer-notes textarea, .form-group textarea { flex: 1; width: 100%; height: 50px !important; min-height: 50px !important; max-height: 50px !important; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc; font-size: 16px; font-family: inherit; color: #334155; resize: none; box-sizing: border-box; overflow: hidden; }
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .customer-notes textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        
-        /* Input that triggers calendar */
         .date-input { cursor: pointer; }
-
         .button-group { display: flex; gap: 8px; width: 45px; justify-content: flex-end; flex-shrink: 0; } 
-        
-        .voice-btn { 
-            width: 45px; 
-            height: 100%; 
-            border: none; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            color: white; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            font-size: 20px; 
-            transition: transform 0.2s; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3); 
-        }
+        .voice-btn { width: 45px; height: 100%; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; cursor: pointer; font-size: 20px; transition: transform 0.2s; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3); }
         .voice-btn:active { transform: scale(0.95); }
         .voice-btn.listening { animation: pulse 1.5s infinite; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-        
         .payment-status { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
         .payment-option { padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s; font-size: 13px; background: white; font-weight: 600; color: #64748b; }
         .payment-option:hover { background: #f1f5f9; }
         .payment-option.selected { background: #eff6ff; border-color: #2563eb; color: #2563eb; font-weight: bold; }
         .payment-option.debt { grid-column: span 2; }
-        
         .due-date-section, .partial-payment { display: none; margin-top: 15px; padding: 15px; background: #fef2f2; border-radius: 12px; border: 2px solid #fecaca; }
         .partial-payment { background: #fffbeb; border-color: #fcd34d; }
         .due-date-section.show, .partial-payment.show { display: block; animation: slideDown 0.3s ease; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        
         .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
         .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        
-        /* Work Type Drawer */
         .custom-select-trigger { cursor: pointer; display: flex; justify-content: space-between; align-items: center; height: 50px; width: 100%; padding: 0 15px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc; font-size: 16px; color: #334155; box-sizing: border-box; }
         .custom-select-trigger::after { content: '▼'; font-size: 12px; color: #94a3b8; margin-right: 10px; }
         .work-type-modal-list { margin-top: 15px; max-height: 300px; overflow-y: auto; }
@@ -135,8 +68,6 @@
         .add-new-type-wrapper { display: flex; gap: 10px; padding: 15px; background: #f1f5f9; border-radius: 12px; margin-bottom: 10px; }
         .add-new-type-input { flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; font-family: inherit; }
         .add-new-type-btn { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-
-        /* Customer List */
         .customer-list { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
         .customer-item { padding: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
         .customer-item:hover { background: #f8fafc; }
@@ -145,46 +76,38 @@
         .customer-phone { color: #64748b; font-size: 13px; display: flex; align-items: center; gap: 4px; }
         .customer-stats { display: flex; gap: 10px; font-size: 12px; color: #64748b; margin-top: 8px; background: #f8fafc; padding: 6px 10px; border-radius: 8px; width: fit-content; }
         .debt-badge { background: #fee2e2; color: #dc2626; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; display: inline-block; }
-        
         .debt-item { padding: 15px; border-bottom: 1px solid #f1f5f9; background: white; position: relative; overflow: hidden; }
         .debt-item.overdue::before { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 4px; background: #ef4444; }
         .debt-item.upcoming::before { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 4px; background: #f59e0b; }
-        
         .work-history-item { padding: 15px; background: #f8fafc; border-radius: 12px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
         .work-history-item.settlement { background: #ecfdf5; border-color: #d1fae5; }
         .work-history-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
         .work-date { color: #334155; font-weight: bold; font-size: 14px; background: #e2e8f0; padding: 2px 8px; border-radius: 6px; }
         .work-amount { color: #059669; font-weight: 800; font-size: 15px; }
         .work-details { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: #64748b; }
-        
         .payment-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-top: 5px; width: fit-content; }
         .payment-badge.paid { background: #d1fae5; color: #059669; }
         .payment-badge.debt { background: #fee2e2; color: #dc2626; }
         .payment-badge.check { background: #fef3c7; color: #d97706; }
         .payment-badge.settlement { background: #10b981; color: white; }
-        
         .back-btn { padding: 10px 20px; background: #cbd5e1; color: #334155; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 15px; font-weight: bold; font-family: inherit; display: flex; align-items: center; gap: 5px; }
         .customer-notes { background: #fffbeb; padding: 15px; border-radius: 12px; margin-top: 15px; border: 2px solid #fcd34d; }
         .phones-section { background: #f0f9ff; padding: 15px; border-radius: 12px; margin: 15px 0; border: 2px solid #bae6fd; }
         .phones-section h4 { color: #0369a1; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
         .phone-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: white; border-radius: 8px; margin-bottom: 5px; font-weight: 500; color: #334155; }
-        
         .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: #1e293b; color: white; padding: 14px 24px; border-radius: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999; max-width: 90%; font-size: 14px; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
         .toast.show { transform: translateX(-50%) translateY(0); }
-        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(3px); }
         .modal.show { display: flex; animation: fadeIn 0.2s; }
         .modal-content { background: white; padding: 25px; border-radius: 24px; max-width: 350px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); transform: scale(0.9); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
         @keyframes popIn { to { transform: scale(1); } }
         .modal-header { font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 20px; text-align: center; }
         .modal-actions { display: flex; gap: 10px; margin-top: 25px; }
-        
         .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 10px; }
         .search-box { padding: 15px; border-bottom: 2px solid #f1f5f9; }
         .search-box input { width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; background: #f8fafc; }
         .section-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .hidden { display: none !important; }
-        
         .datepicker-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center; padding: 20px; opacity: 0; transition: opacity 0.3s; backdrop-filter: blur(2px); }
         .datepicker-modal.show { display: flex; opacity: 1; }
         .datepicker-content { background: white; padding: 20px; border-radius: 24px; max-width: 340px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
@@ -201,7 +124,6 @@
         .datepicker-days button.selected { background: #2563eb; color: white; font-weight: bold; border: none; box-shadow: 0 4px 10px rgba(37,99,235,0.3); }
         .btn-close { width: 100%; padding: 14px; border: none; background: #f1f5f9; color: #475569; border-radius: 12px; font-weight: bold; cursor: pointer; font-family: inherit; transition: all 0.2s; }
         .btn-close:hover { background: #e2e8f0; }
-        
         .autocomplete-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
         .autocomplete-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; }
         .autocomplete-item:hover { background: #f8fafc; }
@@ -211,6 +133,7 @@
         .btn-settle { background: #2563eb; color: white; }
         .btn-delete { background: #ef4444; color: white; }
         .btn-edit { background: #f59e0b; color: white; }
+        .work-type-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f8fafc; border-radius: 10px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 14px; color: #334155; }
     </style>
 </head>
 <body>
@@ -280,7 +203,7 @@
                     <div class="form-group">
                         <label>💰 مبلغ (تومان)</label>
                         <div class="input-wrapper">
-                            <input type="text" id="amount" required oninput="APP.formatAmount(this);APP.calcRemaining()">
+                            <input type="tel" id="amount" required oninput="this.value=this.value.replace(/[^0-9]/g,''); APP.formatAmount(this); APP.calcRemaining()">
                             <div class="button-group">
                                 <button type="button" class="voice-btn" onclick="APP.startVoice('amount')">🎤</button>
                             </div>
@@ -307,7 +230,7 @@
                         <div id="partialPaymentSection" class="partial-payment">
                             <label style="color: #92400e; font-weight: bold; margin-bottom: 8px; display: block;">💵 مبلغ پرداخت شده</label>
                             <div class="input-wrapper" style="margin-bottom: 10px;">
-                                <input type="text" id="paidAmount" oninput="APP.formatAmount(this);APP.calcRemaining()">
+                                <input type="tel" id="paidAmount" oninput="this.value=this.value.replace(/[^0-9]/g,''); APP.formatAmount(this); APP.calcRemaining()">
                                 <div class="button-group">
                                     <button type="button" class="voice-btn" onclick="APP.startVoice('paidAmount')">🎤</button>
                                 </div>
@@ -606,17 +529,36 @@ const APP = (function() {
             'شش': '6', 'شیش': '6', 'هفت': '7', 'هشت': '8', 'نه': '9', 'ده': '10',
             'یازده': '11', 'دوازده': '12', 'سیزده': '13', 'چهارده': '14', 'پانزده': '15',
             'شانزده': '16', 'هفده': '17', 'هجده': '18', 'نوزده': '19', 'بیست': '20',
-            'سی': '30', 'یکم': '1', 'دوی': '2', 'سوم': '3', 'چهارم': '4', 'پنجم': '5',
-            'ششم': '6', 'هفتم': '7', 'هشتم': '8', 'نهم': '9', 'دهم': '10',
+            'سی': '30', 'چهل': '40', 'پنجاه': '50', 'شصت': '60', 'هفتاد': '70', 'هشتاد': '80', 'نود': '90',
+            'صد': '100', 'دویست': '200', 'سیصد': '300', 'چهارصد': '400', 'پانصد': '500', 'پونصد': '500', 'ششصد': '600', 'هفتصد': '700', 'هشتصد': '800', 'نهصد': '900',
             '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9', '۰': '0'
         };
         
-        // Replace strict matches first
         for (let word in map) {
             let regex = new RegExp(word, 'g');
             text = text.replace(regex, map[word]);
         }
         return text;
+    }
+
+    // Simplified Multiplier Logic (Million/Thousand only)
+    function parseSpokenAmount(text) {
+        text = text.replace(/و/g, ' ').replace(/تومان|ریال/g, '').trim();
+        text = normalizePersianNumbers(text);
+
+        let numStr = text.replace(/[^0-9.]/g, '');
+        let num = parseFloat(numStr);
+
+        if (isNaN(num)) return text;
+
+        // Check for simple keywords
+        if (text.includes('میلیون')) {
+            num = num * 1000000;
+        } else if (text.includes('هزار')) {
+            num = num * 1000;
+        }
+
+        return num.toString();
     }
 
     function handleVoice(t){
@@ -625,17 +567,12 @@ const APP = (function() {
         if(!f)return;
         let c=t.trim();
         
-        // Apply number normalization for Date, Phone, Amount
-        if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount') {
+        if(voiceField==='phone') {
+            c = normalizePersianNumbers(c).replace(/\s+/g,'').replace(/[^0-9]/g, '');
+        } else if(voiceField==='date') {
             c = normalizePersianNumbers(c);
-        }
-
-        if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-        
-        if(voiceField==='amount'||voiceField==='paidAmount'){
-            c=c.replace(/تومان|ریال|میلیون|هزار/g,'').trim().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-            if(t.includes('میلیون')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000000).toString()}
-            else if(t.includes('هزار')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000).toString()}
+        } else if(voiceField==='amount'||voiceField==='paidAmount'){
+            c = parseSpokenAmount(c);
         }
         
         f.value=c;
@@ -770,7 +707,7 @@ const APP = (function() {
     document.getElementById('totalRevenue').textContent=fmt(tr);
     const dbs=ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement),sts=ws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('totalDebt').textContent=fmt(td);const dp=new Set();for(const w of dbs){const ph=w.customerPhone,cdb=dbs.filter(x=>x.customerPhone===ph),cst=sts.filter(x=>x.customerPhone===ph);let ctd=cdb.reduce((s,x)=>{const da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0);return s+da},0);const cts=cst.reduce((s,x)=>s+parseFloat(x.amount.replace(/,/g,'')||0),0),rd=ctd-cts;if(rd>0)dp.add(ph)}document.getElementById('debtorCount').textContent=fmt(dp.size)}catch(e){console.error(e)}}
 
-    async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w);if(!c.lastWorkDate||w.date>c.lastWorkDate){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date}const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));cs.sort((a,b)=>b.works.length-a.works.length);const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;color:#2563eb;font-size:16px;margin-left:5px;">📞</span> ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
+    async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w);if(!c.lastWorkDate||w.date>c.lastWorkDate){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date}const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));cs.sort((a,b)=>b.works.length-a.works.length);const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;font-size:18px;color:#2563eb;margin-left:5px;">📞</span> <span style="margin-right:5px;">${phonesDisplay}</span></div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
 
     async function showCustomerDetail(ph){try{console.log('showCustomerDetail called with phone:',ph);currentCustomerPhone=ph;const ws=await getWorks();console.log('Total works:',ws.length);const cws=ws.filter(w=>w.customerPhone===ph).sort((a,b)=>(b.id||0)-(a.id||0));console.log('Customer works:',cws.length);if(cws.length===0){console.log('No works found for customer');return}const cd=await getCust(ph);console.log('Customer data:',cd);document.getElementById('detailCustomerName').textContent=cws[0].customerName;document.getElementById('detailCustomerPhone').textContent=`📞 ${ph}`;document.getElementById('customerNote').value=cd?.note||'';const tp=cws.reduce((s,w)=>{const am=parseFloat(w.amount.replace(/,/g,'')||0);if(!['نسیه','چک'].includes(w.paymentStatus))return s+am;else if(w.paymentStatus==='نسیه'&&w.paidAmount)return s+parseFloat(w.paidAmount.replace(/,/g,'')||0);return s},0);const dbs=cws.filter(w=>['نسیه','چک'].includes(w.paymentStatus)&&!w.isSettlement),sts=cws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('detailWorkCount').textContent=cws.length;document.getElementById('detailTotalPaid').textContent=fmt(tp);document.getElementById('detailCurrentDebt').textContent=fmt(td);const sb=document.getElementById('settleDebtBtn');if(td>0){sb.classList.remove('hidden');settleData={phone:ph,amount:td,name:cws[0].customerName}}else sb.classList.add('hidden');const phs=cd?.phones||[ph],pc=document.getElementById('phoneNumbersList');pc.innerHTML='';phs.forEach((p,i)=>{const pi=document.createElement('div');pi.className='phone-item';pi.innerHTML=`<span>📞 ${p}${i===0?' (اصلی)':''}</span>`;if(phs.length>1&&i>0){const del=document.createElement('button');del.className='btn-small btn-delete';del.textContent='🗑️';del.onclick=()=>deletePhone(ph,p);pi.appendChild(del)}pc.appendChild(pi)});const lw=cws[0];document.getElementById('detailLastWork').textContent=`${lw.date} - ${lw.workType}`;const nd=document.getElementById('customerNoteDisplay'),nt=document.getElementById('customerNoteText');if(cd?.note){nt.textContent=cd.note;nd.classList.remove('hidden')}else nd.classList.add('hidden');const hc=document.getElementById('workHistory');hc.innerHTML='';
     cws.forEach(w=>{const wi=document.createElement('div');wi.className='work-history-item';if(w.isSettlement)wi.classList.add('settlement');let bg='',dueDateTxt='';
