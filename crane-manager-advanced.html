@@ -5,233 +5,147 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.5 - سورت تاریخ)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.5)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
         .container { max-width: 600px; margin: 0 auto; }
-        
-        /* Header Styling */
-        .header { background: white; padding: 20px 15px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 20px; text-align: center; }
-        .header h1 { color: #2563eb; font-size: 18px; margin-bottom: 5px; line-height: 1.4; font-weight: 800; }
-        .header p { color: #64748b; font-size: 13px; margin-bottom: 15px; }
-        
-        /* Stats Grid */
-        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
-        .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 10px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .header { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); margin-bottom: 20px; text-align: center; }
+        .header h1 { color: #2563eb; font-size: 20px; margin-bottom: 5px; line-height: 1.4; }
+        .header p { color: #64748b; font-size: 14px; }
+        .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
+        .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px; border-radius: 10px; text-align: center; }
         .stat-box.debt { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
-        .stat-box .label { font-size: 11px; opacity: 0.9; margin-bottom: 5px; white-space: nowrap; }
-        .stat-box .value { font-size: 18px; font-weight: bold; }
-        
-        /* Navigation */
-        .navigation { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; margin-bottom: 15px; }
-        .nav-btn { flex: 1; padding: 12px 5px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-family: inherit; color: #64748b; background: white; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-        .nav-btn span { font-size: 20px; margin-bottom: 2px; } 
-        .nav-btn:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-2px); }
-        .nav-btn.active { background: #eff6ff; color: #2563eb; border-color: #2563eb; box-shadow: 0 4px 6px rgba(37,99,235,0.1); }
-        
-        .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
-        .btn-action { padding: 12px; border: none; border-radius: 12px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; color: white; display: flex; align-items: center; justify-content: center; gap: 5px; }
-        .btn-export { background: #10b981; }
-        .btn-import { background: #f59e0b; }
-        
-        /* Pages */
-        .page { display: none; animation: fadeIn 0.3s ease; }
+        .stat-box .label { font-size: 12px; opacity: 0.9; margin-bottom: 5px; }
+        .stat-box .value { font-size: 20px; font-weight: bold; }
+        .navigation { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .nav-btn { padding: 12px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; color: white; background: rgba(255,255,255,0.2); }
+        .nav-btn:hover { background: rgba(255,255,255,0.3); transform: translateY(-2px); }
+        .nav-btn.active { background: white; color: #2563eb; }
+        .page { display: none; }
         .page.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .form-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .form-card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; position: relative; }
-        .form-group label { display: block; margin-bottom: 8px; color: #334155; font-weight: 700; font-size: 13px; }
-        
-        /* --- Aligned Inputs and Buttons --- */
-        .input-wrapper { display: flex; gap: 8px; align-items: stretch; height: 50px; } 
-        .form-group input, .form-group select, .custom-select-trigger { 
-            flex: 1; 
-            padding: 0 15px; 
-            border: 2px solid #e2e8f0; 
-            border-radius: 12px; 
-            font-size: 16px; 
-            font-family: inherit; 
-            transition: all 0.3s; 
-            background: #f8fafc; 
-            height: 100%; 
-            display: flex;
-            align-items: center; 
-            color: #334155;
-        }
-        
-        /* Fix for Customer Note Textarea */
-        .customer-notes textarea, .form-group textarea {
-            flex: 1;
-            width: 100%;
-            height: 50px !important;
-            min-height: 50px !important;
-            max-height: 50px !important;
-            padding: 12px 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            background: #f8fafc;
-            font-size: 16px;
-            font-family: inherit;
-            color: #334155;
-            resize: none;
-            box-sizing: border-box;
-            overflow: hidden;
-        }
-
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .customer-notes textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        
-        /* Input that triggers calendar */
-        .date-input { cursor: pointer; }
-
-        .button-group { display: flex; gap: 8px; width: 45px; justify-content: flex-end; flex-shrink: 0; } 
-        
-        .voice-btn { 
-            width: 45px; 
-            height: 100%; 
-            border: none; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            color: white; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            font-size: 20px; 
-            transition: transform 0.2s; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3); 
-        }
-        .voice-btn:active { transform: scale(0.95); }
+        .form-group label { display: block; margin-bottom: 5px; color: #334155; font-weight: 600; font-size: 14px; }
+        .input-wrapper { display: flex; gap: 8px; align-items: center; }
+        .form-group input, .form-group select, .form-group textarea { flex: 1; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; font-family: inherit; transition: all 0.3s; }
+        .form-group textarea { min-height: 80px; resize: vertical; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        .voice-btn, .cal-btn { width: 45px; height: 45px; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 8px; cursor: pointer; font-size: 18px; transition: transform 0.2s; flex-shrink: 0; }
+        .voice-btn:active, .cal-btn:active { transform: scale(0.95); }
         .voice-btn.listening { animation: pulse 1.5s infinite; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-        
         .payment-status { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 8px; }
-        .payment-option { padding: 12px; border: 2px solid #e2e8f0; border-radius: 12px; cursor: pointer; text-align: center; transition: all 0.2s; font-size: 13px; background: white; font-weight: 600; color: #64748b; }
+        .payment-option { padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.2s; font-size: 14px; background: white; }
         .payment-option:hover { background: #f1f5f9; }
-        .payment-option.selected { background: #eff6ff; border-color: #2563eb; color: #2563eb; font-weight: bold; }
+        .payment-option.selected { background: #dbeafe; border-color: #2563eb; color: #2563eb; font-weight: bold; }
         .payment-option.debt { grid-column: span 2; }
-        
-        .due-date-section, .partial-payment { display: none; margin-top: 15px; padding: 15px; background: #fef2f2; border-radius: 12px; border: 2px solid #fecaca; }
-        .partial-payment { background: #fffbeb; border-color: #fcd34d; }
-        .due-date-section.show, .partial-payment.show { display: block; animation: slideDown 0.3s ease; }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
-        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4); }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-        
-        /* Work Type Drawer */
-        .custom-select-trigger { cursor: pointer; display: flex; justify-content: space-between; align-items: center; height: 50px; width: 100%; padding: 0 15px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc; font-size: 16px; color: #334155; box-sizing: border-box; }
-        .custom-select-trigger::after { content: '▼'; font-size: 12px; color: #94a3b8; margin-right: 10px; }
-        .work-type-modal-list { margin-top: 15px; max-height: 300px; overflow-y: auto; }
-        .work-type-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f1f5f9; transition: 0.2s; }
-        .work-type-row:last-child { border-bottom: none; }
-        .work-type-row:hover { background: #f8fafc; }
-        .work-type-label { font-weight: 600; color: #334155; cursor: pointer; flex: 1; }
-        .work-type-delete { background: #fee2e2; color: #ef4444; border: none; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-right: 10px; transition: 0.2s; }
-        .work-type-delete:hover { background: #fecaca; }
-        .add-new-type-wrapper { display: flex; gap: 10px; padding: 15px; background: #f1f5f9; border-radius: 12px; margin-bottom: 10px; }
-        .add-new-type-input { flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; font-family: inherit; }
-        .add-new-type-btn { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
-
-        /* Customer List */
-        .customer-list { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
-        .customer-item { padding: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+        .due-date-section, .partial-payment { display: none; margin-top: 10px; padding: 15px; background: #fef2f2; border-radius: 8px; border: 2px solid #fecaca; }
+        .partial-payment { background: #fef3c7; border-color: #fbbf24; }
+        .due-date-section.show, .partial-payment.show { display: block; }
+        .btn { width: 100%; padding: 14px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; }
+        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+        .add-work-type { display: flex; gap: 8px; margin-top: 8px; }
+        .add-work-type input { flex: 1; padding: 8px 12px; border: 2px solid #e2e8f0; border-radius: 6px; font-size: 14px; }
+        .add-work-type button { padding: 8px 16px; background: #10b981; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: bold; cursor: pointer; transition: all 0.2s; }
+        .customer-list { background: white; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); overflow: hidden; }
+        .customer-item { padding: 15px 20px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
         .customer-item:hover { background: #f8fafc; }
-        .customer-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; width: 100%; }
-        .customer-name { font-weight: 800; color: #1e293b; font-size: 15px; margin-bottom: 2px; }
-        .customer-phone { color: #64748b; font-size: 13px; display: flex; align-items: center; gap: 4px; }
-        .customer-stats { display: flex; gap: 10px; font-size: 12px; color: #64748b; margin-top: 8px; background: #f8fafc; padding: 6px 10px; border-radius: 8px; width: fit-content; }
-        .debt-badge { background: #fee2e2; color: #dc2626; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: bold; display: inline-block; }
-        
-        .debt-item { padding: 15px; border-bottom: 1px solid #f1f5f9; background: white; position: relative; overflow: hidden; }
-        .debt-item.overdue::before { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 4px; background: #ef4444; }
-        .debt-item.upcoming::before { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 4px; background: #f59e0b; }
-        
-        .work-history-item { padding: 15px; background: #f8fafc; border-radius: 12px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
-        .work-history-item.settlement { background: #ecfdf5; border-color: #d1fae5; }
-        .work-history-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-        .work-date { color: #334155; font-weight: bold; font-size: 14px; background: #e2e8f0; padding: 2px 8px; border-radius: 6px; }
-        .work-amount { color: #059669; font-weight: 800; font-size: 15px; }
-        .work-details { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: #64748b; }
-        
-        .payment-badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: bold; margin-top: 5px; width: fit-content; }
+        .customer-item:last-child { border-bottom: none; }
+        .customer-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .customer-name { font-weight: bold; color: #1e293b; font-size: 16px; }
+        .customer-phone { color: #64748b; font-size: 14px; margin-top: 3px; }
+        .customer-stats { display: flex; gap: 15px; font-size: 13px; color: #64748b; margin-top: 8px; }
+        .customer-stat { display: flex; align-items: center; gap: 5px; }
+        .debt-badge { background: #fee2e2; color: #dc2626; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .debt-item { padding: 15px 20px; border-bottom: 1px solid #f1f5f9; background: white; }
+        .debt-item:last-child { border-bottom: none; }
+        .debt-item.overdue { background: #fef2f2; border-right: 4px solid #dc2626; }
+        .debt-item.upcoming { background: #fffbeb; border-right: 4px solid #f59e0b; }
+        .work-history-item { padding: 15px; background: #f8fafc; border-radius: 8px; margin-bottom: 10px; }
+        .work-history-item.settlement { background: #d1fae5; border: 2px solid #10b981; }
+        .work-history-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px; }
+        .work-date { color: #2563eb; font-weight: bold; font-size: 14px; }
+        .work-amount { color: #059669; font-weight: bold; }
+        .work-details { display: grid; gap: 5px; font-size: 14px; color: #64748b; }
+        .payment-badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-top: 5px; }
         .payment-badge.paid { background: #d1fae5; color: #059669; }
         .payment-badge.debt { background: #fee2e2; color: #dc2626; }
         .payment-badge.check { background: #fef3c7; color: #d97706; }
         .payment-badge.settlement { background: #10b981; color: white; }
-        
-        .back-btn { padding: 10px 20px; background: #cbd5e1; color: #334155; border: none; border-radius: 10px; cursor: pointer; margin-bottom: 15px; font-weight: bold; font-family: inherit; display: flex; align-items: center; gap: 5px; }
-        .customer-notes { background: #fffbeb; padding: 15px; border-radius: 12px; margin-top: 15px; border: 2px solid #fcd34d; }
-        .phones-section { background: #f0f9ff; padding: 15px; border-radius: 12px; margin: 15px 0; border: 2px solid #bae6fd; }
-        .phones-section h4 { color: #0369a1; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
-        .phone-item { display: flex; align-items: center; justify-content: space-between; padding: 10px; background: white; border-radius: 8px; margin-bottom: 5px; font-weight: 500; color: #334155; }
-        
-        .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px); background: #1e293b; color: white; padding: 14px 24px; border-radius: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 9999; max-width: 90%; font-size: 14px; display: flex; align-items: center; gap: 8px; white-space: nowrap; }
+        .back-btn { padding: 10px 20px; background: #94a3b8; color: white; border: none; border-radius: 8px; cursor: pointer; margin-bottom: 15px; font-weight: bold; font-family: inherit; }
+        .customer-notes { background: #fefce8; padding: 15px; border-radius: 8px; margin-top: 15px; border: 2px solid #fef08a; }
+        .customer-notes textarea { width: 100%; min-height: 60px; border: 2px solid #e2e8f0; border-radius: 6px; padding: 10px; font-family: inherit; resize: vertical; }
+        .phones-section { background: #f0f9ff; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #bae6fd; }
+        .phones-section h4 { color: #0c4a6e; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .phone-item { display: flex; align-items: center; justify-content: space-between; padding: 8px 10px; background: white; border-radius: 5px; margin-bottom: 5px; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(100px); background: #1e293b; color: white; padding: 12px 24px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); transition: transform 0.3s; z-index: 1000; max-width: 90%; }
         .toast.show { transform: translateX(-50%) translateY(0); }
-        
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 2000; justify-content: center; align-items: center; padding: 20px; backdrop-filter: blur(3px); }
-        .modal.show { display: flex; animation: fadeIn 0.2s; }
-        .modal-content { background: white; padding: 25px; border-radius: 24px; max-width: 350px; width: 100%; max-height: 85vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); transform: scale(0.9); animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-        @keyframes popIn { to { transform: scale(1); } }
-        .modal-header { font-size: 18px; font-weight: 800; color: #1e293b; margin-bottom: 20px; text-align: center; }
-        .modal-actions { display: flex; gap: 10px; margin-top: 25px; }
-        
-        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
+        .modal.show { display: flex; }
+        .modal-content { background: white; padding: 25px; border-radius: 15px; max-width: 400px; width: 100%; max-height: 80vh; overflow-y: auto; }
+        .modal-header { font-size: 18px; font-weight: bold; color: #1e293b; margin-bottom: 15px; text-align: center; }
+        .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+        .empty-state { text-align: center; padding: 40px 20px; color: #94a3b8; }
         .search-box { padding: 15px; border-bottom: 2px solid #f1f5f9; }
-        .search-box input { width: 100%; padding: 12px 15px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 14px; background: #f8fafc; }
+        .search-box input { width: 100%; padding: 10px 15px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
         .section-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 20px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
         .hidden { display: none !important; }
         
-        .datepicker-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center; padding: 20px; opacity: 0; transition: opacity 0.3s; backdrop-filter: blur(2px); }
+        .datepicker-modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; justify-content: center; align-items: center; padding: 20px; opacity: 0; transition: opacity 0.3s; }
         .datepicker-modal.show { display: flex; opacity: 1; }
-        .datepicker-content { background: white; padding: 20px; border-radius: 24px; max-width: 340px; width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
-        .datepicker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid #e2e8f0; }
-        .datepicker-header button { width: 40px; height: 40px; border: none; background: #f1f5f9; color: #334155; border-radius: 12px; font-size: 18px; cursor: pointer; transition: all 0.2s; font-weight: bold; display: flex; align-items: center; justify-content: center; }
-        .datepicker-header button:hover { background: #e2e8f0; }
-        .datepicker-header span { font-weight: 800; color: #1e293b; font-size: 16px; }
-        .datepicker-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 10px; text-align: center; }
-        .datepicker-weekdays span { font-size: 12px; color: #94a3b8; font-weight: bold; }
-        .datepicker-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 20px; }
-        .datepicker-days button { padding: 0; border: none; background: white; border-radius: 10px; cursor: pointer; font-size: 14px; transition: all 0.2s; height: 40px; width: 100%; display: flex; align-items: center; justify-content: center; color: #334155; font-weight: 500; }
-        .datepicker-days button:hover { background: #f1f5f9; color: #2563eb; }
-        .datepicker-days button.today { border: 2px solid #2563eb; color: #2563eb; font-weight: bold; }
-        .datepicker-days button.selected { background: #2563eb; color: white; font-weight: bold; border: none; box-shadow: 0 4px 10px rgba(37,99,235,0.3); }
-        .btn-close { width: 100%; padding: 14px; border: none; background: #f1f5f9; color: #475569; border-radius: 12px; font-weight: bold; cursor: pointer; font-family: inherit; transition: all 0.2s; }
-        .btn-close:hover { background: #e2e8f0; }
+        .datepicker-content { background: white; padding: 20px; border-radius: 15px; max-width: 350px; width: 100%; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+        .datepicker-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 2px solid #e2e8f0; }
+        .datepicker-header button { width: 36px; height: 36px; border: none; background: #eff6ff; color: #2563eb; border-radius: 8px; font-size: 18px; cursor: pointer; transition: all 0.2s; font-weight: bold; }
+        .datepicker-header button:hover { background: #2563eb; color: white; }
+        .datepicker-header span { font-weight: bold; color: #1e293b; font-size: 16px; }
+        .datepicker-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 5px; text-align: center; }
+        .datepicker-weekdays span { font-size: 12px; color: #64748b; font-weight: bold; }
+        .datepicker-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-bottom: 15px; }
+        .datepicker-days button { padding: 8px; border: 1px solid #e2e8f0; background: white; border-radius: 8px; cursor: pointer; font-size: 14px; transition: all 0.2s; height: 40px; }
+        .datepicker-days button:hover { background: #dbeafe; border-color: #2563eb; color: #2563eb; }
+        .datepicker-days button.today { border-color: #2563eb; color: #2563eb; font-weight: bold; }
+        .datepicker-days button.selected { background: #2563eb; color: white; border-color: #2563eb; }
+        .btn-close { width: 100%; padding: 12px; border: none; background: #94a3b8; color: white; border-radius: 8px; font-weight: bold; cursor: pointer; font-family: inherit; }
         
-        .autocomplete-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
-        .autocomplete-item { padding: 12px 15px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; }
+        .autocomplete-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #e2e8f0; border-top: none; border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .autocomplete-item { padding: 10px 15px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; }
         .autocomplete-item:hover { background: #f8fafc; }
         .autocomplete-item strong { color: #2563eb; }
-        .btn-small { padding: 6px 12px; border: none; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; font-family: inherit; font-weight: bold; }
+        .btn-small { padding: 6px 12px; border: none; border-radius: 5px; font-size: 12px; cursor: pointer; transition: all 0.2s; font-family: inherit; font-weight: bold; }
         .btn-call { background: #10b981; color: white; }
         .btn-settle { background: #2563eb; color: white; }
         .btn-delete { background: #ef4444; color: white; }
         .btn-edit { background: #f59e0b; color: white; }
+        .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .btn-action { padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; color: white; }
+        .btn-export { background: #10b981; }
+        .btn-import { background: #f59e0b; }
+        .work-type-item { display: flex; align-items: center; justify-content: space-between; padding: 8px; background: #f1f5f9; border-radius: 5px; margin-bottom: 5px; }
+        @media (max-width: 480px) {
+            .stats, .navigation, .payment-status { grid-template-columns: 1fr; }
+            .payment-option.debt { grid-column: span 1; }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>مدیریت مشتریان - جرثقیل حسین کُرد</h1>
+            <h1>🏗️ مدیریت مشتریان - جرثقیل حسین کُرد</h1>
             <p>ثبت و پیگیری مشتریان و بدهی‌ها</p>
-            
             <div class="stats">
                 <div class="stat-box"><div class="label">👥 تعداد مشتریان</div><div class="value" id="totalCustomers">0</div></div>
                 <div class="stat-box"><div class="label">💰 مجموع درآمد</div><div class="value" id="totalRevenue">0</div></div>
                 <div class="stat-box debt"><div class="label">🔴 بدهی‌ها</div><div class="value" id="totalDebt">0</div></div>
                 <div class="stat-box debt"><div class="label">👥 بدهکاران</div><div class="value" id="debtorCount">0</div></div>
             </div>
-
             <div class="navigation">
-                <button class="nav-btn active" onclick="APP.showPage('add-work')"><span>➕</span>ثبت کار</button>
-                <button class="nav-btn" onclick="APP.showPage('customers')"><span>👥</span>مشتریان</button>
-                <button class="nav-btn" onclick="APP.showPage('debtors')"><span>💰</span>بدهکاران</button>
+                <button class="nav-btn active" onclick="APP.showPage('add-work')">➕ ثبت کار</button>
+                <button class="nav-btn" onclick="APP.showPage('customers')">👥 مشتریان</button>
+                <button class="nav-btn" onclick="APP.showPage('debtors')">💰 بدهکاران</button>
             </div>
-
             <div class="action-buttons">
                 <button class="btn-action btn-export" onclick="APP.exportData()">📥 دریافت بکاپ</button>
                 <button class="btn-action btn-import" onclick="document.getElementById('importFile').click()">📤 بازگردانی</button>
@@ -245,19 +159,16 @@
                     <div class="form-group">
                         <label>📅 تاریخ</label>
                         <div class="input-wrapper">
-                            <input type="text" id="date" class="date-input" required readonly onclick="APP.showCal('date')">
-                            <div class="button-group">
-                                <button type="button" class="voice-btn" onclick="APP.startVoice('date')">🎤</button>
-                            </div>
+                            <input type="text" id="date" required readonly>
+                            <button type="button" class="voice-btn" onclick="APP.startVoice('date')">🎤</button>
+                            <button type="button" class="cal-btn" onclick="APP.showCal('date')">📅</button>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>👤 نام مشتری</label>
                         <div class="input-wrapper">
                             <input type="text" id="customerName" required>
-                            <div class="button-group">
-                                <button type="button" class="voice-btn" onclick="APP.startVoice('customerName')">🎤</button>
-                            </div>
+                            <button type="button" class="voice-btn" onclick="APP.startVoice('customerName')">🎤</button>
                         </div>
                         <div id="customerSuggestions" class="autocomplete-suggestions hidden"></div>
                     </div>
@@ -265,25 +176,23 @@
                         <label>📞 شماره تلفن</label>
                         <div class="input-wrapper">
                             <input type="tel" id="phone" required maxlength="11" pattern="09[0-9]{9}">
-                            <div class="button-group">
-                                <button type="button" class="voice-btn" onclick="APP.startVoice('phone')">🎤</button>
-                            </div>
+                            <button type="button" class="voice-btn" onclick="APP.startVoice('phone')">🎤</button>
                         </div>
                     </div>
                     <div class="form-group">
                         <label>🔧 نوع کار</label>
-                        <div class="custom-select-trigger input-wrapper" onclick="APP.openWorkTypeModal()">
-                            <span id="workTypeDisplay" style="padding-left: 15px; color: #94a3b8;">انتخاب کنید...</span>
-                            <input type="hidden" id="workType" required>
+                        <select id="workType" required></select>
+                        <div class="add-work-type">
+                            <input type="text" id="newWorkType" placeholder="">
+                            <button type="button" onclick="APP.addWorkType()">➕ افزودن</button>
                         </div>
+                        <div id="workTypesList"></div>
                     </div>
                     <div class="form-group">
                         <label>💰 مبلغ (تومان)</label>
                         <div class="input-wrapper">
                             <input type="text" id="amount" required oninput="APP.formatAmount(this);APP.calcRemaining()">
-                            <div class="button-group">
-                                <button type="button" class="voice-btn" onclick="APP.startVoice('amount')">🎤</button>
-                            </div>
+                            <button type="button" class="voice-btn" onclick="APP.startVoice('amount')">🎤</button>
                         </div>
                     </div>
                     <div class="form-group">
@@ -299,20 +208,17 @@
                         <div id="dueDateSection" class="due-date-section">
                             <label style="color: #dc2626; margin-bottom: 8px; display: block;">📆 تاریخ سررسید</label>
                             <div class="input-wrapper">
-                                <input type="text" id="dueDate" class="date-input" readonly onclick="APP.showCal('dueDate')">
-                                <div class="button-group">
-                                    <button type="button" class="voice-btn" onclick="APP.startVoice('dueDate')">🎤</button>
-                                </div>
+                                <input type="text" id="dueDateDisplay" readonly>
+                                <button type="button" class="cal-btn" onclick="APP.showCal('dueDate')">📅</button>
                             </div>
+                            <input type="hidden" id="dueDate">
                             <p style="font-size: 12px; color: #dc2626; margin-top: 8px;">⏰ هشدار در ساعت ۷ صبح روز سررسید</p>
                         </div>
                         <div id="partialPaymentSection" class="partial-payment">
                             <label style="color: #92400e; font-weight: bold; margin-bottom: 8px; display: block;">💵 مبلغ پرداخت شده</label>
                             <div class="input-wrapper" style="margin-bottom: 10px;">
                                 <input type="text" id="paidAmount" oninput="APP.formatAmount(this);APP.calcRemaining()">
-                                <div class="button-group">
-                                    <button type="button" class="voice-btn" onclick="APP.startVoice('paidAmount')">🎤</button>
-                                </div>
+                                <button type="button" class="voice-btn" onclick="APP.startVoice('paidAmount')">🎤</button>
                             </div>
                             <label style="color: #92400e; font-weight: bold; margin-bottom: 8px; display: block;">💰 مبلغ باقیمانده (بدهی)</label>
                             <input type="text" id="remainingAmount" readonly style="background: #f1f5f9; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 16px; width: 100%;">
@@ -327,7 +233,7 @@
         <div id="page-customers" class="page">
             <div class="customer-list">
                 <div class="section-header"><span>👥 لیست مشتریان</span><span id="customerListCount">0 مورد</span></div>
-                <div class="search-box"><input type="text" id="customerSearch" placeholder="🔍 جستجو..." oninput="APP.renderCustomers()"></div>
+                <div class="search-box"><input type="text" id="customerSearch" placeholder="🔍 جستجو بر اساس نام یا شماره..." oninput="APP.renderCustomers()"></div>
                 <div id="customersList"></div>
             </div>
         </div>
@@ -364,10 +270,8 @@
                 <div class="customer-notes">
                     <label style="font-weight: bold; color: #854d0e; margin-bottom: 8px; display: block;">📝 یادداشت</label>
                     <div class="input-wrapper">
-                        <textarea id="customerNote"></textarea>
-                        <div class="button-group">
-                            <button type="button" class="voice-btn" onclick="APP.startVoice('customerNote')">🎤</button>
-                        </div>
+                        <textarea id="customerNote" placeholder="مثال: مشتری خوش‌حساب..."></textarea>
+                        <button type="button" class="voice-btn" onclick="APP.startVoice('customerNote')">🎤</button>
                     </div>
                     <button class="btn btn-primary" style="margin-top: 10px;" onclick="APP.saveNote()">💾 ذخیره یادداشت</button>
                 </div>
@@ -378,20 +282,6 @@
     </div>
 
     <div class="toast" id="toast"></div>
-
-    <div class="modal" id="workTypeModal">
-        <div class="modal-content">
-            <div class="modal-header">🔧 انتخاب نوع کار</div>
-            <div class="add-new-type-wrapper">
-                <input type="text" id="newWorkTypeInModal" class="add-new-type-input" placeholder="نوع کار جدید...">
-                <button onclick="APP.addWorkTypeFromModal()" class="add-new-type-btn">افزودن</button>
-            </div>
-            <div id="workTypeListInModal" class="work-type-modal-list"></div>
-            <div class="modal-actions">
-                <button class="btn-close" onclick="APP.closeModal('workTypeModal')">بستن</button>
-            </div>
-        </div>
-    </div>
 
     <div class="modal" id="deleteModal">
         <div class="modal-content">
@@ -430,17 +320,6 @@
                 <div style="font-size: 24px; font-weight: bold; color: #dc2626; margin: 10px 0;"><span id="settleDebtAmount"></span> تومان</div>
                 <div style="color: #1e40af; font-size: 14px;">مبلغ بدهی</div>
             </div>
-            
-            <div class="form-group">
-                <label>📅 تاریخ تسویه</label>
-                <div class="input-wrapper">
-                    <input type="text" id="settleDate" class="date-input" readonly onclick="APP.showCal('settleDate')">
-                    <div class="button-group">
-                        <button type="button" class="voice-btn" onclick="APP.startVoice('settleDate')">🎤</button>
-                    </div>
-                </div>
-            </div>
-
             <div style="margin: 20px 0;">
                 <label style="font-weight: bold; color: #1e293b; margin-bottom: 10px; display: block;">💳 نوع پرداخت</label>
                 <div class="payment-status">
@@ -508,7 +387,7 @@ const APP = (function() {
         gy+=parseInt((days-1)/365);
         if(days>365)days=(days-1)%365;
         var gd=days+1;
-        var sal_a=[0,31,((gy%4==0&&gy%100!=0)||(gy%400==0))?29:28,31,30,31,31,30,31,30,31];
+        var sal_a=[0,31,((gy%4==0&&gy%100!=0)||(gy%400==0))?29:28,31,30,31,30,31,31,30,31,30,31];
         var gm;
         for(gm=0;gm<13;gm++){var v=sal_a[gm];if(gd<=v)break;gd-=v;}
         return new Date(gy,gm-1,gd);
@@ -530,6 +409,7 @@ const APP = (function() {
     function fmtDate(y,m,d){return `${d} ${pMonths[m-1]} ${y}`}
     function fmt(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
     
+    // --- Alarm Sound ---
     function playAlarmSound() {
         if (window.AudioContext || window.webkitAudioContext) {
             try {
@@ -547,20 +427,6 @@ const APP = (function() {
         }
     }
 
-    // --- Helper: Parse Persian Date String to Number for Sorting ---
-    function parseDateStr(dStr) {
-        if (!dStr) return 0;
-        try {
-            const parts = dStr.split(' ');
-            if (parts.length !== 3) return 0;
-            const d = parseInt(parts[0]);
-            const m = pMonths.indexOf(parts[1]) + 1;
-            const y = parseInt(parts[2]);
-            // Return comparable number: YYYYMMDD
-            return (y * 10000) + (m * 100) + d;
-        } catch (e) { return 0; }
-    }
-
     // --- Database Functions ---
     async function initDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onerror=()=>rej(r.error);r.onsuccess=()=>{db=r.result;res(db)};r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains(WORKS)){const s=d.createObjectStore(WORKS,{keyPath:'id',autoIncrement:true});s.createIndex('customerPhone','customerPhone',{unique:false});s.createIndex('date','date',{unique:false});s.createIndex('paymentStatus','paymentStatus',{unique:false})}if(!d.objectStoreNames.contains(CUSTOMERS)){const s=d.createObjectStore(CUSTOMERS,{keyPath:'phone'});s.createIndex('name','name',{unique:false})}}})}
     async function addWork(w){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readwrite'),s=t.objectStore(WORKS),r=s.add(w);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -574,119 +440,23 @@ const APP = (function() {
 
     function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
 
-    function loadTypes(){const s=localStorage.getItem('workTypes');if(s)try{workTypes=JSON.parse(s)}catch(e){}}
+    function loadTypes(){const s=localStorage.getItem('workTypes');if(s)try{workTypes=JSON.parse(s)}catch(e){}updateTypeDropdown()}
     function saveTypes(){localStorage.setItem('workTypes',JSON.stringify(workTypes))}
-    
-    function openWorkTypeModal() {
-        const list = document.getElementById('workTypeListInModal');
-        list.innerHTML = '';
-        workTypes.forEach((t, i) => {
-            const row = document.createElement('div');
-            row.className = 'work-type-row';
-            row.innerHTML = `
-                <span class="work-type-label" onclick="APP.selectWorkType('${t}')">${t}</span>
-                <button class="work-type-delete" onclick="APP.deleteType(${i})">🗑️</button>
-            `;
-            list.appendChild(row);
-        });
-        document.getElementById('workTypeModal').classList.add('show');
-    }
-    
-    function selectWorkType(val) {
-        document.getElementById('workType').value = val;
-        const display = document.getElementById('workTypeDisplay');
-        display.textContent = val;
-        display.style.color = '#1e293b';
-        closeModal('workTypeModal');
-    }
-    
-    function addWorkTypeFromModal() {
-        const inp = document.getElementById('newWorkTypeInModal');
-        const nt = inp.value.trim();
-        if(!nt){toast('⚠️ لطفاً نوع کار را وارد کنید');return}
-        if(workTypes.includes(nt)){toast('⚠️ تکراری است');return}
-        workTypes.push(nt);
-        saveTypes();
-        inp.value = '';
-        openWorkTypeModal(); // Re-render list
-        toast('✅ اضافه شد');
-    }
+    function updateTypeDropdown(){const s=document.getElementById('workType');if(!s)return;const v=s.value;s.innerHTML='<option value="">انتخاب کنید...</option>';workTypes.forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;s.appendChild(o)});if(v&&workTypes.includes(v))s.value=v;const c=document.getElementById('workTypesList');if(!c)return;c.innerHTML='';workTypes.forEach((t,i)=>{const d=document.createElement('div');d.className='work-type-item';d.innerHTML=`<span>${t}</span>`;const b=document.createElement('button');b.className='btn-small btn-delete';b.textContent='🗑️';b.onclick=()=>deleteType(i);d.appendChild(b);c.appendChild(d)})}
+    function deleteType(i){if(workTypes.length<=1){toast('⚠️ حداقل یک نوع کار باید باقی بماند');return}if(confirm(`آیا از حذف "${workTypes[i]}" مطمئن هستید؟`)){workTypes.splice(i,1);saveTypes();updateTypeDropdown();toast('✅ نوع کار حذف شد')}}
 
-    function deleteType(i){
-        if(workTypes.length<=1){toast('⚠️ حداقل یک مورد لازم است');return}
-        if(confirm(`حذف "${workTypes[i]}"؟`)){
-            workTypes.splice(i,1);
-            saveTypes();
-            openWorkTypeModal();
-            toast('✅ حذف شد');
-        }
-    }
-
-    // --- Voice Logic with Number Converter ---
+    // --- Voice Logic ---
     if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){const S=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new S();recognition.lang='fa-IR';recognition.continuous=false;recognition.interimResults=false;recognition.onresult=e=>{const t=e.results[0][0].transcript;handleVoice(t)};recognition.onerror=()=>{toast('❌ خطا در تشخیص صدا');stopVoice()};recognition.onend=()=>stopVoice()}
     function startVoice(f){if(!recognition){toast('⚠️ مرورگر شما از ورودی صوتی پشتیبانی نمی‌کند');return}voiceField=f;try{recognition.start();toast('🎤 در حال گوش دادن...')}catch(e){stopVoice()}}
-    function stopVoice(){if(recognition)try{recognition.stop()}catch(e){}document.querySelectorAll('.voice-btn').forEach(b=>{b.classList.remove('listening')})}
-    
-    function normalizePersianNumbers(text) {
-        const map = {
-            'یک': '1', 'دو': '2', 'سه': '3', 'چهار': '4', 'پنج': '5',
-            'شش': '6', 'شیش': '6', 'هفت': '7', 'هشت': '8', 'نه': '9', 'ده': '10',
-            'یازده': '11', 'دوازده': '12', 'سیزده': '13', 'چهارده': '14', 'پانزده': '15',
-            'شانزده': '16', 'هفده': '17', 'هجده': '18', 'نوزده': '19', 'بیست': '20',
-            'سی': '30', 'یکم': '1', 'دوی': '2', 'سوم': '3', 'چهارم': '4', 'پنجم': '5',
-            'ششم': '6', 'هفتم': '7', 'هشتم': '8', 'نهم': '9', 'دهم': '10',
-            '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9', '۰': '0'
-        };
-        for (let word in map) {
-            let regex = new RegExp(word, 'g');
-            text = text.replace(regex, map[word]);
-        }
-        return text;
-    }
-
-    function handleVoice(t){
-        if(!voiceField)return;
-        const f=document.getElementById(voiceField);
-        if(!f)return;
-        let c=t.trim();
-        
-        // Updated: Added settleDate to normalization list
-        if(voiceField === 'date' || voiceField === 'settleDate' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount') {
-            c = normalizePersianNumbers(c);
-        }
-
-        if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-        
-        if(voiceField==='amount'||voiceField==='paidAmount'){
-            let multiplier = 1;
-            if (c.includes('میلیارد')) multiplier = 1000000000;
-            else if (c.includes('میلیون')) multiplier = 1000000;
-            else if (c.includes('هزار')) multiplier = 1000;
-
-            let cleanNum = c.replace(/میلیارد|میلیون|هزار|تومان|تومن|ریال|و/g, ' ').trim();
-            cleanNum = cleanNum.replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-            cleanNum = cleanNum.replace(/[^0-9.]/g, '');
-
-            let n = parseFloat(cleanNum);
-            if(!isNaN(n)){
-                c = (n * multiplier).toString();
-            }
-        }
-        
-        f.value=c;
-        if(voiceField==='amount'||voiceField==='paidAmount'){formatAmount(f);calcRemaining()}
-        toast(`✅ "${c}" ثبت شد`);
-        stopVoice()
-    }
+    function stopVoice(){if(recognition)try{recognition.stop()}catch(e){}document.querySelectorAll('.voice-btn').forEach(b=>{b.classList.remove('listening');b.textContent='🎤'})}
+    function handleVoice(t){if(!voiceField)return;const f=document.getElementById(voiceField);if(!f)return;let c=t.trim();if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));if(voiceField==='amount'||voiceField==='paidAmount'){c=c.replace(/تومان|ریال|میلیون|هزار/g,'').trim().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));if(t.includes('میلیون')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000000).toString()}else if(t.includes('هزار')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000).toString()}}f.value=c;if(voiceField==='amount'||voiceField==='paidAmount'){formatAmount(f);calcRemaining()}toast(`✅ "${c}" ثبت شد`);stopVoice()}
 
     function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
     function calcRemaining(){const t=parseFloat(document.getElementById('amount').value.replace(/,/g,'')||0),p=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0),r=t-p;document.getElementById('remainingAmount').value=r>=0?fmt(r):'0'}
 
     // --- Logic جدید تقویم ---
     function showCal(target){
-        // حذف شرط‌های پیچیده؛ تارگت دقیقا همان آی‌دی اینپوت است
-        let el = document.getElementById(target);
-        
+        let el = document.getElementById(target==='dueDate'?'dueDateDisplay':target);
         let initialVal = el.value;
         let jy, jm, jd;
         if(initialVal && initialVal.split(' ').length === 3) {
@@ -764,53 +534,38 @@ const APP = (function() {
     }
     
     function selectDate(d) {
-            const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
-            
-            // حالا تمام فیلدها (تاریخ اصلی، سررسید و تسویه) دقیقا یک رفتار دارند
-            // و تاریخ شمسی را مستقیم درون فیلد می‌ریزند
-            if(window.dpTarget) {
-                const el = document.getElementById(window.dpTarget);
-                if(el) el.value = pDateStr;
-            }
-            
-            window.closeCal();
+        const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
+        const gDateObj = toGregorian(window.dpCurY, window.dpCurM, d);
+        // FIX: Manually construct YYYY-MM-DD to avoid timezone shift
+        const gy = gDateObj.getFullYear();
+        const gm = String(gDateObj.getMonth() + 1).padStart(2, '0');
+        const gd = String(gDateObj.getDate()).padStart(2, '0');
+        const gDateIso = `${gy}-${gm}-${gd}`;
+        
+        if(window.dpTarget === 'date') {
+            document.getElementById('date').value = pDateStr;
+        } else if (window.dpTarget === 'dueDate') {
+            document.getElementById('dueDateDisplay').value = pDateStr;
+            document.getElementById('dueDate').value = gDateIso;
         }
+        window.closeCal();
+    }
 
     async function setupAuto(){const ni=document.getElementById('customerName'),pi=document.getElementById('phone'),sg=document.getElementById('customerSuggestions');if(!ni||!sg)return;const ws=await getWorks(),cm=new Map();for(const w of ws){if(!cm.has(w.customerPhone)){const cd=await getCust(w.customerPhone);cm.set(w.customerPhone,{name:w.customerName,phone:w.customerPhone,phones:cd?.phones||[w.customerPhone]})}}allCustomers=Array.from(cm.values());ni.addEventListener('input',function(){const q=this.value.trim();if(q.length<2){sg.classList.add('hidden');sg.innerHTML='';return}const m=allCustomers.filter(c=>c.name.includes(q)).slice(0,10);if(m.length>0){sg.innerHTML='';m.forEach(c=>{const it=document.createElement('div');it.className='autocomplete-item';it.innerHTML=`<strong>${c.name}</strong><br><span style="font-size:13px;color:#64748b;">📞 ${c.phone}</span>`;it.onclick=()=>{ni.value=c.name;pi.value=c.phone;sg.classList.add('hidden');sg.innerHTML=''};sg.appendChild(it)});sg.classList.remove('hidden')}else{sg.classList.add('hidden');sg.innerHTML=''}});document.addEventListener('click',e=>{if(!ni.contains(e.target)&&!sg.contains(e.target)){sg.classList.add('hidden');sg.innerHTML=''}})}
 
-function selectPayment(v,e){
-        // حذف کلاس انتخاب شده از همه دکمه‌ها
-        document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
-        // اضافه کردن کلاس به دکمه کلیک شده
-        e.target.classList.add('selected');
-        
-        // ذخیره مقدار انتخاب شده
-        document.getElementById('paymentStatus').value=v;
-        
-        // بستن همه باکس‌ها
-        document.getElementById('dueDateSection').classList.remove('show');
-        document.getElementById('partialPaymentSection').classList.remove('show');
-        
-        // خالی کردن فیلدها
-        document.getElementById('dueDate').value='';
-        // آن خطی که باعث خرابی می‌شد (dueDateDisplay) از اینجا حذف شد
-        document.getElementById('paidAmount').value='';
-        document.getElementById('remainingAmount').value='';
-        
-        // باز کردن باکس مربوطه
-        if(v==='چک') document.getElementById('dueDateSection').classList.add('show');
-        else if(v==='نسیه') document.getElementById('partialPaymentSection').classList.add('show');
-    }
+    function selectPayment(v,e){document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected');document.getElementById('paymentStatus').value=v;document.getElementById('dueDateSection').classList.remove('show');document.getElementById('partialPaymentSection').classList.remove('show');document.getElementById('dueDate').value='';document.getElementById('dueDateDisplay').value='';document.getElementById('paidAmount').value='';document.getElementById('remainingAmount').value='';if(v==='چک')document.getElementById('dueDateSection').classList.add('show');else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show')}
+
     async function submitWork(e){e.preventDefault();const ps=document.getElementById('paymentStatus').value;if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}const ta=document.getElementById('amount').value.replace(/,/g,'');let ada=ta,pa=0;if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}const w={date:document.getElementById('date').value,customerName:document.getElementById('customerName').value,customerPhone:document.getElementById('phone').value,workType:document.getElementById('workType').value,amount:ta,paymentStatus:ps,dueDate:ps==='چک'?document.getElementById('dueDate').value:null,paidAmount:ps==='نسیه'?pa.toString():null,debtAmount:(ps==='نسیه'||ps==='چک')?ada.toString():null,isSettlement:false};try{const sb=document.getElementById('submitBtn');sb.disabled=true;sb.textContent='⏳ در حال ثبت...';if(editWorkId!==null){await updateWork(editWorkId,w);editWorkId=null;toast('✅ کار ویرایش شد');sb.textContent='✅ ثبت'}else{await addWork(w);toast('✅ کار جدید ثبت شد')}const cd=await getCust(w.customerPhone);await saveCust(w.customerPhone,w.customerName,cd?.note||'',cd?.phones);await updateStats();await setupAuto();
+    // --- تغییر: خالی کردن کامل فرم و تاریخ ---
     document.getElementById('workForm').reset();
     document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
     document.getElementById('dueDateSection').classList.remove('show');
     document.getElementById('partialPaymentSection').classList.remove('show');
     document.getElementById('paymentStatus').value='';
-    document.getElementById('date').value='';
-    document.getElementById('workTypeDisplay').textContent = 'انتخاب کنید...';
-    document.getElementById('workTypeDisplay').style.color = '#94a3b8';
+    document.getElementById('date').value=''; // خالی کردن فیلد تاریخ
     sb.disabled=false;sb.textContent='✅ ثبت'}catch(er){console.error(er);toast('❌ خطا در ثبت اطلاعات');document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent=editWorkId!==null?'✏️ ویرایش':'✅ ثبت'}}
+
+    function addWorkType(){const inp=document.getElementById('newWorkType'),nt=inp.value.trim();if(!nt){toast('⚠️ لطفاً نوع کار را وارد کنید');return}if(workTypes.includes(nt)){toast('⚠️ این نوع کار قبلاً اضافه شده است');return}workTypes.push(nt);saveTypes();updateTypeDropdown();document.getElementById('workType').value=nt;inp.value='';toast('✅ نوع کار جدید اضافه شد')}
 
     async function updateStats(){try{const ws=await getWorks(),up=new Set(ws.map(w=>w.customerPhone));document.getElementById('totalCustomers').textContent=fmt(up.size);
     const tr=ws.reduce((s,w)=>{
@@ -823,36 +578,9 @@ function selectPayment(v,e){
     document.getElementById('totalRevenue').textContent=fmt(tr);
     const dbs=ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement),sts=ws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('totalDebt').textContent=fmt(td);const dp=new Set();for(const w of dbs){const ph=w.customerPhone,cdb=dbs.filter(x=>x.customerPhone===ph),cst=sts.filter(x=>x.customerPhone===ph);let ctd=cdb.reduce((s,x)=>{const da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0);return s+da},0);const cts=cst.reduce((s,x)=>s+parseFloat(x.amount.replace(/,/g,'')||0),0),rd=ctd-cts;if(rd>0)dp.add(ph)}document.getElementById('debtorCount').textContent=fmt(dp.size)}catch(e){console.error(e)}}
 
-    async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:'',lastWorkDateVal:0});const c=cm.get(ph);c.works.push(w);
-    
-    // --- FIX: Parse date for sorting ---
-    const wDateVal = parseDateStr(w.date);
-    if(!c.lastWorkDateVal || wDateVal > c.lastWorkDateVal){
-        c.lastWorkDateVal = wDateVal;
-        c.lastWorkDateDisplay = w.date;
-    }
-    // -----------------------------------
+    async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w);if(!c.lastWorkDate||w.date>c.lastWorkDate){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date}const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));cs.sort((a,b)=>b.works.length-a.works.length);const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone">📞 ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
 
-    const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));
-    
-    // --- FIX: Sort customers by last work date (descending) ---
-    cs.sort((a,b)=>b.lastWorkDateVal - a.lastWorkDateVal);
-    // ----------------------------------------------------------
-
-    const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;color:#2563eb;font-size:16px;margin-left:5px;">📞</span> ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
-
-    async function showCustomerDetail(ph){try{console.log('showCustomerDetail called with phone:',ph);currentCustomerPhone=ph;const ws=await getWorks();console.log('Total works:',ws.length);
-    
-    // --- FIX: Sort customer works by Date descending ---
-    const cws = ws.filter(w => w.customerPhone === ph).sort((a, b) => {
-        const dA = parseDateStr(a.date);
-        const dB = parseDateStr(b.date);
-        if (dB !== dA) return dB - dA; 
-        return (b.id || 0) - (a.id || 0);
-    });
-    // --------------------------------------------------
-
-    console.log('Customer works:',cws.length);if(cws.length===0){console.log('No works found for customer');return}const cd=await getCust(ph);console.log('Customer data:',cd);document.getElementById('detailCustomerName').textContent=cws[0].customerName;document.getElementById('detailCustomerPhone').textContent=`📞 ${ph}`;document.getElementById('customerNote').value=cd?.note||'';const tp=cws.reduce((s,w)=>{const am=parseFloat(w.amount.replace(/,/g,'')||0);if(!['نسیه','چک'].includes(w.paymentStatus))return s+am;else if(w.paymentStatus==='نسیه'&&w.paidAmount)return s+parseFloat(w.paidAmount.replace(/,/g,'')||0);return s},0);const dbs=cws.filter(w=>['نسیه','چک'].includes(w.paymentStatus)&&!w.isSettlement),sts=cws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('detailWorkCount').textContent=cws.length;document.getElementById('detailTotalPaid').textContent=fmt(tp);document.getElementById('detailCurrentDebt').textContent=fmt(td);const sb=document.getElementById('settleDebtBtn');if(td>0){sb.classList.remove('hidden');settleData={phone:ph,amount:td,name:cws[0].customerName}}else sb.classList.add('hidden');const phs=cd?.phones||[ph],pc=document.getElementById('phoneNumbersList');pc.innerHTML='';phs.forEach((p,i)=>{const pi=document.createElement('div');pi.className='phone-item';pi.innerHTML=`<span>📞 ${p}${i===0?' (اصلی)':''}</span>`;if(phs.length>1&&i>0){const del=document.createElement('button');del.className='btn-small btn-delete';del.textContent='🗑️';del.onclick=()=>deletePhone(ph,p);pi.appendChild(del)}pc.appendChild(pi)});const lw=cws[0];document.getElementById('detailLastWork').textContent=`${lw.date} - ${lw.workType}`;const nd=document.getElementById('customerNoteDisplay'),nt=document.getElementById('customerNoteText');if(cd?.note){nt.textContent=cd.note;nd.classList.remove('hidden')}else nd.classList.add('hidden');const hc=document.getElementById('workHistory');hc.innerHTML='';
+    async function showCustomerDetail(ph){try{console.log('showCustomerDetail called with phone:',ph);currentCustomerPhone=ph;const ws=await getWorks();console.log('Total works:',ws.length);const cws=ws.filter(w=>w.customerPhone===ph).sort((a,b)=>(b.id||0)-(a.id||0));console.log('Customer works:',cws.length);if(cws.length===0){console.log('No works found for customer');return}const cd=await getCust(ph);console.log('Customer data:',cd);document.getElementById('detailCustomerName').textContent=cws[0].customerName;document.getElementById('detailCustomerPhone').textContent=`📞 ${ph}`;document.getElementById('customerNote').value=cd?.note||'';const tp=cws.reduce((s,w)=>{const am=parseFloat(w.amount.replace(/,/g,'')||0);if(!['نسیه','چک'].includes(w.paymentStatus))return s+am;else if(w.paymentStatus==='نسیه'&&w.paidAmount)return s+parseFloat(w.paidAmount.replace(/,/g,'')||0);return s},0);const dbs=cws.filter(w=>['نسیه','چک'].includes(w.paymentStatus)&&!w.isSettlement),sts=cws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('detailWorkCount').textContent=cws.length;document.getElementById('detailTotalPaid').textContent=fmt(tp);document.getElementById('detailCurrentDebt').textContent=fmt(td);const sb=document.getElementById('settleDebtBtn');if(td>0){sb.classList.remove('hidden');settleData={phone:ph,amount:td,name:cws[0].customerName}}else sb.classList.add('hidden');const phs=cd?.phones||[ph],pc=document.getElementById('phoneNumbersList');pc.innerHTML='';phs.forEach((p,i)=>{const pi=document.createElement('div');pi.className='phone-item';pi.innerHTML=`<span>📞 ${p}${i===0?' (اصلی)':''}</span>`;if(phs.length>1&&i>0){const del=document.createElement('button');del.className='btn-small btn-delete';del.textContent='🗑️';del.onclick=()=>deletePhone(ph,p);pi.appendChild(del)}pc.appendChild(pi)});const lw=cws[0];document.getElementById('detailLastWork').textContent=`${lw.date} - ${lw.workType}`;const nd=document.getElementById('customerNoteDisplay'),nt=document.getElementById('customerNoteText');if(cd?.note){nt.textContent=cd.note;nd.classList.remove('hidden')}else nd.classList.add('hidden');const hc=document.getElementById('workHistory');hc.innerHTML='';
     cws.forEach(w=>{const wi=document.createElement('div');wi.className='work-history-item';if(w.isSettlement)wi.classList.add('settlement');let bg='',dueDateTxt='';
     if(w.dueDate){
         try{
@@ -869,13 +597,7 @@ function selectPayment(v,e){
 
     async function saveNote(){if(!currentCustomerPhone)return;try{const nt=document.getElementById('customerNote').value,ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);if(cw){const cd=await getCust(currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,nt,cd?.phones);toast('✅ یادداشت ذخیره شد');await showCustomerDetail(currentCustomerPhone);await renderCustomers()}}catch(e){console.error(e);toast('❌ خطا در ذخیره یادداشت')}}
 
-    async function editWork(id){try{editWorkId=id;const w=await getWork(id);if(!w)return;showPage('add-work');document.getElementById('date').value=w.date;document.getElementById('customerName').value=w.customerName;document.getElementById('phone').value=w.customerPhone;
-    // Update for new select style
-    document.getElementById('workType').value=w.workType;
-    document.getElementById('workTypeDisplay').textContent=w.workType;
-    document.getElementById('workTypeDisplay').style.color='#1e293b';
-    
-    document.getElementById('amount').value=w.amount;document.querySelectorAll('#page-add-work .payment-option').forEach(o=>{if(o.textContent.includes(w.paymentStatus))o.classList.add('selected');else o.classList.remove('selected')});document.getElementById('paymentStatus').value=w.paymentStatus;
+    async function editWork(id){try{editWorkId=id;const w=await getWork(id);if(!w)return;showPage('add-work');document.getElementById('date').value=w.date;document.getElementById('customerName').value=w.customerName;document.getElementById('phone').value=w.customerPhone;document.getElementById('workType').value=w.workType;document.getElementById('amount').value=w.amount;document.querySelectorAll('#page-add-work .payment-option').forEach(o=>{if(o.textContent.includes(w.paymentStatus))o.classList.add('selected');else o.classList.remove('selected')});document.getElementById('paymentStatus').value=w.paymentStatus;
     if(w.paymentStatus==='چک'&&w.dueDate){
         document.getElementById('dueDateSection').classList.add('show');
         const parts = w.dueDate.split('-');
@@ -896,48 +618,9 @@ function selectPayment(v,e){
     async function confirmAddPhone(){const np=document.getElementById('newPhoneNumber').value.trim();if(!np){toast('⚠️ لطفاً شماره تلفن را وارد کنید');return}if(!/^09\d{9}$/.test(np)){toast('⚠️ شماره تلفن نامعتبر است');return}try{const cd=await getCust(currentCustomerPhone),phs=cd?.phones||[currentCustomerPhone];if(phs.includes(np)){toast('⚠️ این شماره قبلاً اضافه شده است');return}phs.push(np);const ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,cd?.note||'',phs);await showCustomerDetail(currentCustomerPhone);toast('✅ شماره جدید اضافه شد');closeModal('addPhoneModal')}catch(e){console.error(e);toast('❌ خطا در افزودن شماره')}}
     async function deletePhone(mp,pd){if(mp===pd){toast('⚠️ نمی‌توانید شماره اصلی را حذف کنید');return}if(!confirm(`آیا از حذف شماره ${pd} مطمئن هستید؟`))return;try{const cd=await getCust(mp);let phs=cd?.phones||[mp];phs=phs.filter(p=>p!==pd);const ws=await getWorks(),cw=ws.find(w=>w.customerPhone===mp);await saveCust(mp,cw.customerName,cd?.note||'',phs);await showCustomerDetail(mp);toast('✅ شماره حذف شد')}catch(e){console.error(e);toast('❌ خطا در حذف شماره')}}
 
-    function showSettleModal(){
-        if(!settleData)return;
-        settlePayment=null;
-        document.getElementById('settleCustomerName').textContent=settleData.name;
-        document.getElementById('settleDebtAmount').textContent=fmt(settleData.amount);
-        document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));
-        
-        // This makes the date field empty when the modal opens
-        document.getElementById('settleDate').value = '';
-        
-        document.getElementById('settleDebtModal').classList.add('show');
-    }
-    
+    function showSettleModal(){if(!settleData)return;settlePayment=null;document.getElementById('settleCustomerName').textContent=settleData.name;document.getElementById('settleDebtAmount').textContent=fmt(settleData.amount);document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));document.getElementById('settleDebtModal').classList.add('show')}
     function selectSettlePayment(v,e){settlePayment=v;document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected')}
-    
-    async function confirmSettle(){
-        if(!settleData||!settlePayment){toast('⚠️ لطفاً نوع پرداخت را انتخاب کنید');return}
-        
-        // ADDED: Get date from input
-        const dateVal = document.getElementById('settleDate').value;
-        if(!dateVal){toast('⚠️ تاریخ را وارد کنید');return}
-        
-        try{
-            const st={
-                date: dateVal, // Using selected date
-                customerName:settleData.name,
-                customerPhone:settleData.phone,
-                workType:'[تسویه بدهی]',
-                amount:settleData.amount.toString(),
-                paymentStatus:settlePayment,
-                dueDate:null,
-                paidAmount:null,
-                debtAmount:null,
-                isSettlement:true
-            };
-            await addWork(st);
-            await updateStats();
-            await showCustomerDetail(settleData.phone);
-            toast('✅ بدهی تسویه شد');
-            closeModal('settleDebtModal');
-        }catch(e){console.error(e);toast('❌ خطا در تسویه بدهی')}
-    }
+    async function confirmSettle(){if(!settleData||!settlePayment){toast('⚠️ لطفاً نوع پرداخت را انتخاب کنید');return}try{const td=new Date(),p=toJalaali(td.getFullYear(),td.getMonth()+1,td.getDate()),pd=fmtDate(p.year,p.month,p.day),st={date:pd,customerName:settleData.name,customerPhone:settleData.phone,workType:'[تسویه بدهی]',amount:settleData.amount.toString(),paymentStatus:settlePayment,dueDate:null,paidAmount:null,debtAmount:null,isSettlement:true};await addWork(st);await updateStats();await showCustomerDetail(settleData.phone);toast('✅ بدهی تسویه شد');closeModal('settleDebtModal')}catch(e){console.error(e);toast('❌ خطا در تسویه بدهی')}}
 
     async function renderDebtors(){try{console.log('renderDebtors called');const ws=await getWorks();console.log('Total works:',ws.length);const dm=new Map();ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement).forEach(w=>{const ph=w.customerPhone;if(!dm.has(ph))dm.set(ph,{name:w.customerName,phone:ph,debts:[]});dm.get(ph).debts.push(w)});console.log('Debtors map:',dm.size);const sts=ws.filter(w=>w.isSettlement),sm=new Map();sts.forEach(s=>{const ph=s.customerPhone,am=parseFloat(s.amount.replace(/,/g,'')||0);sm.set(ph,(sm.get(ph)||0)+am)});let dts=Array.from(dm.values());const td=new Date();dts.forEach(d=>{let tdt=d.debts.reduce((s,x)=>{let da;if(x.paymentStatus==='چک'){da=parseFloat(x.amount.replace(/,/g,'')||0)}else{da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0)}return s+da},0);const st=sm.get(d.phone)||0;d.totalDebt=Math.max(0,tdt-st);d.nearestDue=d.debts.filter(x=>x.dueDate).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate))[0];if(d.nearestDue){const dd=new Date(d.nearestDue.dueDate);d.daysUntilDue=Math.ceil((dd-td)/(1000*60*60*24))}else d.daysUntilDue=999});dts=dts.filter(d=>d.totalDebt>0);dts.sort((a,b)=>a.daysUntilDue-b.daysUntilDue);console.log('Filtered debtors:',dts.length);const cn=document.getElementById('debtorsList'),tda=dts.reduce((s,d)=>s+d.totalDebt,0);document.getElementById('debtorListCount').textContent=`${dts.length} مورد - مجموع: ${fmt(tda)} تومان`;if(dts.length===0){cn.innerHTML='<div class="empty-state"><p>🎉 بدهکاری وجود ندارد!</p></div>';return}cn.innerHTML='';dts.forEach(d=>{console.log('Processing debtor:',d.name,d.phone);const di=document.createElement('div');di.className='debt-item';let sc='',st='',dueDateTxt='';
     if(d.nearestDue){
@@ -970,11 +653,13 @@ function selectPayment(v,e){
     function closeModal(id){document.getElementById(id).classList.remove('show')}
 
     async function init(){try{console.log('🚀 Initializing...');await initDB();console.log('✅ DB ready');loadTypes();console.log('✅ Types loaded');await updateStats();console.log('✅ Stats updated');
+    // --- دیگر تاریخ پیش‌فرض را پر نمی‌کنیم ---
     console.log('✅ Date set to empty');
     await setupAuto();console.log('✅ Auto setup');if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();checkAlarms();setInterval(checkAlarms,60*60*1000);console.log('✅ Alarms setup');console.log('✅✅✅ App ready!');
+    // پیام شروع برنامه حذف شد
     }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
-    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal}
+    return{init,showPage,exportData,importData,submitWork,addWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal}
 })();
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
