@@ -61,24 +61,26 @@
             color: #334155;
         }
         /* Special styling for Note Textarea to look like Input */
-.form-group textarea {
-    height: 50px;       /* ارتفاع ثابت، هم‌اندازه بقیه فیلدها */
-    min-height: 50px;   /* جلوگیری از کوچک‌تر شدن */
-    padding: 12px 15px; /* تنظیم فاصله متن از لبه‌ها */
-    resize: none;       /* غیرفعال کردن تغییر سایز با موس */
-    
-    /* تنظیمات ظاهری برای یکدست شدن با بقیه فیلدها */
-    flex: 1;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    background: #f8fafc;
-    font-size: 16px;
-    font-family: inherit;
-    color: #334155;
-    box-sizing: border-box;
-    display: flex;
-    align-items: center;
-}
+        .form-group textarea { 
+            /* این دو خط عرض رو درست میکنن */
+            flex: 1; 
+            width: 100%; 
+        
+            /* اینا ارتفاع رو فیکس میکنن */
+            height: 50px !important;
+            min-height: 50px !important;
+            
+            /* اینا ظاهرش رو شبیه بقیه میکنن */
+            padding: 12px 15px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 12px; 
+            background: #f8fafc; 
+            font-size: 16px; 
+            font-family: inherit; 
+            color: #334155; 
+            resize: none; 
+            box-sizing: border-box; 
+        }
         
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
