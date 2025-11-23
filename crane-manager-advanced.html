@@ -61,13 +61,24 @@
             color: #334155;
         }
         /* Special styling for Note Textarea to look like Input */
-        .form-group textarea { 
-            height: 50px; 
-            min-height: 50px; 
-            padding: 12px 15px; 
-            resize: none; 
-            overflow-y: auto;
-        }
+.form-group textarea {
+    height: 50px;       /* ارتفاع ثابت، هم‌اندازه بقیه فیلدها */
+    min-height: 50px;   /* جلوگیری از کوچک‌تر شدن */
+    padding: 12px 15px; /* تنظیم فاصله متن از لبه‌ها */
+    resize: none;       /* غیرفعال کردن تغییر سایز با موس */
+    
+    /* تنظیمات ظاهری برای یکدست شدن با بقیه فیلدها */
+    flex: 1;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    background: #f8fafc;
+    font-size: 16px;
+    font-family: inherit;
+    color: #334155;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+}
         
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
@@ -112,21 +123,7 @@
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         
         /* Work Type Drawer */
-        .custom-select-trigger { 
-    cursor: pointer; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    height: 50px; 
-    width: 100%; 
-    padding: 0 15px; 
-    border: 2px solid #e2e8f0; 
-    border-radius: 12px; 
-    background: #f8fafc; 
-    font-size: 16px; 
-    color: #334155; 
-    box-sizing: border-box;
-}
+        .custom-select-trigger { cursor: pointer; display: flex; justify-content: space-between; align-items: center; height: 50px; width: 100%; }
         .custom-select-trigger::after { content: '▼'; font-size: 12px; color: #94a3b8; margin-right: 10px; }
         .work-type-modal-list { margin-top: 15px; max-height: 300px; overflow-y: auto; }
         .work-type-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f1f5f9; transition: 0.2s; }
