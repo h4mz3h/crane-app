@@ -112,7 +112,21 @@
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         
         /* Work Type Drawer */
-        .custom-select-trigger { cursor: pointer; display: flex; justify-content: space-between; align-items: center; height: 50px; width: 100%; }
+        .custom-select-trigger { 
+    cursor: pointer; 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center; 
+    height: 50px; 
+    width: 100%; 
+    padding: 0 15px; 
+    border: 2px solid #e2e8f0; 
+    border-radius: 12px; 
+    background: #f8fafc; 
+    font-size: 16px; 
+    color: #334155; 
+    box-sizing: border-box;
+}
         .custom-select-trigger::after { content: '▼'; font-size: 12px; color: #94a3b8; margin-right: 10px; }
         .work-type-modal-list { margin-top: 15px; max-height: 300px; overflow-y: auto; }
         .work-type-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f1f5f9; transition: 0.2s; }
