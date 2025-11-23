@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 6.1)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 6.2)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -62,11 +62,12 @@
             color: #334155;
         }
         
-        /* FIX: Specific style for Date Inputs to prevent "White Text" issue */
+        /* FIX: Force black text for date inputs */
         .date-input { 
             cursor: pointer; 
-            color: #000000 !important; /* Force black text */
+            color: #1e293b !important; 
             background-color: #f8fafc !important;
+            -webkit-text-fill-color: #1e293b !important;
             opacity: 1 !important;
         }
 
@@ -210,7 +211,7 @@
         .autocomplete-item:hover { background: #f8fafc; }
         .autocomplete-item strong { color: #2563eb; }
         .btn-small { padding: 6px 12px; border: none; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; font-family: inherit; font-weight: bold; }
-        .btn-call { background: #10b981; color: white; }
+        .btn-call { background: #10b981; color: white; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; }
         .btn-settle { background: #2563eb; color: white; }
         .btn-delete { background: #ef4444; color: white; }
         .btn-edit { background: #f59e0b; color: white; }
@@ -518,14 +519,11 @@ function toGregorian(jy, jm, jd) {
 function jalaliMonthLength(jy, jm) {
     if (jm <= 6) return 31;
     if (jm <= 11) return 30;
-    // Simple leap check
     var rm = [1, 5, 9, 13, 17, 22, 26, 30];
     var z = jy % 33;
     if (rm.includes(z)) return 30; 
     return 29;
 }
-
-function isValidDate(d) { return d instanceof Date && !isNaN(d); }
 
 // --- Main App Logic ---
 const APP = (function() {
@@ -535,16 +533,13 @@ const APP = (function() {
     let recognition=null, voiceField=null, allCustomers=[];
     const pMonths=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 
-    // Helper: Parse various date formats into {jy, jm, jd}
     function parseDate(val) {
         if(!val) return null;
-        // ISO
         if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
             const p = val.split('-');
             const j = toJalaali(parseInt(p[0]), parseInt(p[1]), parseInt(p[2]));
             return j;
         }
-        // Persian String
         const p = val.split(/[\s/-]/);
         if (p.length >= 3) {
             let d = parseInt(p[0]);
@@ -558,24 +553,21 @@ const APP = (function() {
         return null;
     }
 
-    // Helper: Date to Comparable Value
     function getDateValue(val) {
         const p = parseDate(val);
         if (p) return (p.jy * 10000) + (p.jm * 100) + p.jd;
         return 0;
     }
 
-    // Helper: Days until (FIXED to handle ISO directly for accurate calc)
+    // FIXED: Robust Days Until Calculation
     function getDaysUntil(val) {
         if (!val) return null;
         let targetDate;
-
-        // Case 1: ISO String (e.g., 2025-11-27)
+        // If already ISO (YYYY-MM-DD) from new updates
         if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
             targetDate = new Date(val);
-        } 
-        // Case 2: Persian String (e.g., 6 Azar 1404)
-        else {
+        } else {
+            // Try to parse persian date
             const p = parseDate(val);
             if (p) targetDate = toGregorian(p.jy, p.jm, p.jd);
         }
@@ -585,77 +577,32 @@ const APP = (function() {
         targetDate.setHours(0,0,0,0);
         const now = new Date();
         now.setHours(0,0,0,0);
-        
         return Math.ceil((targetDate - now) / (1000 * 60 * 60 * 24));
     }
 
-    // Helper: Format for Display
     function fmtDate(val) {
         const p = parseDate(val);
         if(!p) return val;
         return `${p.jd} ${pMonths[p.jm-1]} ${p.jy}`;
     }
 
-    // --- Calendar Logic (Direct Implementation) ---
     function showCal(targetId) {
         try {
             const input = document.getElementById(targetId);
             const currentVal = input.value;
             let jy, jm, jd;
-            
             const p = parseDate(currentVal);
-            if (p) {
-                jy = p.jy; jm = p.jm; jd = p.jd;
-            } else {
-                const now = new Date();
-                const j = toJalaali(now.getFullYear(), now.getMonth()+1, now.getDate());
-                jy = j.jy; jm = j.jm; jd = j.jd;
-            }
-
+            if (p) { jy = p.jy; jm = p.jm; jd = p.jd; } else { const now = new Date(); const j = toJalaali(now.getFullYear(), now.getMonth()+1, now.getDate()); jy = j.jy; jm = j.jm; jd = j.jd; }
             window.dpState = { jy, jm, selectedD: jd, targetId };
-            
-            // Create Modal Elements
             const m = document.createElement('div');
             m.className = 'datepicker-modal';
-            m.innerHTML = `
-                <div class="datepicker-content">
-                    <div class="datepicker-header">
-                        <button type="button" id="dpPrev">‹</button>
-                        <span id="dpTitle"></span>
-                        <button type="button" id="dpNext">›</button>
-                    </div>
-                    <div class="datepicker-weekdays">
-                        <span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span style="color:#ef4444">ج</span>
-                    </div>
-                    <div class="datepicker-days" id="dpDays"></div>
-                    <button type="button" class="btn-close" id="dpClose">بستن</button>
-                </div>`;
-            
+            m.innerHTML = `<div class="datepicker-content"><div class="datepicker-header"><button type="button" id="dpPrev">‹</button><span id="dpTitle"></span><button type="button" id="dpNext">›</button></div><div class="datepicker-weekdays"><span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span style="color:#ef4444">ج</span></div><div class="datepicker-days" id="dpDays"></div><button type="button" class="btn-close" id="dpClose">بستن</button></div>`;
             document.body.appendChild(m);
-            
-            // Bind Events
-            m.querySelector('#dpPrev').onclick = () => { 
-                window.dpState.jm--; 
-                if(window.dpState.jm < 1) { window.dpState.jm = 12; window.dpState.jy--; }
-                renderCal(m); 
-            };
-            m.querySelector('#dpNext').onclick = () => { 
-                window.dpState.jm++; 
-                if(window.dpState.jm > 12) { window.dpState.jm = 1; window.dpState.jy++; }
-                renderCal(m); 
-            };
-            m.querySelector('#dpClose').onclick = () => {
-                m.classList.remove('show');
-                setTimeout(() => m.remove(), 300);
-            };
-
-            renderCal(m);
-            setTimeout(() => m.classList.add('show'), 10);
-
-        } catch(e) {
-            console.error("Cal Error", e);
-            toast('❌ خطا در نمایش تقویم');
-        }
+            m.querySelector('#dpPrev').onclick = () => { window.dpState.jm--; if(window.dpState.jm < 1) { window.dpState.jm = 12; window.dpState.jy--; } renderCal(m); };
+            m.querySelector('#dpNext').onclick = () => { window.dpState.jm++; if(window.dpState.jm > 12) { window.dpState.jm = 1; window.dpState.jy++; } renderCal(m); };
+            m.querySelector('#dpClose').onclick = () => { m.classList.remove('show'); setTimeout(() => m.remove(), 300); };
+            renderCal(m); setTimeout(() => m.classList.add('show'), 10);
+        } catch(e) { console.error("Cal Error", e); }
     }
 
     function renderCal(modalEl) {
@@ -663,38 +610,23 @@ const APP = (function() {
         modalEl.querySelector('#dpTitle').textContent = `${pMonths[s.jm-1]} ${s.jy}`;
         const daysDiv = modalEl.querySelector('#dpDays');
         daysDiv.innerHTML = '';
-
         const len = jalaliMonthLength(s.jy, s.jm);
         const gStart = toGregorian(s.jy, s.jm, 1);
-        let startDay = gStart.getDay() + 1; // 0=Sun..6=Sat -> we want 0=Sat..6=Fri
-        if (startDay === 7) startDay = 0; 
-
+        let startDay = gStart.getDay() + 1; if (startDay === 7) startDay = 0; 
         for(let i=0; i<startDay; i++) daysDiv.appendChild(document.createElement('div'));
-
         const todayJ = toJalaali(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate());
-
         for(let i=1; i<=len; i++) {
             const btn = document.createElement('button');
             btn.textContent = i;
             if (s.jy === todayJ.jy && s.jm === todayJ.jm && i === todayJ.jd) btn.classList.add('today');
-            if (i === s.selectedD) btn.classList.add('selected'); // Highlight if matches input
-            
+            if (i === s.selectedD) btn.classList.add('selected');
             btn.onclick = () => {
                 const finalG = toGregorian(s.jy, s.jm, i);
                 const iso = `${finalG.getFullYear()}-${String(finalG.getMonth()+1).padStart(2,'0')}-${String(finalG.getDate()).padStart(2,'0')}`;
                 const persian = `${i} ${pMonths[s.jm-1]} ${s.jy}`;
-                
                 const inp = document.getElementById(s.targetId);
-                
-                if(s.targetId === 'dueDateDisplay') {
-                    inp.value = persian;
-                    document.getElementById('dueDate').value = iso;
-                } else {
-                    inp.value = persian; 
-                }
-                
-                modalEl.classList.remove('show');
-                setTimeout(() => modalEl.remove(), 300);
+                if(s.targetId === 'dueDateDisplay') { inp.value = persian; document.getElementById('dueDate').value = iso; } else { inp.value = persian; }
+                modalEl.classList.remove('show'); setTimeout(() => modalEl.remove(), 300);
             };
             daysDiv.appendChild(btn);
         }
@@ -703,7 +635,6 @@ const APP = (function() {
     function fmt(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
     function playAlarmSound(){if(window.AudioContext||window.webkitAudioContext){try{const c=new(window.AudioContext||window.webkitAudioContext),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='square';o.frequency.setValueAtTime(440,c.currentTime);o.frequency.setValueAtTime(880,c.currentTime+0.5);o.start();o.stop(c.currentTime+1)}catch(e){}}}
 
-    // DB
     async function initDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onerror=()=>rej(r.error);r.onsuccess=()=>{db=r.result;res(db)};r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains(WORKS)){const s=d.createObjectStore(WORKS,{keyPath:'id',autoIncrement:true});s.createIndex('customerPhone','customerPhone',{unique:false})}if(!d.objectStoreNames.contains(CUSTOMERS)){const s=d.createObjectStore(CUSTOMERS,{keyPath:'phone'})}}})}
     async function addWork(w){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readwrite'),s=t.objectStore(WORKS),r=s.add(w);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
     async function getWorks(){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readonly'),s=t.objectStore(WORKS),r=s.getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -778,7 +709,8 @@ const APP = (function() {
     }
 
     async function renderCustomers(){
-        const q=document.getElementById('customerSearch').value;const ws=await getWorks();const cm=new Map();
+        const q=document.getElementById('customerSearch').value.trim();
+        const ws=await getWorks();const cm=new Map();
         ws.forEach(w=>{
             if(!cm.has(w.customerPhone))cm.set(w.customerPhone,{n:w.customerName,p:w.customerPhone,w:[],last:''});
             const c=cm.get(w.customerPhone);c.w.push(w);
@@ -793,7 +725,7 @@ const APP = (function() {
         cs.forEach(c=>{
             const debt=c.w.reduce((s,x)=>s+(x.isSettlement?-parseFloat(x.amount):(['نسیه','چک'].includes(x.paymentStatus)?(x.debtAmount?parseFloat(x.debtAmount):parseFloat(x.amount)):0)),0);
             const d=document.createElement('div');d.className='customer-item';
-            d.innerHTML=`<div><div class="customer-name">${c.n}</div><div class="customer-phone">${c.p}</div><div style="font-size:12px;color:#666">${c.last}</div>${debt>0?`<span class="debt-badge">بدهی: ${fmt(debt)}</span>`:''}</div><button class="btn-small btn-delete" onclick="event.stopPropagation();APP.showDelCust('${c.p}')">🗑️</button>`;
+            d.innerHTML=`<div><div class="customer-name">${c.n}</div><div class="customer-phone">${c.p} <a href="tel:${c.p}" class="btn-small btn-call" style="margin-right:5px;text-decoration:none;padding:4px 8px;">📞</a></div><div style="font-size:12px;color:#666">${c.last}</div>${debt>0?`<span class="debt-badge">بدهی: ${fmt(debt)}</span>`:''}</div><button class="btn-small btn-delete" onclick="event.stopPropagation();APP.showDelCust('${c.p}')">🗑️</button>`;
             d.onclick=()=>showCustomerDetail(c.p);
             l.appendChild(d);
         });
@@ -854,7 +786,12 @@ const APP = (function() {
                 if(d.days<0) st=`<span style="color:red">${Math.abs(d.days)} روز گذشته</span>`;
                 else st=`<span style="color:green">${d.days} روز مانده</span>`;
             }
-            el.innerHTML=`<div class="customer-header"><b>${d.n}</b><span>${d.p}</span></div><div style="color:#dc2626;font-weight:bold;font-size:18px">${fmt(d.debt)} تومان</div>${d.due?`<div style="color:#666">سررسید: ${fmtDate(d.due)} ${st}</div>`:''}`;
+            el.innerHTML=`<div class="customer-header"><b>${d.n}</b><span>${d.p}</span></div><div style="color:#dc2626;font-weight:bold;font-size:18px">${fmt(d.debt)} تومان</div>
+            ${d.due?`<div style="color:#666;margin-top:5px">سررسید: ${fmtDate(d.due)} ${st}</div>`:''}
+            <div style="margin-top:10px;display:flex;gap:10px;">
+                <a href="tel:${d.p}" class="btn-small btn-call" onclick="event.stopPropagation()">📞 تماس</a>
+                <button class="btn-small btn-settle" onclick="event.stopPropagation();APP.showCustomerDetail('${d.p}')">📋 کارتابل</button>
+            </div>`;
             el.onclick=()=>showCustomerDetail(d.p);
             l.appendChild(el);
         });
@@ -879,7 +816,7 @@ const APP = (function() {
     function showDelCust(p){if(confirm('حذف کامل مشتری؟'))delCust(p).then(()=>{renderCustomers();updateStats()})}
     function saveNote(){saveCust(currentCustomerPhone,document.getElementById('detailCustomerName').textContent,document.getElementById('customerNote').value).then(()=>toast('ذخیره شد'))}
 
-    return {init:async()=>{await initDB();loadTypes();updateStats();setupAuto()}, showPage, submitWork, formatAmount, calcRemaining, selectPayment, openWorkTypeModal, selectWorkType, addWorkTypeFromModal, deleteType, startVoice, showCal, exportData, importData, showCustomerDetail, showDelCust, saveNote, showSettleModal, selectSettlePayment, confirmSettle, closeModal}
+    return {init:async()=>{await initDB();loadTypes();updateStats();setupAuto()}, showPage, submitWork, formatAmount, calcRemaining, selectPayment, openWorkTypeModal, selectWorkType, addWorkTypeFromModal, deleteType, startVoice, showCal, exportData, importData, showCustomerDetail, showDelCust, saveNote, showSettleModal, selectSettlePayment, confirmSettle, closeModal, renderCustomers}
 })();
 
 APP.init();
