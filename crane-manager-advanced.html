@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 4.9)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.0)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -60,7 +60,15 @@
             align-items: center; 
             color: #334155;
         }
-        .form-group textarea { height: auto; min-height: 80px; padding: 15px; }
+        /* Special styling for Note Textarea to look like Input */
+        .form-group textarea { 
+            height: 50px; 
+            min-height: 50px; 
+            padding: 12px 15px; 
+            resize: none; 
+            overflow-y: auto;
+        }
+        
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
         /* Input that triggers calendar */
@@ -192,6 +200,8 @@
         .btn-settle { background: #2563eb; color: white; }
         .btn-delete { background: #ef4444; color: white; }
         .btn-edit { background: #f59e0b; color: white; }
+        
+        .work-type-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f8fafc; border-radius: 10px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 14px; color: #334155; }
     </style>
 </head>
 <body>
@@ -343,7 +353,7 @@
                 <div class="customer-notes">
                     <label style="font-weight: bold; color: #854d0e; margin-bottom: 8px; display: block;">📝 یادداشت</label>
                     <div class="input-wrapper">
-                        <textarea id="customerNote" placeholder="یادداشت..."></textarea>
+                        <textarea id="customerNote"></textarea>
                         <div class="button-group">
                             <button type="button" class="voice-btn" onclick="APP.startVoice('customerNote')">🎤</button>
                         </div>
@@ -576,11 +586,54 @@ const APP = (function() {
         }
     }
 
-    // --- Voice Logic ---
+    // --- Voice Logic with Number Converter ---
     if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){const S=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new S();recognition.lang='fa-IR';recognition.continuous=false;recognition.interimResults=false;recognition.onresult=e=>{const t=e.results[0][0].transcript;handleVoice(t)};recognition.onerror=()=>{toast('❌ خطا در تشخیص صدا');stopVoice()};recognition.onend=()=>stopVoice()}
     function startVoice(f){if(!recognition){toast('⚠️ مرورگر شما از ورودی صوتی پشتیبانی نمی‌کند');return}voiceField=f;try{recognition.start();toast('🎤 در حال گوش دادن...')}catch(e){stopVoice()}}
     function stopVoice(){if(recognition)try{recognition.stop()}catch(e){}document.querySelectorAll('.voice-btn').forEach(b=>{b.classList.remove('listening')})}
-    function handleVoice(t){if(!voiceField)return;const f=document.getElementById(voiceField);if(!f)return;let c=t.trim();if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));if(voiceField==='amount'||voiceField==='paidAmount'){c=c.replace(/تومان|ریال|میلیون|هزار/g,'').trim().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));if(t.includes('میلیون')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000000).toString()}else if(t.includes('هزار')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000).toString()}}f.value=c;if(voiceField==='amount'||voiceField==='paidAmount'){formatAmount(f);calcRemaining()}toast(`✅ "${c}" ثبت شد`);stopVoice()}
+    
+    function normalizePersianNumbers(text) {
+        const map = {
+            'یک': '1', 'دو': '2', 'سه': '3', 'چهار': '4', 'پنج': '5',
+            'شش': '6', 'شیش': '6', 'هفت': '7', 'هشت': '8', 'نه': '9', 'ده': '10',
+            'یازده': '11', 'دوازده': '12', 'سیزده': '13', 'چهارده': '14', 'پانزده': '15',
+            'شانزده': '16', 'هفده': '17', 'هجده': '18', 'نوزده': '19', 'بیست': '20',
+            'سی': '30', 'یکم': '1', 'دوی': '2', 'سوم': '3', 'چهارم': '4', 'پنجم': '5',
+            'ششم': '6', 'هفتم': '7', 'هشتم': '8', 'نهم': '9', 'دهم': '10',
+            '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9', '۰': '0'
+        };
+        
+        // Replace strict matches first
+        for (let word in map) {
+            let regex = new RegExp(word, 'g');
+            text = text.replace(regex, map[word]);
+        }
+        return text;
+    }
+
+    function handleVoice(t){
+        if(!voiceField)return;
+        const f=document.getElementById(voiceField);
+        if(!f)return;
+        let c=t.trim();
+        
+        // Apply number normalization for Date, Phone, Amount
+        if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount') {
+            c = normalizePersianNumbers(c);
+        }
+
+        if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+        
+        if(voiceField==='amount'||voiceField==='paidAmount'){
+            c=c.replace(/تومان|ریال|میلیون|هزار/g,'').trim().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+            if(t.includes('میلیون')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000000).toString()}
+            else if(t.includes('هزار')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000).toString()}
+        }
+        
+        f.value=c;
+        if(voiceField==='amount'||voiceField==='paidAmount'){formatAmount(f);calcRemaining()}
+        toast(`✅ "${c}" ثبت شد`);
+        stopVoice()
+    }
 
     function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
     function calcRemaining(){const t=parseFloat(document.getElementById('amount').value.replace(/,/g,'')||0),p=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0),r=t-p;document.getElementById('remainingAmount').value=r>=0?fmt(r):'0'}
@@ -782,7 +835,7 @@ const APP = (function() {
 
     async function exportData(){try{const ws=await getWorks(),t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.getAll();r.onsuccess=()=>{const cs=r.result,d={version:3,exportDate:new Date().toISOString(),workTypes,works:ws.map(w=>{const{id,...rest}=w;return rest}),customers:cs},b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast(`✅ بکاپ ${ws.length} کار ذخیره شد`)}}catch(e){console.error(e);toast('❌ خطا در ذخیره بکاپ')}}
 
-    async function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async function(ev){try{const d=JSON.parse(ev.target.result);if(!d.works||!Array.isArray(d.works)){toast('❌ فایل بکاپ نامعتبر است');return}if(!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: داده‌های فعلی حذف خواهند شد!`))return;const t=db.transaction([WORKS,CUSTOMERS],'readwrite'),ws=t.objectStore(WORKS),cs=t.objectStore(CUSTOMERS);ws.clear();cs.clear();if(d.workTypes&&Array.isArray(d.workTypes)){workTypes=d.workTypes;saveTypes()}for(const w of d.works)await addWork(w);if(d.customers&&Array.isArray(d.customers))for(const c of d.customers)await saveCust(c.phone,c.name,c.note,c.phones);await updateStats();await setupAuto();toast(`✅ ${d.works.length} کار بازگردانی شد`)}catch(er){console.error(er);toast('❌ خطا در بازگردانی بکاپ')}};r.readAsText(f);e.target.value=''}
+    async function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async function(ev){try{const d=JSON.parse(ev.target.result);if(!d.works||!Array.isArray(d.works)){toast('❌ فایل بکاپ نامعتبر است');return}if(!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: داده‌های فعلی حذف خواهند شد!`))return;const t=db.transaction([WORKS,CUSTOMERS],'readwrite'),ws=t.objectStore(WORKS),cs=t.objectStore(CUSTOMERS);ws.clear();cs.clear();if(d.workTypes&&Array.isArray(d.workTypes)){workTypes=d.workTypes;saveTypes();updateTypeDropdown()}for(const w of d.works)await addWork(w);if(d.customers&&Array.isArray(d.customers))for(const c of d.customers)await saveCust(c.phone,c.name,c.note,c.phones);await updateStats();await setupAuto();toast(`✅ ${d.works.length} کار بازگردانی شد`)}catch(er){console.error(er);toast('❌ خطا در بازگردانی بکاپ')}};r.readAsText(f);e.target.value=''}
 
     function showPage(pg){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));const p=document.getElementById(`page-${pg}`);if(p)p.classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>{if(b.textContent.includes('ثبت')&&pg==='add-work')b.classList.add('active');else if(b.textContent.includes('مشتریان')&&pg==='customers')b.classList.add('active');else if(b.textContent.includes('بدهکاران')&&pg==='debtors')b.classList.add('active')});if(pg==='customers')renderCustomers();else if(pg==='debtors')renderDebtors()}
 
