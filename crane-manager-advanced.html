@@ -776,6 +776,7 @@ const APP = (function() {
             // Added support for settleDate
             document.getElementById('settleDate').value = pDateStr;
         }
+		console.log('Selected date:', window.dpTarget, 'Persian:', pDateStr, 'Gregorian:', gDateIso);
         window.closeCal();
     }
 
