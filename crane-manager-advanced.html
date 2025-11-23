@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 6.0)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 6.1)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -62,6 +62,14 @@
             color: #334155;
         }
         
+        /* FIX: Specific style for Date Inputs to prevent "White Text" issue */
+        .date-input { 
+            cursor: pointer; 
+            color: #000000 !important; /* Force black text */
+            background-color: #f8fafc !important;
+            opacity: 1 !important;
+        }
+
         .customer-notes textarea, .form-group textarea {
             flex: 1;
             width: 100%;
@@ -82,8 +90,6 @@
 
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .customer-notes textarea:focus, .styled-input:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
-        .date-input { cursor: pointer; }
-
         .button-group { display: flex; gap: 8px; width: 45px; justify-content: flex-end; flex-shrink: 0; } 
         
         .voice-btn { 
@@ -559,15 +565,28 @@ const APP = (function() {
         return 0;
     }
 
-    // Helper: Days until
+    // Helper: Days until (FIXED to handle ISO directly for accurate calc)
     function getDaysUntil(val) {
-        const p = parseDate(val);
-        if(!p) return null;
-        const g = toGregorian(p.jy, p.jm, p.jd);
+        if (!val) return null;
+        let targetDate;
+
+        // Case 1: ISO String (e.g., 2025-11-27)
+        if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+            targetDate = new Date(val);
+        } 
+        // Case 2: Persian String (e.g., 6 Azar 1404)
+        else {
+            const p = parseDate(val);
+            if (p) targetDate = toGregorian(p.jy, p.jm, p.jd);
+        }
+
+        if (!targetDate || isNaN(targetDate)) return null;
+
+        targetDate.setHours(0,0,0,0);
         const now = new Date();
         now.setHours(0,0,0,0);
-        g.setHours(0,0,0,0);
-        return Math.ceil((g - now) / (1000 * 60 * 60 * 24));
+        
+        return Math.ceil((targetDate - now) / (1000 * 60 * 60 * 24));
     }
 
     // Helper: Format for Display
@@ -666,7 +685,6 @@ const APP = (function() {
                 const persian = `${i} ${pMonths[s.jm-1]} ${s.jy}`;
                 
                 const inp = document.getElementById(s.targetId);
-                const hidden = document.getElementById(s.targetId === 'dueDateDisplay' ? 'dueDate' : (s.targetId === 'settleDate' ? 'settleDate' : '')); // fallback logic
                 
                 if(s.targetId === 'dueDateDisplay') {
                     inp.value = persian;
