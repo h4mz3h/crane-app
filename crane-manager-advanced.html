@@ -679,20 +679,26 @@ const APP = (function() {
 
     function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
     function calcRemaining(){const t=parseFloat(document.getElementById('amount').value.replace(/,/g,'')||0),p=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0),r=t-p;document.getElementById('remainingAmount').value=r>=0?fmt(r):'0'}
-
-    function showCal(target){
-        let el = document.getElementById(target==='dueDate'?'dueDateDisplay':target);
-        let initialVal = el.value;
-        let jy, jm, jd;
+    function showCal(target) {
+        {
+        // درست: همیشه از فیلد نمایشی استفاده کن
+        const displayId = target === 'dueDate' ? 'dueDateDisplay' : target;
+        const displayEl = document.getElementById(displayId);
+        let initialVal = displayEl ? displayEl.value : '';
     
-        if(initialVal && initialVal.split(' ').length === 3) {
-            const parts = initialVal.split(' ');
-            jd = parseInt(parts[0]);
-            jm = pMonths.indexOf(parts[1]) + 1;
-            jy = parseInt(parts[2]);
+        let jy = null; jm = null; jd = null;
+    
+        if (initialVal && initialVal.trim() !== '') {
+            const parts = initialVal.trim().split(' ');
+            if (parts.length === 3) {
+                jd = parseInt(parts[0], 10);
+                jm = pMonths.indexOf(parts[1]) + 1;
+                jy = parseInt(parts[2], 10);
+                if (isNaN(jy) || isNaN(jm) || isNaN(jd)) jy = jm = jd = null;
+            }
         }
     
-        // اگر مقدار نداشت، امروز رو بگذار (مهم!)
+        // اگر مقدار نداشت یا نامعتبر بود → امروز
         if (!jy || !jm || !jd) {
             const today = new Date();
             const j = toJalaali(today.getFullYear(), today.getMonth()+1, today.getDate());
@@ -701,16 +707,16 @@ const APP = (function() {
             jd = j.day;
         }
     
-        // این سه خط باید همیشه اجرا بشن — چه برای تاریخ کار، چه برای تاریخ چک!
+        // مهم: همیشه این سه خط اجرا بشن
         window.dpCurY = jy;
         window.dpCurM = jm;
         window.dpSelectedD = jd;
         window.dpTarget = target;
     
-        // بقیه کد تقویم بدون تغییر...
+        // بقیه کد تقویم (همون قبلی)
         const m = document.createElement('div');
         m.className = 'datepicker-modal';
-        m.innerHTML = `<div class="datepicker-content">...`; // بقیه همون قبلی
+        m.innerHTML = `...`; // همون کد قبلی
         document.body.appendChild(m);
         window.dpModal = m;
         renderCal();
