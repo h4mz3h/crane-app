@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 6.2)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 6.3)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -62,13 +62,13 @@
             color: #334155;
         }
         
-        /* FIX: Force black text for date inputs */
+        /* FIX FOR INVISIBLE TEXT IN DATE INPUTS */
         .date-input { 
             cursor: pointer; 
-            color: #1e293b !important; 
+            color: #000000 !important; 
             background-color: #f8fafc !important;
-            -webkit-text-fill-color: #1e293b !important;
-            opacity: 1 !important;
+            -webkit-text-fill-color: #000000 !important; /* For iOS/Safari */
+            opacity: 1 !important; /* For disabled/readonly states */
         }
 
         .customer-notes textarea, .form-group textarea {
@@ -429,7 +429,7 @@
             <div class="modal-header">💰 تسویه بدهی</div>
             <div style="background: #dbeafe; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center;">
                 <div style="font-weight: bold; color: #1e40af; margin-bottom: 10px;" id="settleCustomerName"></div>
-                <div style="font-size: 24px; font-weight: bold; color: #dc2626; margin: 10px 0;"><span id="settleDebtAmount"></span> تومان</div>
+                <div style="font-size: 24px; font-weight: bold; color: #dc2626; margin: 10px 0;"><span id="settleDebtAmount">0</span> تومان</div>
                 <div style="color: #1e40af; font-size: 14px;">مبلغ بدهی</div>
             </div>
             
@@ -559,15 +559,12 @@ const APP = (function() {
         return 0;
     }
 
-    // FIXED: Robust Days Until Calculation
     function getDaysUntil(val) {
         if (!val) return null;
         let targetDate;
-        // If already ISO (YYYY-MM-DD) from new updates
         if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
             targetDate = new Date(val);
         } else {
-            // Try to parse persian date
             const p = parseDate(val);
             if (p) targetDate = toGregorian(p.jy, p.jm, p.jd);
         }
@@ -798,7 +795,13 @@ const APP = (function() {
     }
 
     // Settle
-    function showSettleModal(){document.getElementById('settleDate').value='';document.getElementById('settleDebtModal').classList.add('show')}
+    function showSettleModal(){
+        if(!settleData) return;
+        document.getElementById('settleCustomerName').textContent = settleData.name;
+        document.getElementById('settleDebtAmount').textContent = fmt(settleData.amount);
+        document.getElementById('settleDate').value='';
+        document.getElementById('settleDebtModal').classList.add('show');
+    }
     function selectSettlePayment(v,e){settlePayment=v;document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected')}
     async function confirmSettle(){
         if(!settlePayment){toast('نوع پرداخت؟');return}
