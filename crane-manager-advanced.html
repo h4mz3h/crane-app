@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.4)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.2)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -211,8 +211,6 @@
         .btn-settle { background: #2563eb; color: white; }
         .btn-delete { background: #ef4444; color: white; }
         .btn-edit { background: #f59e0b; color: white; }
-        
-        .work-type-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f8fafc; border-radius: 10px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 14px; color: #334155; }
     </style>
 </head>
 <body>
@@ -282,7 +280,7 @@
                     <div class="form-group">
                         <label>💰 مبلغ (تومان)</label>
                         <div class="input-wrapper">
-                            <input type="tel" id="amount" required oninput="this.value=this.value.replace(/[^0-9]/g,''); APP.formatAmount(this); APP.calcRemaining()">
+                            <input type="text" id="amount" required oninput="APP.formatAmount(this);APP.calcRemaining()">
                             <div class="button-group">
                                 <button type="button" class="voice-btn" onclick="APP.startVoice('amount')">🎤</button>
                             </div>
@@ -309,7 +307,7 @@
                         <div id="partialPaymentSection" class="partial-payment">
                             <label style="color: #92400e; font-weight: bold; margin-bottom: 8px; display: block;">💵 مبلغ پرداخت شده</label>
                             <div class="input-wrapper" style="margin-bottom: 10px;">
-                                <input type="tel" id="paidAmount" oninput="this.value=this.value.replace(/[^0-9]/g,''); APP.formatAmount(this); APP.calcRemaining()">
+                                <input type="text" id="paidAmount" oninput="APP.formatAmount(this);APP.calcRemaining()">
                                 <div class="button-group">
                                     <button type="button" class="voice-btn" onclick="APP.startVoice('paidAmount')">🎤</button>
                                 </div>
@@ -608,58 +606,17 @@ const APP = (function() {
             'شش': '6', 'شیش': '6', 'هفت': '7', 'هشت': '8', 'نه': '9', 'ده': '10',
             'یازده': '11', 'دوازده': '12', 'سیزده': '13', 'چهارده': '14', 'پانزده': '15',
             'شانزده': '16', 'هفده': '17', 'هجده': '18', 'نوزده': '19', 'بیست': '20',
-            'سی': '30', 'چهل': '40', 'پنجاه': '50', 'شصت': '60', 'هفتاد': '70', 'هشتاد': '80', 'نود': '90',
-            'صد': '100', 'دویست': '200', 'سیصد': '300', 'چهارصد': '400', 'پانصد': '500', 'پونصد': '500', 'ششصد': '600', 'هفتصد': '700', 'هشتصد': '800', 'نهصد': '900',
+            'سی': '30', 'یکم': '1', 'دوی': '2', 'سوم': '3', 'چهارم': '4', 'پنجم': '5',
+            'ششم': '6', 'هفتم': '7', 'هشتم': '8', 'نهم': '9', 'دهم': '10',
             '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9', '۰': '0'
         };
         
+        // Replace strict matches first
         for (let word in map) {
             let regex = new RegExp(word, 'g');
             text = text.replace(regex, map[word]);
         }
         return text;
-    }
-
-    // Improved parser that handles words like "million", "hezar" correctly
-    function parseSpokenAmount(text) {
-        text = text.replace(/و/g, ' ').replace(/تومان|ریال/g, '').trim();
-        text = normalizePersianNumbers(text); // convert words like 'do' to '2'
-
-        const multiplierMap = {
-            'هزار': 1000,
-            'میلیون': 1000000,
-            'میلیارد': 1000000000
-        };
-
-        let total = 0;
-        let currentChunk = 0;
-        let tokens = text.split(/\s+/); 
-
-        for (let token of tokens) {
-            let val = parseFloat(token); 
-            
-            if (multiplierMap[token]) {
-                let mult = multiplierMap[token];
-                // If we have "500" then "thousand", we do 500 * 1000
-                // If we have "million" with no number before (e.g. "million o ..."), assume 1
-                total += (currentChunk === 0 ? 1 : currentChunk) * mult;
-                currentChunk = 0; 
-            } 
-            else if (!isNaN(val)) {
-                currentChunk += val;
-            }
-        }
-        
-        // Add any remaining number (e.g. the "500" in "2 million 500")
-        // Fix for colloquial: if total > 0 (we have millions) and remainder < 1000, assume it's thousands
-        // e.g. "2 million o 500" -> usually means 2,500,000, not 2,000,500
-        if (total >= 1000000 && currentChunk > 0 && currentChunk < 1000) {
-            currentChunk *= 1000;
-        }
-        
-        total += currentChunk;
-        
-        return total === 0 ? text : total.toString();
     }
 
     function handleVoice(t){
@@ -668,12 +625,17 @@ const APP = (function() {
         if(!f)return;
         let c=t.trim();
         
-        if(voiceField==='phone') {
-            c = normalizePersianNumbers(c).replace(/\s+/g,'').replace(/[^0-9]/g, '');
-        } else if(voiceField==='date') {
+        // Apply number normalization for Date, Phone, Amount
+        if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount') {
             c = normalizePersianNumbers(c);
-        } else if(voiceField==='amount'||voiceField==='paidAmount'){
-            c = parseSpokenAmount(c);
+        }
+
+        if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+        
+        if(voiceField==='amount'||voiceField==='paidAmount'){
+            c=c.replace(/تومان|ریال|میلیون|هزار/g,'').trim().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+            if(t.includes('میلیون')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000000).toString()}
+            else if(t.includes('هزار')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000).toString()}
         }
         
         f.value=c;
@@ -808,7 +770,7 @@ const APP = (function() {
     document.getElementById('totalRevenue').textContent=fmt(tr);
     const dbs=ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement),sts=ws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('totalDebt').textContent=fmt(td);const dp=new Set();for(const w of dbs){const ph=w.customerPhone,cdb=dbs.filter(x=>x.customerPhone===ph),cst=sts.filter(x=>x.customerPhone===ph);let ctd=cdb.reduce((s,x)=>{const da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0);return s+da},0);const cts=cst.reduce((s,x)=>s+parseFloat(x.amount.replace(/,/g,'')||0),0),rd=ctd-cts;if(rd>0)dp.add(ph)}document.getElementById('debtorCount').textContent=fmt(dp.size)}catch(e){console.error(e)}}
 
-    async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w);if(!c.lastWorkDate||w.date>c.lastWorkDate){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date}const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));cs.sort((a,b)=>b.works.length-a.works.length);const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;font-size:18px;color:#2563eb;margin-left:5px;">📞</span> <span style="margin-right:5px;">${phonesDisplay}</span></div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
+    async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w);if(!c.lastWorkDate||w.date>c.lastWorkDate){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date}const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));cs.sort((a,b)=>b.works.length-a.works.length);const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;color:#2563eb;font-size:16px;margin-left:5px;">📞</span> ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
 
     async function showCustomerDetail(ph){try{console.log('showCustomerDetail called with phone:',ph);currentCustomerPhone=ph;const ws=await getWorks();console.log('Total works:',ws.length);const cws=ws.filter(w=>w.customerPhone===ph).sort((a,b)=>(b.id||0)-(a.id||0));console.log('Customer works:',cws.length);if(cws.length===0){console.log('No works found for customer');return}const cd=await getCust(ph);console.log('Customer data:',cd);document.getElementById('detailCustomerName').textContent=cws[0].customerName;document.getElementById('detailCustomerPhone').textContent=`📞 ${ph}`;document.getElementById('customerNote').value=cd?.note||'';const tp=cws.reduce((s,w)=>{const am=parseFloat(w.amount.replace(/,/g,'')||0);if(!['نسیه','چک'].includes(w.paymentStatus))return s+am;else if(w.paymentStatus==='نسیه'&&w.paidAmount)return s+parseFloat(w.paidAmount.replace(/,/g,'')||0);return s},0);const dbs=cws.filter(w=>['نسیه','چک'].includes(w.paymentStatus)&&!w.isSettlement),sts=cws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('detailWorkCount').textContent=cws.length;document.getElementById('detailTotalPaid').textContent=fmt(tp);document.getElementById('detailCurrentDebt').textContent=fmt(td);const sb=document.getElementById('settleDebtBtn');if(td>0){sb.classList.remove('hidden');settleData={phone:ph,amount:td,name:cws[0].customerName}}else sb.classList.add('hidden');const phs=cd?.phones||[ph],pc=document.getElementById('phoneNumbersList');pc.innerHTML='';phs.forEach((p,i)=>{const pi=document.createElement('div');pi.className='phone-item';pi.innerHTML=`<span>📞 ${p}${i===0?' (اصلی)':''}</span>`;if(phs.length>1&&i>0){const del=document.createElement('button');del.className='btn-small btn-delete';del.textContent='🗑️';del.onclick=()=>deletePhone(ph,p);pi.appendChild(del)}pc.appendChild(pi)});const lw=cws[0];document.getElementById('detailLastWork').textContent=`${lw.date} - ${lw.workType}`;const nd=document.getElementById('customerNoteDisplay'),nt=document.getElementById('customerNoteText');if(cd?.note){nt.textContent=cd.note;nd.classList.remove('hidden')}else nd.classList.add('hidden');const hc=document.getElementById('workHistory');hc.innerHTML='';
     cws.forEach(w=>{const wi=document.createElement('div');wi.className='work-history-item';if(w.isSettlement)wi.classList.add('settlement');let bg='',dueDateTxt='';
