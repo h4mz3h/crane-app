@@ -922,14 +922,36 @@ const APP = (function() {
 
     async function renderDebtors(){try{console.log('renderDebtors called');const ws=await getWorks();console.log('Total works:',ws.length);const dm=new Map();ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement).forEach(w=>{const ph=w.customerPhone;if(!dm.has(ph))dm.set(ph,{name:w.customerName,phone:ph,debts:[]});dm.get(ph).debts.push(w)});console.log('Debtors map:',dm.size);const sts=ws.filter(w=>w.isSettlement),sm=new Map();sts.forEach(s=>{const ph=s.customerPhone,am=parseFloat(s.amount.replace(/,/g,'')||0);sm.set(ph,(sm.get(ph)||0)+am)});let dts=Array.from(dm.values());const td=new Date();dts.forEach(d=>{let tdt=d.debts.reduce((s,x)=>{let da;if(x.paymentStatus==='چک'){da=parseFloat(x.amount.replace(/,/g,'')||0)}else{da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0)}return s+da},0);const st=sm.get(d.phone)||0;d.totalDebt=Math.max(0,tdt-st);d.nearestDue=d.debts.filter(x=>x.dueDate).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate))[0];if(d.nearestDue){const dd=new Date(d.nearestDue.dueDate);d.daysUntilDue=Math.ceil((dd-td)/(1000*60*60*24))}else d.daysUntilDue=999});dts=dts.filter(d=>d.totalDebt>0);dts.sort((a,b)=>a.daysUntilDue-b.daysUntilDue);console.log('Filtered debtors:',dts.length);const cn=document.getElementById('debtorsList'),tda=dts.reduce((s,d)=>s+d.totalDebt,0);document.getElementById('debtorListCount').textContent=`${dts.length} مورد - مجموع: ${fmt(tda)} تومان`;if(dts.length===0){cn.innerHTML='<div class="empty-state"><p>🎉 بدهکاری وجود ندارد!</p></div>';return}cn.innerHTML='';dts.forEach(d=>{console.log('Processing debtor:',d.name,d.phone);const di=document.createElement('div');di.className='debt-item';let sc='',st='',dueDateTxt='';
     if(d.nearestDue){
-        if(d.daysUntilDue<0){sc='overdue';st=`🔴 ${Math.abs(d.daysUntilDue)} روز گذشته!`}else if(d.daysUntilDue<=3){sc='upcoming';st=`🟡 ${d.daysUntilDue} روز دیگر`}else st=`🟢 ${d.daysUntilDue} روز دیگر`;if(sc)di.classList.add(sc);
+        if(d.daysUntilDue<0){sc='overdue';st=`🔴 ${Math.abs(d.daysUntilDue)} روز گذشته!`}
+        else if(d.daysUntilDue<=3){sc='upcoming';st=`🟡 ${d.daysUntilDue} روز دیگر`}
+        else st=`🟢 ${d.daysUntilDue} روز دیگر`;
+        if(sc)di.classList.add(sc);
+        
+        // ✅ تبدیل صحیح تاریخ میلادی به شمسی
         try{
-             const parts = d.nearestDue.dueDate.split('-');
-             if(parts.length===3) {
-                 const pd=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
-                 dueDateTxt=fmtDate(pd.year,pd.month,pd.day);
-             } else { dueDateTxt='نامعتبر'; }
-        }catch(e){dueDateTxt='تاریخ نامعتبر'}
+            if(d.nearestDue.dueDate) {
+                const parts = d.nearestDue.dueDate.split('-');
+                if(parts.length === 3) {
+                    const gy = parseInt(parts[0]);
+                    const gm = parseInt(parts[1]);
+                    const gd = parseInt(parts[2]);
+                    
+                    if(!isNaN(gy) && !isNaN(gm) && !isNaN(gd)) {
+                        const jalaliDate = toJalaali(gy, gm, gd);
+                        dueDateTxt = fmtDate(jalaliDate.year, jalaliDate.month, jalaliDate.day);
+                    } else {
+                        dueDateTxt = 'تاریخ نامعتبر';
+                    }
+                } else {
+                    dueDateTxt = 'فرمت نامعتبر';
+                }
+            } else {
+                dueDateTxt = 'بدون سررسید';
+            }
+        }catch(e){
+            console.error('Date conversion error:', e);
+            dueDateTxt = 'خطا در تبدیل';
+        }
     }
     di.innerHTML=`<div class="customer-header"><div><div class="customer-name">${d.name}</div><div class="customer-phone">📞 ${d.phone}</div></div></div><div style="margin:10px 0;"><div style="font-size:18px;font-weight:bold;color:#dc2626;">بدهی: ${fmt(d.totalDebt)} تومان</div>${d.nearestDue?`<div style="font-size:14px;color:#64748b;margin-top:5px;">سررسید: ${dueDateTxt} ${st}</div>`:''}</div><div style="display:flex;gap:8px;"><button class="btn-small btn-call">📞 تماس</button><button class="btn-small btn-settle">📋 مشاهده کارتابل</button></div>`;di.querySelector('.btn-call').onclick=()=>window.location.href=`tel:${d.phone}`;di.querySelector('.btn-settle').onclick=()=>showCustomerDetail(d.phone);cn.appendChild(di)});console.log('renderDebtors completed')}catch(e){console.error('Error in renderDebtors:',e);toast('❌ خطا در بارگذاری لیست بدهکاران')}}
 
