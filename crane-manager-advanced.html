@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.5 - فیکس شده)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.5 - سورت تاریخ)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -554,6 +554,7 @@ const APP = (function() {
             const d = parseInt(parts[0]);
             const m = pMonths.indexOf(parts[1]) + 1;
             const y = parseInt(parts[2]);
+            // Return comparable number: YYYYMMDD
             return (y * 10000) + (m * 100) + d;
         } catch (e) { return 0; }
     }
@@ -605,7 +606,7 @@ const APP = (function() {
         workTypes.push(nt);
         saveTypes();
         inp.value = '';
-        openWorkTypeModal();
+        openWorkTypeModal(); // Re-render list
         toast('✅ اضافه شد');
     }
 
@@ -619,7 +620,7 @@ const APP = (function() {
         }
     }
 
-    // --- Voice Logic ---
+    // --- Voice Logic with Number Converter ---
     if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){const S=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new S();recognition.lang='fa-IR';recognition.continuous=false;recognition.interimResults=false;recognition.onresult=e=>{const t=e.results[0][0].transcript;handleVoice(t)};recognition.onerror=()=>{toast('❌ خطا در تشخیص صدا');stopVoice()};recognition.onend=()=>stopVoice()}
     function startVoice(f){if(!recognition){toast('⚠️ مرورگر شما از ورودی صوتی پشتیبانی نمی‌کند');return}voiceField=f;try{recognition.start();toast('🎤 در حال گوش دادن...')}catch(e){stopVoice()}}
     function stopVoice(){if(recognition)try{recognition.stop()}catch(e){}document.querySelectorAll('.voice-btn').forEach(b=>{b.classList.remove('listening')})}
@@ -647,6 +648,7 @@ const APP = (function() {
         if(!f)return;
         let c=t.trim();
         
+        // Updated: Added settleDate to normalization list
         if(voiceField === 'date' || voiceField === 'settleDate' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount') {
             c = normalizePersianNumbers(c);
         }
@@ -771,6 +773,7 @@ const APP = (function() {
             document.getElementById('dueDateDisplay').value = pDateStr;
             document.getElementById('dueDate').value = gDateIso;
         } else if (window.dpTarget === 'settleDate') {
+            // Added support for settleDate
             document.getElementById('settleDate').value = pDateStr;
         }
         window.closeCal();
@@ -778,48 +781,97 @@ const APP = (function() {
 
     async function setupAuto(){const ni=document.getElementById('customerName'),pi=document.getElementById('phone'),sg=document.getElementById('customerSuggestions');if(!ni||!sg)return;const ws=await getWorks(),cm=new Map();for(const w of ws){if(!cm.has(w.customerPhone)){const cd=await getCust(w.customerPhone);cm.set(w.customerPhone,{name:w.customerName,phone:w.customerPhone,phones:cd?.phones||[w.customerPhone]})}}allCustomers=Array.from(cm.values());ni.addEventListener('input',function(){const q=this.value.trim();if(q.length<2){sg.classList.add('hidden');sg.innerHTML='';return}const m=allCustomers.filter(c=>c.name.includes(q)).slice(0,10);if(m.length>0){sg.innerHTML='';m.forEach(c=>{const it=document.createElement('div');it.className='autocomplete-item';it.innerHTML=`<strong>${c.name}</strong><br><span style="font-size:13px;color:#64748b;">📞 ${c.phone}</span>`;it.onclick=()=>{ni.value=c.name;pi.value=c.phone;sg.classList.add('hidden');sg.innerHTML=''};sg.appendChild(it)});sg.classList.remove('hidden')}else{sg.classList.add('hidden');sg.innerHTML=''}});document.addEventListener('click',e=>{if(!ni.contains(e.target)&&!sg.contains(e.target)){sg.classList.add('hidden');sg.innerHTML=''}})}
 
-    function selectPayment(v,e){
-        document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
-        e.target.classList.add('selected');
-        document.getElementById('paymentStatus').value=v;
-        document.getElementById('dueDateSection').classList.remove('show');
-        document.getElementById('partialPaymentSection').classList.remove('show');
-        document.getElementById('dueDate').value=''; // Reset actual value
-        document.getElementById('dueDateDisplay').value=''; // Reset display
-        document.getElementById('paidAmount').value='';
-        document.getElementById('remainingAmount').value='';
-        if(v==='چک')document.getElementById('dueDateSection').classList.add('show');
-        else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show');
-    }
+    function selectPayment(v,e){document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected');document.getElementById('paymentStatus').value=v;document.getElementById('dueDateSection').classList.remove('show');document.getElementById('partialPaymentSection').classList.remove('show');document.getElementById('dueDate').value='';document.getElementById('dueDateDisplay').value='';document.getElementById('paidAmount').value='';document.getElementById('remainingAmount').value='';if(v==='چک')document.getElementById('dueDateSection').classList.add('show');else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show')}
 
-    async function submitWork(e){
+async function submitWork(e){
         e.preventDefault();
-        const ps=document.getElementById('paymentStatus').value;
-        if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}
+        const ps = document.getElementById('paymentStatus').value;
         
-        // --- FIX: Validation Logic Added Here ---
-        if(ps === 'چک') {
-            const checkDateVal = document.getElementById('dueDate').value;
-            if(!checkDateVal) {
-                toast('خطا! لطفا تاریخ سررسید را مجددا انتخاب کنید!');
+        // بررسی انتخاب وضعیت پرداخت
+        if(!ps){
+            toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');
+            return;
+        }
+
+        // --- بخش اصلاح شده: بررسی دقیق تاریخ سررسید چک ---
+        const dueDateVal = document.getElementById('dueDate').value;
+        if (ps === 'چک' && !dueDateVal) {
+            toast('⚠️ خطا: لطفا تاریخ سررسید را مجدداً انتخاب کنید');
+            return;
+        }
+        // --------------------------------------------------
+
+        const ta = document.getElementById('amount').value.replace(/,/g,'');
+        let ada = ta, pa = 0;
+
+        if(ps === 'نسیه'){
+            pa = parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);
+            ada = parseFloat(ta) - pa;
+            if(ada < 0){
+                toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');
                 return;
             }
         }
-        // ----------------------------------------
 
-        const ta=document.getElementById('amount').value.replace(/,/g,'');
-        let ada=ta,pa=0;
-        if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}
-        const w={date:document.getElementById('date').value,customerName:document.getElementById('customerName').value,customerPhone:document.getElementById('phone').value,workType:document.getElementById('workType').value,amount:ta,paymentStatus:ps,dueDate:ps==='چک'?document.getElementById('dueDate').value:null,paidAmount:ps==='نسیه'?pa.toString():null,debtAmount:(ps==='نسیه'||ps==='چک')?ada.toString():null,isSettlement:false};try{const sb=document.getElementById('submitBtn');sb.disabled=true;sb.textContent='⏳ در حال ثبت...';if(editWorkId!==null){await updateWork(editWorkId,w);editWorkId=null;toast('✅ کار ویرایش شد');sb.textContent='✅ ثبت'}else{await addWork(w);toast('✅ کار جدید ثبت شد')}const cd=await getCust(w.customerPhone);await saveCust(w.customerPhone,w.customerName,cd?.note||'',cd?.phones);await updateStats();await setupAuto();
-    document.getElementById('workForm').reset();
-    document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
-    document.getElementById('dueDateSection').classList.remove('show');
-    document.getElementById('partialPaymentSection').classList.remove('show');
-    document.getElementById('paymentStatus').value='';
-    document.getElementById('date').value='';
-    document.getElementById('workTypeDisplay').textContent = 'انتخاب کنید...';
-    document.getElementById('workTypeDisplay').style.color = '#94a3b8';
-    sb.disabled=false;sb.textContent='✅ ثبت'}catch(er){console.error(er);toast('❌ خطا در ثبت اطلاعات');document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent=editWorkId!==null?'✏️ ویرایش':'✅ ثبت'}}
+        const w = {
+            date: document.getElementById('date').value,
+            customerName: document.getElementById('customerName').value,
+            customerPhone: document.getElementById('phone').value,
+            workType: document.getElementById('workType').value,
+            amount: ta,
+            paymentStatus: ps,
+            // استفاده از متغیر مطمئن برای تاریخ سررسید
+            dueDate: ps === 'چک' ? dueDateVal : null,
+            paidAmount: ps === 'نسیه' ? pa.toString() : null,
+            debtAmount: (ps === 'نسیه' || ps === 'چک') ? ada.toString() : null,
+            isSettlement: false
+        };
+
+        try {
+            const sb = document.getElementById('submitBtn');
+            sb.disabled = true;
+            sb.textContent = '⏳ در حال ثبت...';
+            
+            if(editWorkId !== null){
+                await updateWork(editWorkId, w);
+                editWorkId = null;
+                toast('✅ کار ویرایش شد');
+                sb.textContent = '✅ ثبت';
+            } else {
+                await addWork(w);
+                toast('✅ کار جدید ثبت شد');
+            }
+
+            const cd = await getCust(w.customerPhone);
+            await saveCust(w.customerPhone, w.customerName, cd?.note||'', cd?.phones);
+            await updateStats();
+            await setupAuto();
+            
+            // ریست کردن فرم
+            document.getElementById('workForm').reset();
+            document.querySelectorAll('#page-add-work .payment-option').forEach(o => o.classList.remove('selected'));
+            document.getElementById('dueDateSection').classList.remove('show');
+            document.getElementById('partialPaymentSection').classList.remove('show');
+            document.getElementById('paymentStatus').value = '';
+            document.getElementById('date').value = '';
+            
+            // ریست کردن فیلدهای مخفی مربوط به تاریخ سررسید
+            document.getElementById('dueDate').value = ''; 
+            document.getElementById('dueDateDisplay').value = '';
+
+            document.getElementById('workTypeDisplay').textContent = 'انتخاب کنید...';
+            document.getElementById('workTypeDisplay').style.color = '#94a3b8';
+            
+            sb.disabled = false;
+            sb.textContent = '✅ ثبت';
+
+        } catch(er) {
+            console.error(er);
+            toast('❌ خطا در ثبت اطلاعات');
+            document.getElementById('submitBtn').disabled = false;
+            document.getElementById('submitBtn').textContent = editWorkId !== null ? '✏️ ویرایش' : '✅ ثبت';
+        }
+    }
 
     async function updateStats(){try{const ws=await getWorks(),up=new Set(ws.map(w=>w.customerPhone));document.getElementById('totalCustomers').textContent=fmt(up.size);
     const tr=ws.reduce((s,w)=>{
@@ -879,6 +931,7 @@ const APP = (function() {
     async function saveNote(){if(!currentCustomerPhone)return;try{const nt=document.getElementById('customerNote').value,ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);if(cw){const cd=await getCust(currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,nt,cd?.phones);toast('✅ یادداشت ذخیره شد');await showCustomerDetail(currentCustomerPhone);await renderCustomers()}}catch(e){console.error(e);toast('❌ خطا در ذخیره یادداشت')}}
 
     async function editWork(id){try{editWorkId=id;const w=await getWork(id);if(!w)return;showPage('add-work');document.getElementById('date').value=w.date;document.getElementById('customerName').value=w.customerName;document.getElementById('phone').value=w.customerPhone;
+    // Update for new select style
     document.getElementById('workType').value=w.workType;
     document.getElementById('workTypeDisplay').textContent=w.workType;
     document.getElementById('workTypeDisplay').style.color='#1e293b';
@@ -922,12 +975,13 @@ const APP = (function() {
     async function confirmSettle(){
         if(!settleData||!settlePayment){toast('⚠️ لطفاً نوع پرداخت را انتخاب کنید');return}
         
+        // ADDED: Get date from input
         const dateVal = document.getElementById('settleDate').value;
         if(!dateVal){toast('⚠️ تاریخ را وارد کنید');return}
         
         try{
             const st={
-                date: dateVal, 
+                date: dateVal, // Using selected date
                 customerName:settleData.name,
                 customerPhone:settleData.phone,
                 workType:'[تسویه بدهی]',
@@ -970,7 +1024,7 @@ const APP = (function() {
 
     async function exportData(){try{const ws=await getWorks(),t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.getAll();r.onsuccess=()=>{const cs=r.result,d={version:3,exportDate:new Date().toISOString(),workTypes,works:ws.map(w=>{const{id,...rest}=w;return rest}),customers:cs},b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast(`✅ بکاپ ${ws.length} کار ذخیره شد`)}}catch(e){console.error(e);toast('❌ خطا در ذخیره بکاپ')}}
 
-    async function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async function(ev){try{const d=JSON.parse(ev.target.result);if(!d.works||!Array.isArray(d.works)){toast('❌ فایل بکاپ نامعتبر است');return}if(!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: داده‌های فعلی حذف خواهند شد!`))return;const t=db.transaction([WORKS,CUSTOMERS],'readwrite'),ws=t.objectStore(WORKS),cs=t.objectStore(CUSTOMERS);ws.clear();cs.clear();if(d.workTypes&&Array.isArray(d.workTypes)){workTypes=d.workTypes;saveTypes();}for(const w of d.works)await addWork(w);if(d.customers&&Array.isArray(d.customers))for(const c of d.customers)await saveCust(c.phone,c.name,c.note,c.phones);await updateStats();await setupAuto();toast(`✅ ${d.works.length} کار بازگردانی شد`)}catch(er){console.error(er);toast('❌ خطا در بازگردانی بکاپ')}};r.readAsText(f);e.target.value=''}
+    async function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async function(ev){try{const d=JSON.parse(ev.target.result);if(!d.works||!Array.isArray(d.works)){toast('❌ فایل بکاپ نامعتبر است');return}if(!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: داده‌های فعلی حذف خواهند شد!`))return;const t=db.transaction([WORKS,CUSTOMERS],'readwrite'),ws=t.objectStore(WORKS),cs=t.objectStore(CUSTOMERS);ws.clear();cs.clear();if(d.workTypes&&Array.isArray(d.workTypes)){workTypes=d.workTypes;saveTypes();updateTypeDropdown()}for(const w of d.works)await addWork(w);if(d.customers&&Array.isArray(d.customers))for(const c of d.customers)await saveCust(c.phone,c.name,c.note,c.phones);await updateStats();await setupAuto();toast(`✅ ${d.works.length} کار بازگردانی شد`)}catch(er){console.error(er);toast('❌ خطا در بازگردانی بکاپ')}};r.readAsText(f);e.target.value=''}
 
     function showPage(pg){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));const p=document.getElementById(`page-${pg}`);if(p)p.classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>{if(b.textContent.includes('ثبت')&&pg==='add-work')b.classList.add('active');else if(b.textContent.includes('مشتریان')&&pg==='customers')b.classList.add('active');else if(b.textContent.includes('بدهکاران')&&pg==='debtors')b.classList.add('active')});if(pg==='customers')renderCustomers();else if(pg==='debtors')renderDebtors()}
 
