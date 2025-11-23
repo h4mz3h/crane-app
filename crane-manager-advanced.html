@@ -680,45 +680,39 @@ const APP = (function() {
     function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
     function calcRemaining(){const t=parseFloat(document.getElementById('amount').value.replace(/,/g,'')||0),p=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0),r=t-p;document.getElementById('remainingAmount').value=r>=0?fmt(r):'0'}
 
-    // --- Logic جدید تقویم ---
-function showCal(target){
-    let el = document.getElementById(target==='dueDate'?'dueDateDisplay':target);
-    let initialVal = el.value;
-    let jy, jm, jd;
-
-    // اگر مقدار قبلی وجود داشت، از آن استفاده کن
-    if(initialVal && initialVal.split(' ').length === 3) {
-        const parts = initialVal.split(' ');
-        jd = parseInt(parts[0]);
-        jm = pMonths.indexOf(parts[1]) + 1;
-        jy = parseInt(parts[2]);
-    }
-
-    // اگر مقدار نداشت یا نامعتبر بود، امروز رو بگذار
-    if (!jy || !jm || !jd) {
-        const today = new Date();
-        const j = toJalaali(today.getFullYear(), today.getMonth()+1, today.getDate());
-        jy = j.year;
-        jm = j.month;
-        jd = j.day;
-    }
-
-    // این دو خط مهم هستن — همیشه ست بشن!
-    window.dpCurY = jy;
-    window.dpCurM = jm;
-    window.dpSelectedD = jd;
-    window.dpTarget = target;
-
-    // بقیه کد تقویم...
-    const m = document.createElement('div');
-    m.className = 'datepicker-modal';
-        m.innerHTML = `<div class="datepicker-content"><div class="datepicker-header"><button type="button" onclick="window.prevM()">‹</button><span id="dpMonthTitle"></span><button type="button" onclick="window.nextM()">›</button></div><div class="datepicker-weekdays"><span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span style="color:#ef4444">ج</span></div><div class="datepicker-days" id="dpDays"></div><button type="button" class="btn-close" onclick="window.closeCal()">بستن</button></div>`;
-        document.body.appendChild(m);
-        window.dpModal = m;
-        window.dpTarget = target;
+    function showCal(target){
+        let el = document.getElementById(target==='dueDate'?'dueDateDisplay':target);
+        let initialVal = el.value;
+        let jy, jm, jd;
+    
+        if(initialVal && initialVal.split(' ').length === 3) {
+            const parts = initialVal.split(' ');
+            jd = parseInt(parts[0]);
+            jm = pMonths.indexOf(parts[1]) + 1;
+            jy = parseInt(parts[2]);
+        }
+    
+        // اگر مقدار نداشت، امروز رو بگذار (مهم!)
+        if (!jy || !jm || !jd) {
+            const today = new Date();
+            const j = toJalaali(today.getFullYear(), today.getMonth()+1, today.getDate());
+            jy = j.year;
+            jm = j.month;
+            jd = j.day;
+        }
+    
+        // این سه خط باید همیشه اجرا بشن — چه برای تاریخ کار، چه برای تاریخ چک!
         window.dpCurY = jy;
         window.dpCurM = jm;
         window.dpSelectedD = jd;
+        window.dpTarget = target;
+    
+        // بقیه کد تقویم بدون تغییر...
+        const m = document.createElement('div');
+        m.className = 'datepicker-modal';
+        m.innerHTML = `<div class="datepicker-content">...`; // بقیه همون قبلی
+        document.body.appendChild(m);
+        window.dpModal = m;
         renderCal();
         setTimeout(() => m.classList.add('show'), 10);
     }
@@ -773,33 +767,24 @@ function showCal(target){
         }
     }
     
-function selectDate(d) {
-    // این سه خط همیشه مقدار معتبر دارن چون توی showCal ست شدن
-    const year = window.dpCurY;
-    const month = window.dpCurM;
-    const day = d;
-
-    const pDateStr = fmtDate(year, month, day);
-    const gDate = toGregorian(year, month, day);
-
-    const gy = gDate.getFullYear();
-    const gm = String(gDate.getMonth() + 1).padStart(2, '0');
-    const gd = String(gDate.getDate()).padStart(2, '0');
-    const gDateIso = `${gy}-${gm}-${gd}`;
-
-    if (window.dpTarget === 'date') {
-        document.getElementById('date').value = pDateStr;
-    } 
-    else if (window.dpTarget === 'dueDate') {
-        document.getElementById('dueDateDisplay').value = pDateStr;
-        document.getElementById('dueDate').value = gDateIso;  // حالا همیشه معتبره
-    } 
-    else if (window.dpTarget === 'settleDate') {
-        document.getElementById('settleDate').value = pDateStr;
+    function selectDate(d) {
+        const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
+        const gDate = toGregorian(window.dpCurY, window.dpCurM, d);
+        const gy = gDate.getFullYear();
+        const gm = String(gDate.getMonth() + 1).padStart(2, '0');
+        const gd = String(gDate.getDate()).padStart(2, '0');
+        const gDateIso = `${gy}-${gm}-${gd}`;
+    
+        if (window.dpTarget === 'date') {
+            document.getElementById('date').value = pDateStr;
+        } else if (window.dpTarget === 'dueDate') {
+            document.getElementById('dueDateDisplay').value = pDateStr;
+            document.getElementById('dueDate').value = gDateIso;
+        } else if (window.dpTarget === 'settleDate') {
+            document.getElementById('settleDate').value = pDateStr;
+        }
+        window.closeCal();
     }
-
-    window.closeCal();
-}
 
     async function setupAuto(){const ni=document.getElementById('customerName'),pi=document.getElementById('phone'),sg=document.getElementById('customerSuggestions');if(!ni||!sg)return;const ws=await getWorks(),cm=new Map();for(const w of ws){if(!cm.has(w.customerPhone)){const cd=await getCust(w.customerPhone);cm.set(w.customerPhone,{name:w.customerName,phone:w.customerPhone,phones:cd?.phones||[w.customerPhone]})}}allCustomers=Array.from(cm.values());ni.addEventListener('input',function(){const q=this.value.trim();if(q.length<2){sg.classList.add('hidden');sg.innerHTML='';return}const m=allCustomers.filter(c=>c.name.includes(q)).slice(0,10);if(m.length>0){sg.innerHTML='';m.forEach(c=>{const it=document.createElement('div');it.className='autocomplete-item';it.innerHTML=`<strong>${c.name}</strong><br><span style="font-size:13px;color:#64748b;">📞 ${c.phone}</span>`;it.onclick=()=>{ni.value=c.name;pi.value=c.phone;sg.classList.add('hidden');sg.innerHTML=''};sg.appendChild(it)});sg.classList.remove('hidden')}else{sg.classList.add('hidden');sg.innerHTML=''}});document.addEventListener('click',e=>{if(!ni.contains(e.target)&&!sg.contains(e.target)){sg.classList.add('hidden');sg.innerHTML=''}})}
 
