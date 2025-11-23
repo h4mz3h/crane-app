@@ -946,11 +946,11 @@ const APP = (function() {
                 const gd = parseInt(parts[2]);
                 
                 if(!isNaN(gy) && !isNaN(gm) && !isNaN(gd)) {
-                    const jalaliDate = toJalaali(gy, gm, gd);
-                    dueDateTxt = fmtDate(jalaliDate.year, jalaliDate.month, jalaliDate.day);
-                }
-            }
-} catch(e) {
+                                    const jalaliDate = toJalaali(gy, gm, gd);
+                                    dueDateTxt = fmtDate(jalaliDate.year, jalaliDate.month, jalaliDate.day);
+                                }
+                            }
+                        } catch(e) {
             console.error('Date error:', e);
         }
     }
