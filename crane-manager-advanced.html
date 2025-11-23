@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.7)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.8)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -47,7 +47,6 @@
         /* --- Aligned Inputs and Buttons --- */
         .input-wrapper { display: flex; gap: 8px; align-items: stretch; height: 50px; } 
         
-        /* .styled-input class for shared styling */
         .form-group input, .form-group select, .custom-select-trigger, .styled-input { 
             flex: 1; 
             padding: 0 15px; 
@@ -63,7 +62,6 @@
             color: #334155;
         }
         
-        /* Fix for Customer Note Textarea */
         .customer-notes textarea, .form-group textarea {
             flex: 1;
             width: 100%;
@@ -84,7 +82,6 @@
 
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .customer-notes textarea:focus, .styled-input:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
-        /* Input that triggers calendar */
         .date-input { cursor: pointer; }
 
         .button-group { display: flex; gap: 8px; width: 45px; justify-content: flex-end; flex-shrink: 0; } 
@@ -124,7 +121,6 @@
         .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         
-        /* Work Type Drawer */
         .custom-select-trigger { cursor: pointer; display: flex; justify-content: space-between; align-items: center; height: 50px; width: 100%; padding: 0 15px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc; font-size: 16px; color: #334155; box-sizing: border-box; }
         .custom-select-trigger::after { content: '▼'; font-size: 12px; color: #94a3b8; margin-right: 10px; }
         .work-type-modal-list { margin-top: 15px; max-height: 300px; overflow-y: auto; }
@@ -138,7 +134,6 @@
         .add-new-type-input { flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; font-family: inherit; }
         .add-new-type-btn { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-        /* Customer List */
         .customer-list { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
         .customer-item { padding: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
         .customer-item:hover { background: #f8fafc; }
@@ -899,46 +894,61 @@ const APP = (function() {
 
     async function renderDebtors(){try{console.log('renderDebtors called');const ws=await getWorks();console.log('Total works:',ws.length);const dm=new Map();ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement).forEach(w=>{const ph=w.customerPhone;if(!dm.has(ph))dm.set(ph,{name:w.customerName,phone:ph,debts:[]});dm.get(ph).debts.push(w)});console.log('Debtors map:',dm.size);const sts=ws.filter(w=>w.isSettlement),sm=new Map();sts.forEach(s=>{const ph=s.customerPhone,am=parseFloat(s.amount.replace(/,/g,'')||0);sm.set(ph,(sm.get(ph)||0)+am)});let dts=Array.from(dm.values());const td=new Date();dts.forEach(d=>{let tdt=d.debts.reduce((s,x)=>{let da;if(x.paymentStatus==='چک'){da=parseFloat(x.amount.replace(/,/g,'')||0)}else{da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0)}return s+da},0);const st=sm.get(d.phone)||0;d.totalDebt=Math.max(0,tdt-st);d.nearestDue=d.debts.filter(x=>x.dueDate).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate))[0];
     
-    // FIXED NaN ERROR: Robust parsing for legacy Persian dates in DB
+    // --- FIXED NaN and 0 days issue ---
+    d.daysUntilDue = null; // Default to null
     if(d.nearestDue){
         let dd = new Date(d.nearestDue.dueDate);
-        // If standard parse fails, assume it's Persian string stored in DB
-        if (isNaN(dd.getTime())) {
-             const parts = d.nearestDue.dueDate.split(/[/-]/); // Split by / or -
-             if(parts.length === 3) {
-                 // assume Jalaali: YYYY, MM, DD
-                 try {
-                     const gy = toGregorian(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
-                     dd = gy;
-                 } catch(e) { dd = new Date(); } // Fallback to today to prevent crash
-             }
-        }
+        let valid = !isNaN(dd.getTime());
         
-        if (!isNaN(dd.getTime())) {
-             d.daysUntilDue = Math.ceil((dd - td)/(1000*60*60*24));
+        // If parsing failed (likely due to Persian string format in old data)
+        if(!valid) {
+             // try to parse manual persian date if needed, or just skip calculation
+             const parts = d.nearestDue.dueDate.split(/[-/ ]/); // Try split by dash, slash or space
+             if(parts.length >= 3) {
+                 // We assume it's Persian text, so we can't calc days easily without a full parser. 
+                 // For now, we mark it invalid for calc but valid for display text.
+                 valid = false; 
+             }
         } else {
-             d.daysUntilDue = 0;
+             // It is a valid ISO date, calculate difference
+             // Create dates at midnight to avoid timezone off-by-one
+             let n = new Date(); n.setHours(0,0,0,0);
+             let t = new Date(dd); t.setHours(0,0,0,0);
+             d.daysUntilDue = Math.ceil((t - n)/(1000*60*60*24));
         }
-    } else {
-        d.daysUntilDue = 999;
     }
     
-    });dts=dts.filter(d=>d.totalDebt>0);dts.sort((a,b)=>a.daysUntilDue-b.daysUntilDue);console.log('Filtered debtors:',dts.length);const cn=document.getElementById('debtorsList'),tda=dts.reduce((s,d)=>s+d.totalDebt,0);document.getElementById('debtorListCount').textContent=`${dts.length} مورد - مجموع: ${fmt(tda)} تومان`;if(dts.length===0){cn.innerHTML='<div class="empty-state"><p>🎉 بدهکاری وجود ندارد!</p></div>';return}cn.innerHTML='';dts.forEach(d=>{console.log('Processing debtor:',d.name,d.phone);const di=document.createElement('div');di.className='debt-item';let sc='',st='',dueDateTxt='';
+    });dts=dts.filter(d=>d.totalDebt>0);
+    // Sort: Put those with calculated days first, then unknown
+    dts.sort((a,b)=>{
+        if(a.daysUntilDue === null && b.daysUntilDue === null) return 0;
+        if(a.daysUntilDue === null) return 1;
+        if(b.daysUntilDue === null) return -1;
+        return a.daysUntilDue - b.daysUntilDue;
+    });
+    
+    console.log('Filtered debtors:',dts.length);const cn=document.getElementById('debtorsList'),tda=dts.reduce((s,d)=>s+d.totalDebt,0);document.getElementById('debtorListCount').textContent=`${dts.length} مورد - مجموع: ${fmt(tda)} تومان`;if(dts.length===0){cn.innerHTML='<div class="empty-state"><p>🎉 بدهکاری وجود ندارد!</p></div>';return}cn.innerHTML='';dts.forEach(d=>{console.log('Processing debtor:',d.name,d.phone);const di=document.createElement('div');di.className='debt-item';let sc='',st='',dueDateTxt='';
     if(d.nearestDue){
-        if(d.daysUntilDue<0){sc='overdue';st=`🔴 ${Math.abs(d.daysUntilDue)} روز گذشته!`}else if(d.daysUntilDue<=3){sc='upcoming';st=`🟡 ${d.daysUntilDue} روز دیگر`}else st=`🟢 ${d.daysUntilDue} روز دیگر`;if(sc)di.classList.add(sc);
-        try{
-             // Only split if it matches YYYY-MM-DD format roughly
-             if(d.nearestDue.dueDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                 const parts = d.nearestDue.dueDate.split('-');
-                 if(parts.length===3) {
-                     const pd=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
-                     dueDateTxt=fmtDate(pd.year,pd.month,pd.day);
-                 } else { dueDateTxt='نامعتبر'; }
-             } else {
-                 // It's probably already Persian text stored in DB
-                 dueDateTxt = d.nearestDue.dueDate; 
-             }
-        }catch(e){dueDateTxt='تاریخ نامعتبر'}
+        // --- Robust Display Logic ---
+        if(d.daysUntilDue !== null){
+            if(d.daysUntilDue<0){sc='overdue';st=`🔴 ${Math.abs(d.daysUntilDue)} روز گذشته!`}
+            else if(d.daysUntilDue<=3){sc='upcoming';st=`🟡 ${d.daysUntilDue} روز دیگر`}
+            else st=`🟢 ${d.daysUntilDue} روز دیگر`;
+            if(sc)di.classList.add(sc);
+        } else {
+            st = ''; // Don't show "0 days" if we couldn't calculate
+        }
+
+        // --- Fix NaN-NaN-NaN Display ---
+        // Check if it matches ISO format YYYY-MM-DD
+        if(d.nearestDue.dueDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
+             const parts = d.nearestDue.dueDate.split('-');
+             const pd=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
+             dueDateTxt=fmtDate(pd.year,pd.month,pd.day);
+        } else {
+             // Fallback to original string (e.g. Persian text)
+             dueDateTxt = d.nearestDue.dueDate; 
+        }
     }
     di.innerHTML=`<div class="customer-header"><div><div class="customer-name">${d.name}</div><div class="customer-phone">📞 ${d.phone}</div></div></div><div style="margin:10px 0;"><div style="font-size:18px;font-weight:bold;color:#dc2626;">بدهی: ${fmt(d.totalDebt)} تومان</div>${d.nearestDue?`<div style="font-size:14px;color:#64748b;margin-top:5px;">سررسید: ${dueDateTxt} ${st}</div>`:''}</div><div style="display:flex;gap:8px;"><button class="btn-small btn-call">📞 تماس</button><button class="btn-small btn-settle">📋 مشاهده کارتابل</button></div>`;di.querySelector('.btn-call').onclick=()=>window.location.href=`tel:${d.phone}`;di.querySelector('.btn-settle').onclick=()=>showCustomerDetail(d.phone);cn.appendChild(di)});console.log('renderDebtors completed')}catch(e){console.error('Error in renderDebtors:',e);toast('❌ خطا در بارگذاری لیست بدهکاران')}}
 
