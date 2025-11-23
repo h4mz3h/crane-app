@@ -991,8 +991,25 @@ async function renderDebtors() {
         
         cn.innerHTML = '';
         
-        dts.forEach(d => {
-            const di = document.createElement('div');
+dts.forEach(d => {
+    // 🔥 اول این خطوط دیباگ رو اضافه کن:
+    console.log('===== Debtor:', d.name);
+    console.log('Debts:', d.debts);
+    d.debts.forEach(debt => {
+        console.log('  - Payment:', debt.paymentStatus, 'Due:', debt.dueDate);
+    });
+    
+    // محاسبه کل بدهی
+    let tdt = 0;
+    d.debts.forEach(x => {
+        let da = 0;
+        if (x.paymentStatus === 'چک') {
+            da = parseFloat(x.amount.replace(/,/g, '') || 0);
+        } else {
+            da = x.debtAmount ? parseFloat(x.debtAmount.replace(/,/g, '') || 0) : parseFloat(x.amount.replace(/,/g, '') || 0);
+        }
+        tdt += da;
+    });            const di = document.createElement('div');
             di.className = 'debt-item';
             let sc = '';
             let st = '';
