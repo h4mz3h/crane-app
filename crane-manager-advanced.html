@@ -299,9 +299,11 @@
                         <div id="dueDateSection" class="due-date-section">
                             <label style="color: #dc2626; margin-bottom: 8px; display: block;">📆 تاریخ سررسید</label>
                             <div class="input-wrapper">
-                                <input type="text" id="dueDateDisplay" class="date-input" readonly onclick="APP.showCal('dueDate')">
+                                <input type="text" id="dueDate" class="date-input" readonly onclick="APP.showCal('dueDate')">
+                                <div class="button-group">
+                                     <button type="button" class="voice-btn" onclick="APP.startVoice('dueDate')">🎤</button>
+                                </div>
                             </div>
-                            <input type="hidden" id="dueDate">
                             <p style="font-size: 12px; color: #dc2626; margin-top: 8px;">⏰ هشدار در ساعت ۷ صبح روز سررسید</p>
                         </div>
                         <div id="partialPaymentSection" class="partial-payment">
@@ -760,24 +762,22 @@ const APP = (function() {
     }
     
     function selectDate(d) {
-        const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
-        const gDateObj = toGregorian(window.dpCurY, window.dpCurM, d);
-        const gy = gDateObj.getFullYear();
-        const gm = String(gDateObj.getMonth() + 1).padStart(2, '0');
-        const gd = String(gDateObj.getDate()).padStart(2, '0');
-        const gDateIso = `${gy}-${gm}-${gd}`;
-        
-        if(window.dpTarget === 'date') {
-            document.getElementById('date').value = pDateStr;
-        } else if (window.dpTarget === 'dueDate') {
-            document.getElementById('dueDateDisplay').value = pDateStr;
-            document.getElementById('dueDate').value = gDateIso;
-        } else if (window.dpTarget === 'settleDate') {
-            // Added support for settleDate
-            document.getElementById('settleDate').value = pDateStr;
+            const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
+            
+            // اگر روی تاریخ معمولی کلیک شد
+            if(window.dpTarget === 'date') {
+                document.getElementById('date').value = pDateStr;
+            } 
+            // اگر روی تاریخ سررسید کلیک شد (عینا مثل بالا)
+            else if (window.dpTarget === 'dueDate') {
+                document.getElementById('dueDate').value = pDateStr;
+            } 
+            // اگر روی تاریخ تسویه کلیک شد
+            else if (window.dpTarget === 'settleDate') {
+                document.getElementById('settleDate').value = pDateStr;
+            }
+            window.closeCal();
         }
-        window.closeCal();
-    }
 
     async function setupAuto(){const ni=document.getElementById('customerName'),pi=document.getElementById('phone'),sg=document.getElementById('customerSuggestions');if(!ni||!sg)return;const ws=await getWorks(),cm=new Map();for(const w of ws){if(!cm.has(w.customerPhone)){const cd=await getCust(w.customerPhone);cm.set(w.customerPhone,{name:w.customerName,phone:w.customerPhone,phones:cd?.phones||[w.customerPhone]})}}allCustomers=Array.from(cm.values());ni.addEventListener('input',function(){const q=this.value.trim();if(q.length<2){sg.classList.add('hidden');sg.innerHTML='';return}const m=allCustomers.filter(c=>c.name.includes(q)).slice(0,10);if(m.length>0){sg.innerHTML='';m.forEach(c=>{const it=document.createElement('div');it.className='autocomplete-item';it.innerHTML=`<strong>${c.name}</strong><br><span style="font-size:13px;color:#64748b;">📞 ${c.phone}</span>`;it.onclick=()=>{ni.value=c.name;pi.value=c.phone;sg.classList.add('hidden');sg.innerHTML=''};sg.appendChild(it)});sg.classList.remove('hidden')}else{sg.classList.add('hidden');sg.innerHTML=''}});document.addEventListener('click',e=>{if(!ni.contains(e.target)&&!sg.contains(e.target)){sg.classList.add('hidden');sg.innerHTML=''}})}
 
@@ -1000,18 +1000,111 @@ async function submitWork(e){
         }catch(e){console.error(e);toast('❌ خطا در تسویه بدهی')}
     }
 
-    async function renderDebtors(){try{console.log('renderDebtors called');const ws=await getWorks();console.log('Total works:',ws.length);const dm=new Map();ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement).forEach(w=>{const ph=w.customerPhone;if(!dm.has(ph))dm.set(ph,{name:w.customerName,phone:ph,debts:[]});dm.get(ph).debts.push(w)});console.log('Debtors map:',dm.size);const sts=ws.filter(w=>w.isSettlement),sm=new Map();sts.forEach(s=>{const ph=s.customerPhone,am=parseFloat(s.amount.replace(/,/g,'')||0);sm.set(ph,(sm.get(ph)||0)+am)});let dts=Array.from(dm.values());const td=new Date();dts.forEach(d=>{let tdt=d.debts.reduce((s,x)=>{let da;if(x.paymentStatus==='چک'){da=parseFloat(x.amount.replace(/,/g,'')||0)}else{da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0)}return s+da},0);const st=sm.get(d.phone)||0;d.totalDebt=Math.max(0,tdt-st);d.nearestDue=d.debts.filter(x=>x.dueDate).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate))[0];if(d.nearestDue){const dd=new Date(d.nearestDue.dueDate);d.daysUntilDue=Math.ceil((dd-td)/(1000*60*60*24))}else d.daysUntilDue=999});dts=dts.filter(d=>d.totalDebt>0);dts.sort((a,b)=>a.daysUntilDue-b.daysUntilDue);console.log('Filtered debtors:',dts.length);const cn=document.getElementById('debtorsList'),tda=dts.reduce((s,d)=>s+d.totalDebt,0);document.getElementById('debtorListCount').textContent=`${dts.length} مورد - مجموع: ${fmt(tda)} تومان`;if(dts.length===0){cn.innerHTML='<div class="empty-state"><p>🎉 بدهکاری وجود ندارد!</p></div>';return}cn.innerHTML='';dts.forEach(d=>{console.log('Processing debtor:',d.name,d.phone);const di=document.createElement('div');di.className='debt-item';let sc='',st='',dueDateTxt='';
-    if(d.nearestDue){
-        if(d.daysUntilDue<0){sc='overdue';st=`🔴 ${Math.abs(d.daysUntilDue)} روز گذشته!`}else if(d.daysUntilDue<=3){sc='upcoming';st=`🟡 ${d.daysUntilDue} روز دیگر`}else st=`🟢 ${d.daysUntilDue} روز دیگر`;if(sc)di.classList.add(sc);
+async function renderDebtors(){
         try{
-             const parts = d.nearestDue.dueDate.split('-');
-             if(parts.length===3) {
-                 const pd=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
-                 dueDateTxt=fmtDate(pd.year,pd.month,pd.day);
-             } else { dueDateTxt='نامعتبر'; }
-        }catch(e){dueDateTxt='تاریخ نامعتبر'}
+            const ws=await getWorks();
+            const dm=new Map();
+            // فیلتر کردن کارهای نسیه و چک تسویه نشده
+            ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement).forEach(w=>{
+                const ph=w.customerPhone;
+                if(!dm.has(ph)) dm.set(ph,{name:w.customerName, phone:ph, debts:[]});
+                dm.get(ph).debts.push(w)
+            });
+
+            const sts=ws.filter(w=>w.isSettlement), sm=new Map();
+            sts.forEach(s=>{
+                const ph=s.customerPhone, am=parseFloat(s.amount.replace(/,/g,'')||0);
+                sm.set(ph,(sm.get(ph)||0)+am)
+            });
+
+            let dts=Array.from(dm.values());
+            const today = new Date(); // تاریخ امروز برای مقایسه
+
+            dts.forEach(d=>{
+                // محاسبه مجموع بدهی
+                let tdt=d.debts.reduce((s,x)=>{
+                    let da;
+                    if(x.paymentStatus==='چک'){da=parseFloat(x.amount.replace(/,/g,'')||0)}
+                    else{da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0)}
+                    return s+da
+                },0);
+                
+                const st=sm.get(d.phone)||0;
+                d.totalDebt=Math.max(0, tdt-st);
+
+                // --- بخش اصلاح شده برای رفع ارور NaN ---
+                // پیدا کردن نزدیکترین چک
+                // اینجا تاریخ‌ها شمسی هستند، پس با تابع پارس کننده مقایسه میکنیم
+                d.nearestDue = d.debts.filter(x=>x.dueDate).sort((a,b)=> parseDateStr(a.dueDate) - parseDateStr(b.dueDate))[0];
+
+                if(d.nearestDue){
+                    // تبدیل تاریخ شمسی (مثلا 1 آذر 1403) به آبجکت تاریخ برای محاسبه فاصله
+                    try {
+                        const parts = d.nearestDue.dueDate.split(' '); // [1, آذر, 1403]
+                        if(parts.length === 3) {
+                            const dDay = parseInt(parts[0]);
+                            const dMonth = pMonths.indexOf(parts[1]) + 1;
+                            const dYear = parseInt(parts[2]);
+                            
+                            // تبدیل به میلادی برای محاسبه ریاضی فاصله زمانی
+                            const gDate = toGregorian(dYear, dMonth, dDay);
+                            
+                            // محاسبه اختلاف روز
+                            const diffTime = gDate - today; 
+                            d.daysUntilDue = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                        } else {
+                            d.daysUntilDue = 999; // فرمت نامعتبر
+                        }
+                    } catch(e) {
+                        d.daysUntilDue = 999;
+                    }
+                } else {
+                    d.daysUntilDue = 999;
+                }
+            });
+
+            dts=dts.filter(d=>d.totalDebt>0);
+            dts.sort((a,b)=>a.daysUntilDue - b.daysUntilDue);
+
+            const cn=document.getElementById('debtorsList');
+            const tda=dts.reduce((s,d)=>s+d.totalDebt,0);
+            document.getElementById('debtorListCount').textContent=`${dts.length} مورد - مجموع: ${fmt(tda)} تومان`;
+
+            if(dts.length===0){
+                cn.innerHTML='<div class="empty-state"><p>🎉 بدهکاری وجود ندارد!</p></div>';
+                return;
+            }
+
+            cn.innerHTML='';
+            dts.forEach(d=>{
+                const di=document.createElement('div');
+                di.className='debt-item';
+                let sc='', st='', dueDateTxt = d.nearestDue ? d.nearestDue.dueDate : ''; // نمایش مستقیم متن فارسی
+
+                if(d.nearestDue && d.daysUntilDue !== 999){
+                    if(d.daysUntilDue < 0){
+                        sc='overdue'; 
+                        st=`🔴 ${Math.abs(d.daysUntilDue)} روز گذشته!`;
+                    } else if(d.daysUntilDue <= 3){
+                        sc='upcoming'; 
+                        st=`🟡 ${d.daysUntilDue} روز دیگر`;
+                    } else {
+                        st=`🟢 ${d.daysUntilDue} روز دیگر`;
+                    }
+                    if(sc) di.classList.add(sc);
+                }
+
+                di.innerHTML=`<div class="customer-header"><div><div class="customer-name">${d.name}</div><div class="customer-phone">📞 ${d.phone}</div></div></div><div style="margin:10px 0;"><div style="font-size:18px;font-weight:bold;color:#dc2626;">بدهی: ${fmt(d.totalDebt)} تومان</div>${d.nearestDue?`<div style="font-size:14px;color:#64748b;margin-top:5px;">سررسید: ${dueDateTxt} <br> ${st}</div>`:''}</div><div style="display:flex;gap:8px;"><button class="btn-small btn-call">📞 تماس</button><button class="btn-small btn-settle">📋 مشاهده کارتابل</button></div>`;
+                
+                di.querySelector('.btn-call').onclick=()=>window.location.href=`tel:${d.phone}`;
+                di.querySelector('.btn-settle').onclick=()=>showCustomerDetail(d.phone);
+                cn.appendChild(di);
+            });
+        } catch(e){
+            console.error('Error in renderDebtors:',e);
+            toast('❌ خطا در بارگذاری لیست بدهکاران')
+        }
     }
-    di.innerHTML=`<div class="customer-header"><div><div class="customer-name">${d.name}</div><div class="customer-phone">📞 ${d.phone}</div></div></div><div style="margin:10px 0;"><div style="font-size:18px;font-weight:bold;color:#dc2626;">بدهی: ${fmt(d.totalDebt)} تومان</div>${d.nearestDue?`<div style="font-size:14px;color:#64748b;margin-top:5px;">سررسید: ${dueDateTxt} ${st}</div>`:''}</div><div style="display:flex;gap:8px;"><button class="btn-small btn-call">📞 تماس</button><button class="btn-small btn-settle">📋 مشاهده کارتابل</button></div>`;di.querySelector('.btn-call').onclick=()=>window.location.href=`tel:${d.phone}`;di.querySelector('.btn-settle').onclick=()=>showCustomerDetail(d.phone);cn.appendChild(di)});console.log('renderDebtors completed')}catch(e){console.error('Error in renderDebtors:',e);toast('❌ خطا در بارگذاری لیست بدهکاران')}}
 
     function checkAlarms(){getWorks().then(ws=>{const td=new Date();td.setHours(7,0,0,0);ws.filter(w=>w.paymentStatus==='چک'&&w.dueDate).forEach(w=>{const dd=new Date(w.dueDate);dd.setHours(7,0,0,0);if(dd.getTime()===td.getTime()){
         if('Notification'in window&&Notification.permission==='granted') {
