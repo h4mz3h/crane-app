@@ -299,8 +299,7 @@
                         <div id="dueDateSection" class="due-date-section">
                             <label style="color: #dc2626; margin-bottom: 8px; display: block;">📆 تاریخ سررسید</label>
                             <div class="input-wrapper">
-                                <input type="text" id="dueDateDisplay" readonly>
-                                <button type="button" class="cal-btn" onclick="APP.showCal('dueDate')">📅</button>
+                                <input type="text" id="dueDateDisplay" class="date-input" readonly onclick="APP.showCal('dueDate')">
                             </div>
                             <input type="hidden" id="dueDate">
                             <p style="font-size: 12px; color: #dc2626; margin-top: 8px;">⏰ هشدار در ساعت ۷ صبح روز سررسید</p>
@@ -681,30 +680,9 @@ const APP = (function() {
     function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
     function calcRemaining(){const t=parseFloat(document.getElementById('amount').value.replace(/,/g,'')||0),p=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0),r=t-p;document.getElementById('remainingAmount').value=r>=0?fmt(r):'0'}
 
-// 1. تابع انتخاب نوع پرداخت (از بکاپ)
-    function selectPayment(v,e){
-        document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
-        e.target.classList.add('selected');
-        document.getElementById('paymentStatus').value=v;
-        
-        document.getElementById('dueDateSection').classList.remove('show');
-        document.getElementById('partialPaymentSection').classList.remove('show');
-        
-        // پاکسازی فیلدها طبق نسخه بکاپ
-        document.getElementById('dueDate').value='';
-        document.getElementById('dueDateDisplay').value='';
-        document.getElementById('paidAmount').value='';
-        document.getElementById('remainingAmount').value='';
-        
-        if(v==='چک') document.getElementById('dueDateSection').classList.add('show');
-        else if(v==='نسیه') document.getElementById('partialPaymentSection').classList.add('show');
-    }
-
-    // 2. تابع نمایش تقویم (از بکاپ - با تشخیص فیلد نمایشی)
+    // --- Logic جدید تقویم ---
     function showCal(target){
-        // این خط کلید حل مشکل است: اگر تارگت dueDate بود، آن را به dueDateDisplay وصل میکند
         let el = document.getElementById(target==='dueDate'?'dueDateDisplay':target);
-        
         let initialVal = el.value;
         let jy, jm, jd;
         if(initialVal && initialVal.split(' ').length === 3) {
@@ -730,12 +708,60 @@ const APP = (function() {
         renderCal();
         setTimeout(() => m.classList.add('show'), 10);
     }
-
-    // 3. تابع انتخاب روز (از بکاپ - پر کردن همزمان فیلد نمایشی و مخفی)
+    
+    window.prevM = function() {
+        window.dpCurM--;
+        if(window.dpCurM < 1) { window.dpCurM = 12; window.dpCurY--; }
+        renderCal();
+    };
+    
+    window.nextM = function() {
+        window.dpCurM++;
+        if(window.dpCurM > 12) { window.dpCurM = 1; window.dpCurY++; }
+        renderCal();
+    };
+    
+    window.closeCal = function() {
+        if(window.dpModal) {
+            window.dpModal.classList.remove('show');
+            setTimeout(() => {
+                if(window.dpModal && window.dpModal.parentNode) window.dpModal.parentNode.removeChild(window.dpModal);
+                window.dpModal = null;
+            }, 300);
+        }
+    };
+    
+    function renderCal() {
+        const title = document.getElementById('dpMonthTitle');
+        const daysContainer = document.getElementById('dpDays');
+        if(!title || !daysContainer) return;
+        title.textContent = `${pMonths[window.dpCurM-1]} ${window.dpCurY}`;
+        daysContainer.innerHTML = '';
+        const daysInMonth = jalaliMonthLength(window.dpCurY, window.dpCurM);
+        const gDateFirst = toGregorian(window.dpCurY, window.dpCurM, 1);
+        let startDay = gDateFirst.getDay() + 1; // 0=Sun, 6=Sat in JS. We want 0=Sat.
+        if(startDay === 7) startDay = 0; 
+        for(let i=0; i<startDay; i++) {
+            daysContainer.appendChild(document.createElement('div'));
+        }
+        const today = new Date();
+        const jToday = toJalaali(today.getFullYear(), today.getMonth()+1, today.getDate());
+        for(let i=1; i<=daysInMonth; i++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = i;
+            if(window.dpCurY === jToday.year && window.dpCurM === jToday.month && i === jToday.day) {
+                btn.classList.add('today');
+            }
+            if(i === window.dpSelectedD) btn.classList.add('selected');
+            btn.onclick = () => selectDate(i);
+            daysContainer.appendChild(btn);
+        }
+    }
+    
     function selectDate(d) {
         const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
         const gDateObj = toGregorian(window.dpCurY, window.dpCurM, d);
-        
         const gy = gDateObj.getFullYear();
         const gm = String(gDateObj.getMonth() + 1).padStart(2, '0');
         const gd = String(gDateObj.getDate()).padStart(2, '0');
@@ -744,12 +770,10 @@ const APP = (function() {
         if(window.dpTarget === 'date') {
             document.getElementById('date').value = pDateStr;
         } else if (window.dpTarget === 'dueDate') {
-            // اینجا دقیقاً همان کاری را میکند که در بکاپ سالم بود
-            document.getElementById('dueDateDisplay').value = pDateStr; // نمایش فارسی
-            document.getElementById('dueDate').value = gDateIso;       // ذخیره میلادی برای سیستم
+            document.getElementById('dueDateDisplay').value = pDateStr;  // ✅ این خط اضافه شد
+            document.getElementById('dueDate').value = gDateIso;
         } else if (window.dpTarget === 'settleDate') {
-             // اضافه شده برای اینکه تسویه هم کار کند
-             document.getElementById('settleDate').value = pDateStr;
+            document.getElementById('settleDate').value = pDateStr;
         }
         window.closeCal();
     }
