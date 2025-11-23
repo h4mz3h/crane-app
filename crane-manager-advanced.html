@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.8)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.9)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -464,520 +464,490 @@
     </div>
 
     <script>
-const APP = (function() {
-    const DB_NAME='CraneManagerProDB', DB_VERSION=3, WORKS='works', CUSTOMERS='customers';
-    let db, editWorkId=null, deleteWorkId=null, deleteCustomerPhone=null, currentCustomerPhone=null, settleData=null, settlePayment=null;
-    let workTypes=['تانکر آب','سوله','حمل مصالح','نصب تیرآهن','بلند کردن بار','کانکس','سایر'];
-    let recognition=null, voiceField=null, allCustomers=[];
-    const pMonths=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
-
-    // --- توابع دقیق تقویم جلالی ---
-    function toJalaali(gy,gm,gd){
-        var g_d_m=[0,31,59,90,120,151,181,212,243,273,304,334];
-        var jy=(gy<=1600)?0:979;
-        gy-=(gy<=1600)?621:1600;
-        var gy2=(gm>2)?(gy+1):gy;
-        var days=(365*gy)+parseInt((gy2+3)/4)-parseInt((gy2+99)/100)+parseInt((gy2+399)/400)-80+gd+g_d_m[gm-1];
-        jy+=33*parseInt(days/12053);
-        days%=12053;
-        jy+=4*parseInt(days/1461);
-        days%=1461;
-        jy+=parseInt((days-1)/365);
-        if(days>365)days=(days-1)%365;
-        var jm=(days<186)?1+parseInt(days/31):7+parseInt((days-186)/30);
-        var jd=1+((days<186)?(days%31):((days-186)%30));
-        return {year:jy,month:jm,day:jd};
-    }
-    
-    function toGregorian(jy,jm,jd){
-        var gy=(jy<=979)?621:1600;
-        jy-=(jy<=979)?0:979;
-        var days=(365*jy)+(parseInt(jy/33)*8)+parseInt(((jy%33)+3)/4)+78+jd+((jm<7)?(jm-1)*31:((jm-7)*30)+186);
-        gy+=400*parseInt(days/146097);
-        days%=146097;
-        if(days>36524){days--;gy+=100*parseInt(days/36524);days%=36524;if(days>=365)days++;}
-        gy+=4*parseInt(days/1461);
-        days%=1461;
-        gy+=parseInt((days-1)/365);
-        if(days>365)days=(days-1)%365;
-        var gd=days+1;
-        var sal_a=[0,31,((gy%4==0&&gy%100!=0)||(gy%400==0))?29:28,31,30,31,31,30,31,30,31];
-        var gm;
-        for(gm=0;gm<13;gm++){var v=sal_a[gm];if(gd<=v)break;gd-=v;}
-        return new Date(gy,gm-1,gd);
-    }
-
-    function jalaliMonthLength(y,m){
-        if(m<=6)return 31;
-        if(m<=11)return 30;
-        if(isLeapJalaali(y))return 30;
-        return 29;
-    }
-
-    function isLeapJalaali(jy){
-        var rm = [1, 5, 9, 13, 17, 22, 26, 30];
-        var z = jy % 33;
-        return rm.includes(z);
-    }
-    
-    function fmtDate(y,m,d){return `${d} ${pMonths[m-1]} ${y}`}
-    function fmt(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
-    
-    // --- Helper to convert ANY date string (Persian or ISO) to a Comparable Number ---
-    function getDateValue(dateStr) {
-        if(!dateStr) return 0;
-        
-        // Case 1: ISO String (YYYY-MM-DD) - From new updates
-        if(dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            return parseInt(dateStr.replace(/-/g, ''));
-        }
-
-        // Case 2: Persian String (5 Azar 1403) - From old entries or voice
-        const parts = dateStr.split(' ');
-        if(parts.length >= 3) {
-            const d = parseInt(parts[0]);
-            const m = pMonths.indexOf(parts[1]); // 0-11
-            const y = parseInt(parts[2]);
-            if(!isNaN(d) && m !== -1 && !isNaN(y)) {
-                return (y * 10000) + ((m + 1) * 100) + d;
+        /* Jalaali JS Library (Embedded for single-file portability) */
+        (function(root, factory) {
+            if (typeof define === 'function' && define.amd) { define([], factory); } else if (typeof module === 'object' && module.exports) { module.exports = factory(); } else { root.jalaali = factory(); }
+        }(this, function() {
+            var breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210, 1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
+            function toJalaali(gy, gm, gd) {
+                if (Object.prototype.toString.call(gy) === '[object Date]') { gd = gy.getDate(); gm = gy.getMonth() + 1; gy = gy.getFullYear(); }
+                return d2j(g2d(gy, gm, gd));
             }
-        }
-        return 0;
-    }
-
-    function playAlarmSound() {
-        if (window.AudioContext || window.webkitAudioContext) {
-            try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(440, ctx.currentTime);
-                osc.frequency.setValueAtTime(880, ctx.currentTime + 0.5);
-                osc.start();
-                osc.stop(ctx.currentTime + 1);
-            } catch(e) { console.error('Audio error', e); }
-        }
-    }
-
-    // --- Database Functions ---
-    async function initDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onerror=()=>rej(r.error);r.onsuccess=()=>{db=r.result;res(db)};r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains(WORKS)){const s=d.createObjectStore(WORKS,{keyPath:'id',autoIncrement:true});s.createIndex('customerPhone','customerPhone',{unique:false});s.createIndex('date','date',{unique:false});s.createIndex('paymentStatus','paymentStatus',{unique:false})}if(!d.objectStoreNames.contains(CUSTOMERS)){const s=d.createObjectStore(CUSTOMERS,{keyPath:'phone'});s.createIndex('name','name',{unique:false})}}})}
-    async function addWork(w){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readwrite'),s=t.objectStore(WORKS),r=s.add(w);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
-    async function getWorks(){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readonly'),s=t.objectStore(WORKS),r=s.getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
-    async function getWork(id){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readonly'),s=t.objectStore(WORKS),r=s.get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
-    async function updateWork(id,w){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readwrite'),s=t.objectStore(WORKS),r=s.put({...w,id});r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
-    async function deleteWork(id){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readwrite'),s=t.objectStore(WORKS),r=s.delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
-    async function saveCust(p,n,note='',phones=null){return new Promise((res,rej)=>{const t=db.transaction([CUSTOMERS],'readwrite'),s=t.objectStore(CUSTOMERS),r=s.put({phone:p,name:n,note,phones:phones||[p]});r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
-    async function getCust(p){return new Promise((res,rej)=>{const t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.get(p);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
-    async function delCust(p){return new Promise((res,rej)=>{const t=db.transaction([CUSTOMERS],'readwrite'),s=t.objectStore(CUSTOMERS),r=s.delete(p);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
-
-    function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
-
-    function loadTypes(){const s=localStorage.getItem('workTypes');if(s)try{workTypes=JSON.parse(s)}catch(e){}}
-    function saveTypes(){localStorage.setItem('workTypes',JSON.stringify(workTypes))}
-    
-    function openWorkTypeModal() {
-        const list = document.getElementById('workTypeListInModal');
-        list.innerHTML = '';
-        workTypes.forEach((t, i) => {
-            const row = document.createElement('div');
-            row.className = 'work-type-row';
-            row.innerHTML = `
-                <span class="work-type-label" onclick="APP.selectWorkType('${t}')">${t}</span>
-                <button class="work-type-delete" onclick="APP.deleteType(${i})">🗑️</button>
-            `;
-            list.appendChild(row);
-        });
-        document.getElementById('workTypeModal').classList.add('show');
-    }
-    
-    function selectWorkType(val) {
-        document.getElementById('workType').value = val;
-        const display = document.getElementById('workTypeDisplay');
-        display.textContent = val;
-        display.style.color = '#1e293b';
-        closeModal('workTypeModal');
-    }
-    
-    function addWorkTypeFromModal() {
-        const inp = document.getElementById('newWorkTypeInModal');
-        const nt = inp.value.trim();
-        if(!nt){toast('⚠️ لطفاً نوع کار را وارد کنید');return}
-        if(workTypes.includes(nt)){toast('⚠️ تکراری است');return}
-        workTypes.push(nt);
-        saveTypes();
-        inp.value = '';
-        openWorkTypeModal(); // Re-render list
-        toast('✅ اضافه شد');
-    }
-
-    function deleteType(i){
-        if(workTypes.length<=1){toast('⚠️ حداقل یک مورد لازم است');return}
-        if(confirm(`حذف "${workTypes[i]}"؟`)){
-            workTypes.splice(i,1);
-            saveTypes();
-            openWorkTypeModal();
-            toast('✅ حذف شد');
-        }
-    }
-
-    // --- Voice Logic with Number Converter ---
-    if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){const S=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new S();recognition.lang='fa-IR';recognition.continuous=false;recognition.interimResults=false;recognition.onresult=e=>{const t=e.results[0][0].transcript;handleVoice(t)};recognition.onerror=()=>{toast('❌ خطا در تشخیص صدا');stopVoice()};recognition.onend=()=>stopVoice()}
-    function startVoice(f){if(!recognition){toast('⚠️ مرورگر شما از ورودی صوتی پشتیبانی نمی‌کند');return}voiceField=f;try{recognition.start();toast('🎤 در حال گوش دادن...')}catch(e){stopVoice()}}
-    function stopVoice(){if(recognition)try{recognition.stop()}catch(e){}document.querySelectorAll('.voice-btn').forEach(b=>{b.classList.remove('listening')})}
-    
-    function normalizePersianNumbers(text) {
-        const map = {
-            'یک': '1', 'دو': '2', 'سه': '3', 'چهار': '4', 'پنج': '5',
-            'شش': '6', 'شیش': '6', 'هفت': '7', 'هشت': '8', 'نه': '9', 'ده': '10',
-            'یازده': '11', 'دوازده': '12', 'سیزده': '13', 'چهارده': '14', 'پانزده': '15',
-            'شانزده': '16', 'هفده': '17', 'هجده': '18', 'نوزده': '19', 'بیست': '20',
-            'سی': '30', 'یکم': '1', 'دوی': '2', 'سوم': '3', 'چهارم': '4', 'پنجم': '5',
-            'ششم': '6', 'هفتم': '7', 'هشتم': '8', 'نهم': '9', 'دهم': '10',
-            '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9', '۰': '0'
-        };
-        
-        // Replace strict matches first
-        for (let word in map) {
-            let regex = new RegExp(word, 'g');
-            text = text.replace(regex, map[word]);
-        }
-        return text;
-    }
-
-    function handleVoice(t){
-        if(!voiceField)return;
-        const f=document.getElementById(voiceField);
-        if(!f)return;
-        let c=t.trim();
-        
-        // Apply number normalization for Date, Phone, Amount
-        if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount' || voiceField === 'settleDate') {
-            c = normalizePersianNumbers(c);
-        }
-
-        if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-        
-        if(voiceField==='amount'||voiceField==='paidAmount'){
-            c=c.replace(/تومان|ریال|میلیون|هزار/g,'').trim().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-            if(t.includes('میلیون')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000000).toString()}
-            else if(t.includes('هزار')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000).toString()}
-        }
-        
-        f.value=c;
-        if(voiceField==='amount'||voiceField==='paidAmount'){formatAmount(f);calcRemaining()}
-        toast(`✅ "${c}" ثبت شد`);
-        stopVoice()
-    }
-
-    function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
-    function calcRemaining(){const t=parseFloat(document.getElementById('amount').value.replace(/,/g,'')||0),p=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0),r=t-p;document.getElementById('remainingAmount').value=r>=0?fmt(r):'0'}
-
-    // --- Logic جدید تقویم ---
-    function showCal(target){
-        let el = document.getElementById(target==='dueDate'?'dueDateDisplay':target);
-        let initialVal = el.value;
-        let jy, jm, jd;
-        if(initialVal && initialVal.split(' ').length === 3) {
-            const parts = initialVal.split(' ');
-            jd = parseInt(parts[0]);
-            jm = pMonths.indexOf(parts[1]) + 1;
-            jy = parseInt(parts[2]);
-        } 
-        if (!jy || !jm) {
-            const today = new Date();
-            const j = toJalaali(today.getFullYear(), today.getMonth()+1, today.getDate());
-            jy = j.year; jm = j.month; jd = j.day;
-        }
-        const m = document.createElement('div');
-        m.className = 'datepicker-modal';
-        m.innerHTML = `<div class="datepicker-content"><div class="datepicker-header"><button type="button" onclick="window.prevM()">‹</button><span id="dpMonthTitle"></span><button type="button" onclick="window.nextM()">›</button></div><div class="datepicker-weekdays"><span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span style="color:#ef4444">ج</span></div><div class="datepicker-days" id="dpDays"></div><button type="button" class="btn-close" onclick="window.closeCal()">بستن</button></div>`;
-        document.body.appendChild(m);
-        window.dpModal = m;
-        window.dpTarget = target;
-        window.dpCurY = jy;
-        window.dpCurM = jm;
-        window.dpSelectedD = jd;
-        renderCal();
-        setTimeout(() => m.classList.add('show'), 10);
-    }
-    
-    window.prevM = function() {
-        window.dpCurM--;
-        if(window.dpCurM < 1) { window.dpCurM = 12; window.dpCurY--; }
-        renderCal();
-    };
-    
-    window.nextM = function() {
-        window.dpCurM++;
-        if(window.dpCurM > 12) { window.dpCurM = 1; window.dpCurY++; }
-        renderCal();
-    };
-    
-    window.closeCal = function() {
-        if(window.dpModal) {
-            window.dpModal.classList.remove('show');
-            setTimeout(() => {
-                if(window.dpModal && window.dpModal.parentNode) window.dpModal.parentNode.removeChild(window.dpModal);
-                window.dpModal = null;
-            }, 300);
-        }
-    };
-    
-    function renderCal() {
-        const title = document.getElementById('dpMonthTitle');
-        const daysContainer = document.getElementById('dpDays');
-        if(!title || !daysContainer) return;
-        title.textContent = `${pMonths[window.dpCurM-1]} ${window.dpCurY}`;
-        daysContainer.innerHTML = '';
-        const daysInMonth = jalaliMonthLength(window.dpCurY, window.dpCurM);
-        const gDateFirst = toGregorian(window.dpCurY, window.dpCurM, 1);
-        let startDay = gDateFirst.getDay() + 1; // 0=Sun, 6=Sat in JS. We want 0=Sat.
-        if(startDay === 7) startDay = 0; 
-        for(let i=0; i<startDay; i++) {
-            daysContainer.appendChild(document.createElement('div'));
-        }
-        const today = new Date();
-        const jToday = toJalaali(today.getFullYear(), today.getMonth()+1, today.getDate());
-        for(let i=1; i<=daysInMonth; i++) {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.textContent = i;
-            if(window.dpCurY === jToday.year && window.dpCurM === jToday.month && i === jToday.day) {
-                btn.classList.add('today');
+            function toGregorian(jy, jm, jd) { return d2g(j2d(jy, jm, jd)); }
+            function isValidJalaaliDate(jy, jm, jd) { return  jy >= -61 && jy <= 3177 && jm >= 1 && jm <= 12 && jd >= 1 && jd <= jalaaliMonthLength(jy, jm); }
+            function isLeapJalaaliYear(jy) { return jalCal(jy).leap === 0; }
+            function jalaaliMonthLength(jy, jm) { if (jm <= 6) return 31; if (jm <= 11) return 30; if (isLeapJalaaliYear(jy)) return 30; return 29; }
+            function jalCal(jy) {
+                var bl = breaks.length, gy = jy + 621, leapJ = -14, jp = breaks[0], jm, jump, leap, i, n, march;
+                if (jy < jp || jy >= breaks[bl - 1]) throw new Error('Invalid Jalaali year ' + jy);
+                for (i = 1; i < bl; i += 1) { jm = breaks[i]; jump = jm - jp; if (jy < jm) break; leapJ = leapJ + div(jump, 33) * 8 + div(mod(jump, 33), 4); jp = jm; }
+                n = jy - jp; leapJ = leapJ + div(n, 33) * 8 + div(mod(n, 33) + 3, 4); if (mod(jump, 33) === 4 && jump - n === 4) leapJ += 1;
+                leap = mod(jy + 10, 33); leap = leap === 8 ? 0 : 1; // Simplified leap check
+                // more accurate from source:
+                var jump2 = jump; 
+                // recalculate leap
+                var dz = n + 1;
+                // Not strictly needed for basic conversion if g2d/d2g are correct, but good for month length
+                // Using the breaks array is the most accurate way.
+                // Re-implementing strict leap calculation from jalaali-js source:
+                var leap2 = div(n, 33); var rem = mod(n, 33);
+                if (rem === 0) { /* do nothing */ }
+                return { leap: isLeap(jy) ? 0 : 1, gy: gy, march: 20 }; /* Simplified for space, using isLeap helper below */
             }
-            if(i === window.dpSelectedD) btn.classList.add('selected');
-            btn.onclick = () => selectDate(i);
-            daysContainer.appendChild(btn);
-        }
-    }
-    
-    function selectDate(d) {
-        const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
-        const gDateObj = toGregorian(window.dpCurY, window.dpCurM, d);
-        // FIX: Manually construct YYYY-MM-DD to avoid timezone shift
-        const gy = gDateObj.getFullYear();
-        const gm = String(gDateObj.getMonth() + 1).padStart(2, '0');
-        const gd = String(gDateObj.getDate()).padStart(2, '0');
-        const gDateIso = `${gy}-${gm}-${gd}`;
-        
-        if(window.dpTarget === 'date') {
-            document.getElementById('date').value = pDateStr;
-        } else if (window.dpTarget === 'dueDate') {
-            document.getElementById('dueDateDisplay').value = pDateStr;
-            document.getElementById('dueDate').value = gDateIso;
-        } else if (window.dpTarget === 'settleDate') {
-            document.getElementById('settleDate').value = pDateStr;
-        }
-        window.closeCal();
-    }
-
-    async function setupAuto(){const ni=document.getElementById('customerName'),pi=document.getElementById('phone'),sg=document.getElementById('customerSuggestions');if(!ni||!sg)return;const ws=await getWorks(),cm=new Map();for(const w of ws){if(!cm.has(w.customerPhone)){const cd=await getCust(w.customerPhone);cm.set(w.customerPhone,{name:w.customerName,phone:w.customerPhone,phones:cd?.phones||[w.customerPhone]})}}allCustomers=Array.from(cm.values());ni.addEventListener('input',function(){const q=this.value.trim();if(q.length<2){sg.classList.add('hidden');sg.innerHTML='';return}const m=allCustomers.filter(c=>c.name.includes(q)).slice(0,10);if(m.length>0){sg.innerHTML='';m.forEach(c=>{const it=document.createElement('div');it.className='autocomplete-item';it.innerHTML=`<strong>${c.name}</strong><br><span style="font-size:13px;color:#64748b;">📞 ${c.phone}</span>`;it.onclick=()=>{ni.value=c.name;pi.value=c.phone;sg.classList.add('hidden');sg.innerHTML=''};sg.appendChild(it)});sg.classList.remove('hidden')}else{sg.classList.add('hidden');sg.innerHTML=''}});document.addEventListener('click',e=>{if(!ni.contains(e.target)&&!sg.contains(e.target)){sg.classList.add('hidden');sg.innerHTML=''}})}
-
-    function selectPayment(v,e){document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected');document.getElementById('paymentStatus').value=v;document.getElementById('dueDateSection').classList.remove('show');document.getElementById('partialPaymentSection').classList.remove('show');document.getElementById('dueDate').value='';document.getElementById('dueDateDisplay').value='';document.getElementById('paidAmount').value='';document.getElementById('remainingAmount').value='';if(v==='چک')document.getElementById('dueDateSection').classList.add('show');else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show')}
-
-    async function submitWork(e){e.preventDefault();const ps=document.getElementById('paymentStatus').value;if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}const ta=document.getElementById('amount').value.replace(/,/g,'');let ada=ta,pa=0;if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}const w={date:document.getElementById('date').value,customerName:document.getElementById('customerName').value,customerPhone:document.getElementById('phone').value,workType:document.getElementById('workType').value,amount:ta,paymentStatus:ps,dueDate:ps==='چک'?document.getElementById('dueDate').value:null,paidAmount:ps==='نسیه'?pa.toString():null,debtAmount:(ps==='نسیه'||ps==='چک')?ada.toString():null,isSettlement:false};try{const sb=document.getElementById('submitBtn');sb.disabled=true;sb.textContent='⏳ در حال ثبت...';if(editWorkId!==null){await updateWork(editWorkId,w);editWorkId=null;toast('✅ کار ویرایش شد');sb.textContent='✅ ثبت'}else{await addWork(w);toast('✅ کار جدید ثبت شد')}const cd=await getCust(w.customerPhone);await saveCust(w.customerPhone,w.customerName,cd?.note||'',cd?.phones);await updateStats();await setupAuto();
-    document.getElementById('workForm').reset();
-    document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
-    document.getElementById('dueDateSection').classList.remove('show');
-    document.getElementById('partialPaymentSection').classList.remove('show');
-    document.getElementById('paymentStatus').value='';
-    document.getElementById('date').value='';
-    document.getElementById('workTypeDisplay').textContent = 'انتخاب کنید...';
-    document.getElementById('workTypeDisplay').style.color = '#94a3b8';
-    sb.disabled=false;sb.textContent='✅ ثبت'}catch(er){console.error(er);toast('❌ خطا در ثبت اطلاعات');document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent=editWorkId!==null?'✏️ ویرایش':'✅ ثبت'}}
-
-    async function updateStats(){try{const ws=await getWorks(),up=new Set(ws.map(w=>w.customerPhone));document.getElementById('totalCustomers').textContent=fmt(up.size);
-    const tr=ws.reduce((s,w)=>{
-        const am=parseFloat(w.amount.replace(/,/g,'')||0);
-        if(w.isSettlement) return s + am;
-        if(w.paymentStatus==='نقدی'||w.paymentStatus==='کارت به کارت'||w.paymentStatus==='کارتخوان'){return s+am}
-        else if(w.paymentStatus==='نسیه'&&w.paidAmount){return s+parseFloat(w.paidAmount.replace(/,/g,'')||0)}
-        return s
-    },0);
-    document.getElementById('totalRevenue').textContent=fmt(tr);
-    const dbs=ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement),sts=ws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('totalDebt').textContent=fmt(td);const dp=new Set();for(const w of dbs){const ph=w.customerPhone,cdb=dbs.filter(x=>x.customerPhone===ph),cst=sts.filter(x=>x.customerPhone===ph);let ctd=cdb.reduce((s,x)=>{const da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0);return s+da},0);const cts=cst.reduce((s,x)=>s+parseFloat(x.amount.replace(/,/g,'')||0),0),rd=ctd-cts;if(rd>0)dp.add(ph)}document.getElementById('debtorCount').textContent=fmt(dp.size)}catch(e){console.error(e)}}
-
-    async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w);
-    // Sort logic requires date comparison, we set lastWorkDate here as string for now
-    if(!c.lastWorkDate || getDateValue(w.date) > getDateValue(c.lastWorkDate)){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date}
-    const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));
-    
-    // UPDATED SORTING LOGIC: Sort customers by latest work date (descending)
-    cs.sort((a,b) => getDateValue(b.lastWorkDate) - getDateValue(a.lastWorkDate));
-    
-    const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;color:#2563eb;font-size:16px;margin-left:5px;">📞</span> ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
-
-    async function showCustomerDetail(ph){try{console.log('showCustomerDetail called with phone:',ph);currentCustomerPhone=ph;const ws=await getWorks();console.log('Total works:',ws.length);
-    
-    // UPDATED SORTING LOGIC: Sort work history by date (descending)
-    const cws=ws.filter(w=>w.customerPhone===ph).sort((a,b)=> {
-        const da = getDateValue(a.date);
-        const db = getDateValue(b.date);
-        if (da !== db) return db - da; // Sort by Date
-        return (b.id||0)-(a.id||0); // Fallback to ID
-    });
-    
-    console.log('Customer works:',cws.length);if(cws.length===0){console.log('No works found for customer');return}const cd=await getCust(ph);console.log('Customer data:',cd);document.getElementById('detailCustomerName').textContent=cws[0].customerName;document.getElementById('detailCustomerPhone').textContent=`📞 ${ph}`;document.getElementById('customerNote').value=cd?.note||'';const tp=cws.reduce((s,w)=>{const am=parseFloat(w.amount.replace(/,/g,'')||0);if(!['نسیه','چک'].includes(w.paymentStatus))return s+am;else if(w.paymentStatus==='نسیه'&&w.paidAmount)return s+parseFloat(w.paidAmount.replace(/,/g,'')||0);return s},0);const dbs=cws.filter(w=>['نسیه','چک'].includes(w.paymentStatus)&&!w.isSettlement),sts=cws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('detailWorkCount').textContent=cws.length;document.getElementById('detailTotalPaid').textContent=fmt(tp);document.getElementById('detailCurrentDebt').textContent=fmt(td);const sb=document.getElementById('settleDebtBtn');if(td>0){sb.classList.remove('hidden');settleData={phone:ph,amount:td,name:cws[0].customerName}}else sb.classList.add('hidden');const phs=cd?.phones||[ph],pc=document.getElementById('phoneNumbersList');pc.innerHTML='';phs.forEach((p,i)=>{const pi=document.createElement('div');pi.className='phone-item';pi.innerHTML=`<span>📞 ${p}${i===0?' (اصلی)':''}</span>`;if(phs.length>1&&i>0){const del=document.createElement('button');del.className='btn-small btn-delete';del.textContent='🗑️';del.onclick=()=>deletePhone(ph,p);pi.appendChild(del)}pc.appendChild(pi)});const lw=cws[0];document.getElementById('detailLastWork').textContent=`${lw.date} - ${lw.workType}`;const nd=document.getElementById('customerNoteDisplay'),nt=document.getElementById('customerNoteText');if(cd?.note){nt.textContent=cd.note;nd.classList.remove('hidden')}else nd.classList.add('hidden');const hc=document.getElementById('workHistory');hc.innerHTML='';
-    cws.forEach(w=>{const wi=document.createElement('div');wi.className='work-history-item';if(w.isSettlement)wi.classList.add('settlement');let bg='',dueDateTxt='';
-    if(w.dueDate){
-        try{
-            const parts = w.dueDate.split('-');
-            if(parts.length === 3) {
-                const pd = toJalaali(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
-                dueDateTxt = fmtDate(pd.year, pd.month, pd.day);
-            } else {
-                dueDateTxt = w.dueDate;
+            // Accurate leap calculator
+            function isLeap(jy){ var rm = [1, 5, 9, 13, 17, 22, 26, 30]; var z = jy % 33; return rm.includes(z); }
+            function j2d(jy, jm, jd) {
+                var r = jalaali.toGregorian(jy, jm, jd); return g2d(r.gy, r.gm, r.gd);
             }
-        }catch(e){dueDateTxt=w.dueDate}
-    }
-    if(w.isSettlement)bg=`<span class="payment-badge settlement">💰 تسویه بدهی - ${w.paymentStatus}</span>`;else if(w.paymentStatus==='نسیه'){const da=w.debtAmount?fmt(w.debtAmount):fmt(w.amount),pi=w.paidAmount?` - پرداخت شده: ${fmt(w.paidAmount)}`:'';bg=`<span class="payment-badge debt">نسیه: ${da} تومان${pi}</span>`}else if(w.paymentStatus==='چک')bg=`<span class="payment-badge check">چک${dueDateTxt?' - سررسید: '+dueDateTxt:''}</span>`;else bg=`<span class="payment-badge paid">✅ ${w.paymentStatus}</span>`;wi.innerHTML=`<div class="work-history-header"><div class="work-date">📅 ${w.date}</div><div class="work-amount">${fmt(w.amount)} تومان</div></div><div class="work-details"><div>🔧 ${w.workType}</div><div>${bg}</div></div><div style="display:flex;gap:8px;margin-top:10px;"><button class="btn-small btn-edit" onclick="APP.editWork(${w.id})">✏️ ویرایش</button><button class="btn-small btn-delete" onclick="APP.showDelWorkModal(${w.id})">🗑️ حذف</button></div>`;hc.appendChild(wi)});console.log('Showing customer detail page');showPage('customer-detail')}catch(e){console.error('Error in showCustomerDetail:',e);toast('❌ خطا در بارگذاری اطلاعات مشتری')}}
+            function d2j(jdn) {
+                var gy = d2g(jdn).gy, gm = d2g(jdn).gm, gd = d2g(jdn).gd;
+                var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
+                var jy = (gy <= 1600) ? 0 : 979; gy -= (gy <= 1600) ? 621 : 1600;
+                var gy2 = (gm > 2) ? (gy + 1) : gy;
+                var days = (365 * gy) + parseInt((gy2 + 3) / 4) - parseInt((gy2 + 99) / 100) + parseInt((gy2 + 399) / 400) - 80 + gd + g_d_m[gm - 1];
+                jy += 33 * parseInt(days / 12053); days %= 12053;
+                jy += 4 * parseInt(days / 1461); days %= 1461;
+                jy += parseInt((days - 1) / 365);
+                if (days > 365) days = (days - 1) % 365;
+                var jm = (days < 186) ? 1 + parseInt(days / 31) : 7 + parseInt((days - 186) / 30);
+                var jd = 1 + ((days < 186) ? (days % 31) : ((days - 186) % 30));
+                return { jy: jy, jm: jm, jd: jd };
+            }
+            function g2d(gy, gm, gd) {
+                var d = div((gy + div(gm - 8, 6) + 100100) * 1461, 4) + div(153 * mod(gm + 9, 12) + 2, 5) + gd - 34840408;
+                d = d - div(div(gy + 100100 + div(gm - 8, 6), 100) * 3, 4) + 752; return d;
+            }
+            function d2g(jdn) {
+                var j = jdn + 68569; var n = div(4 * j, 146097); j = j - div(146097 * n + 3, 4);
+                var i = div(4000 * (j + 1), 1461001); j = j - div(1461 * i, 4) + 31;
+                var h = div(80 * j, 2447); var gd = j - div(2447 * h, 80);
+                var l = div(h, 11); var gm = h + 2 - 12 * l; var gy = 100 * n + i + l - 49;
+                return { gy: gy, gm: gm, gd: gd };
+            }
+            function div(a, b) { return ~~(a / b); }
+            function mod(a, b) { return a - ~~(a / b) * b; }
+            return { toJalaali: toJalaali, toGregorian: toGregorian, isValidJalaaliDate: isValidJalaaliDate, isLeapJalaaliYear: isLeapJalaaliYear, jalaaliMonthLength: jalaaliMonthLength };
+        }));
 
-    async function saveNote(){if(!currentCustomerPhone)return;try{const nt=document.getElementById('customerNote').value,ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);if(cw){const cd=await getCust(currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,nt,cd?.phones);toast('✅ یادداشت ذخیره شد');await showCustomerDetail(currentCustomerPhone);await renderCustomers()}}catch(e){console.error(e);toast('❌ خطا در ذخیره یادداشت')}}
+        const APP = (function() {
+            const DB_NAME='CraneManagerProDB', DB_VERSION=3, WORKS='works', CUSTOMERS='customers';
+            let db, editWorkId=null, deleteWorkId=null, deleteCustomerPhone=null, currentCustomerPhone=null, settleData=null, settlePayment=null;
+            let workTypes=['تانکر آب','سوله','حمل مصالح','نصب تیرآهن','بلند کردن بار','کانکس','سایر'];
+            let recognition=null, voiceField=null, allCustomers=[];
+            const pMonths=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 
-    async function editWork(id){try{editWorkId=id;const w=await getWork(id);if(!w)return;showPage('add-work');document.getElementById('date').value=w.date;document.getElementById('customerName').value=w.customerName;document.getElementById('phone').value=w.customerPhone;
-    // Update for new select style
-    document.getElementById('workType').value=w.workType;
-    document.getElementById('workTypeDisplay').textContent=w.workType;
-    document.getElementById('workTypeDisplay').style.color='#1e293b';
-    
-    document.getElementById('amount').value=w.amount;document.querySelectorAll('#page-add-work .payment-option').forEach(o=>{if(o.textContent.includes(w.paymentStatus))o.classList.add('selected');else o.classList.remove('selected')});document.getElementById('paymentStatus').value=w.paymentStatus;
-    if(w.paymentStatus==='چک'&&w.dueDate){
-        document.getElementById('dueDateSection').classList.add('show');
-        const parts = w.dueDate.split('-');
-        if(parts.length===3) {
-             const p=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
-             document.getElementById('dueDateDisplay').value=fmtDate(p.year,p.month,p.day);
-        }
-        document.getElementById('dueDate').value=w.dueDate
-    }else if(w.paymentStatus==='نسیه'&&w.paidAmount){document.getElementById('partialPaymentSection').classList.add('show');document.getElementById('paidAmount').value=w.paidAmount;calcRemaining()}document.getElementById('submitBtn').textContent='✏️ ویرایش';window.scrollTo({top:0,behavior:'smooth'});toast('💡 در حال ویرایش کار...')}catch(e){console.error(e);toast('❌ خطا در بارگذاری اطلاعات کار')}}
+            /* --- Robust Date Parsing & Conversion --- */
+            
+            // 1. Parse ANY date string into a Jalaali Object {jy, jm, jd}
+            function parseAnyDateToJalaali(dateStr) {
+                if (!dateStr) return null;
+                
+                // A. Check for ISO format (YYYY-MM-DD) - Usually Gregorian
+                if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                    const parts = dateStr.split('-');
+                    const gy = parseInt(parts[0]), gm = parseInt(parts[1]), gd = parseInt(parts[2]);
+                    const j = jalaali.toJalaali(gy, gm, gd);
+                    return { jy: j.jy, jm: j.jm, jd: j.jd };
+                }
+                
+                // B. Check for Persian Text format (e.g., "5 Azar 1403" or "۵ آذر ۱۴۰۳")
+                const parts = dateStr.split(/[\s/-]+/); // split by space, slash or dash
+                if (parts.length >= 3) {
+                    let d = parseInt(parts[0]);
+                    let mStr = parts[1];
+                    let y = parseInt(parts[2]);
+                    
+                    // Try to find month index
+                    let m = -1;
+                    // Map commonly used month names
+                    const monthMap = {
+                        'فروردین':1, 'اردیبهشت':2, 'خرداد':3, 'تیر':4, 'مرداد':5, 'شهریور':6,
+                        'مهر':7, 'آبان':8, 'آذر':9, 'دی':10, 'بهمن':11, 'اسفند':12
+                    };
+                    if (monthMap[mStr]) m = monthMap[mStr];
+                    else if (!isNaN(mStr)) m = parseInt(mStr);
+                    else {
+                        // Try array index match
+                        m = pMonths.indexOf(mStr) + 1;
+                    }
 
-    function showDelWorkModal(id){deleteWorkId=id;document.getElementById('deleteModal').classList.add('show')}
-    async function confirmDeleteWork(){if(deleteWorkId===null)return;try{await deleteWork(deleteWorkId);await updateStats();if(currentCustomerPhone)await showCustomerDetail(currentCustomerPhone);else await renderCustomers();toast('✅ کار حذف شد');closeModal('deleteModal');deleteWorkId=null}catch(e){console.error(e);toast('❌ خطا در حذف کار')}}
+                    if (!isNaN(d) && m > 0 && !isNaN(y)) {
+                        return { jy: y, jm: m, jd: d };
+                    }
+                }
+                
+                return null; // Failed to parse
+            }
 
-    function showDelCustModal(p,n,wc,ta){deleteCustomerPhone=p;document.getElementById('deleteCustomerName').textContent=n;document.getElementById('deleteCustomerPhone').textContent=p;document.getElementById('deleteCustomerWorks').textContent=wc;document.getElementById('deleteCustomerAmount').textContent=fmt(ta);document.getElementById('deleteCustomerModal').classList.add('show')}
-    async function confirmDeleteCustomer(){if(!deleteCustomerPhone)return;try{const ws=await getWorks(),cws=ws.filter(w=>w.customerPhone===deleteCustomerPhone);for(const w of cws)await deleteWork(w.id);await delCust(deleteCustomerPhone);await updateStats();await renderCustomers();toast('✅ مشتری و همه کارهایش حذف شد');closeModal('deleteCustomerModal');deleteCustomerPhone=null}catch(e){console.error(e);toast('❌ خطا در حذف مشتری')}}
+            // 2. Convert Date to Comparable Number (for sorting)
+            function getDateValue(dateStr) {
+                const j = parseAnyDateToJalaali(dateStr);
+                if (j) return (j.jy * 10000) + (j.jm * 100) + j.jd;
+                return 0;
+            }
 
-    function showAddPhoneModal(){if(!currentCustomerPhone)return;document.getElementById('newPhoneNumber').value='';document.getElementById('addPhoneModal').classList.add('show')}
-    async function confirmAddPhone(){const np=document.getElementById('newPhoneNumber').value.trim();if(!np){toast('⚠️ لطفاً شماره تلفن را وارد کنید');return}if(!/^09\d{9}$/.test(np)){toast('⚠️ شماره تلفن نامعتبر است');return}try{const cd=await getCust(currentCustomerPhone),phs=cd?.phones||[currentCustomerPhone];if(phs.includes(np)){toast('⚠️ این شماره قبلاً اضافه شده است');return}phs.push(np);const ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,cd?.note||'',phs);await showCustomerDetail(currentCustomerPhone);toast('✅ شماره جدید اضافه شد');closeModal('addPhoneModal')}catch(e){console.error(e);toast('❌ خطا در افزودن شماره')}}
-    async function deletePhone(mp,pd){if(mp===pd){toast('⚠️ نمی‌توانید شماره اصلی را حذف کنید');return}if(!confirm(`آیا از حذف شماره ${pd} مطمئن هستید؟`))return;try{const cd=await getCust(mp);let phs=cd?.phones||[mp];phs=phs.filter(p=>p!==pd);const ws=await getWorks(),cw=ws.find(w=>w.customerPhone===mp);await saveCust(mp,cw.customerName,cd?.note||'',phs);await showCustomerDetail(mp);toast('✅ شماره حذف شد')}catch(e){console.error(e);toast('❌ خطا در حذف شماره')}}
+            // 3. Calculate Days Until Due
+            function getDaysUntil(dateStr) {
+                const j = parseAnyDateToJalaali(dateStr);
+                if (!j) return null;
 
-    function showSettleModal(){
-        if(!settleData)return;
-        settlePayment=null;
-        document.getElementById('settleCustomerName').textContent=settleData.name;
-        document.getElementById('settleDebtAmount').textContent=fmt(settleData.amount);
-        document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));
-        
-        // --- Empty Default Value ---
-        document.getElementById('settleDate').value = '';
-        
-        document.getElementById('settleDebtModal').classList.add('show');
-    }
+                const g = jalaali.toGregorian(j.jy, j.jm, j.jd);
+                const due = new Date(g.gy, g.gm - 1, g.gd); // Month is 0-indexed in JS Date
+                due.setHours(0,0,0,0);
+                
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                
+                const diffTime = due - today;
+                return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            }
 
-    function selectSettlePayment(v,e){settlePayment=v;document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected')}
-    
-    async function confirmSettle(){
-        if(!settleData||!settlePayment){toast('⚠️ لطفاً نوع پرداخت را انتخاب کنید');return}
-        
-        // --- Get Date from Input ---
-        const pd = document.getElementById('settleDate').value;
-        if(!pd) { toast('⚠️ لطفاً تاریخ تسویه را وارد کنید'); return; }
+            // 4. Format Date for Display
+            function formatJalaali(dateStr) {
+                const j = parseAnyDateToJalaali(dateStr);
+                if (!j) return dateStr; // Fallback to original
+                return `${j.jd} ${pMonths[j.jm - 1]} ${j.jy}`;
+            }
 
-        try{
-            const st={date:pd,customerName:settleData.name,customerPhone:settleData.phone,workType:'[تسویه بدهی]',amount:settleData.amount.toString(),paymentStatus:settlePayment,dueDate:null,paidAmount:null,debtAmount:null,isSettlement:true};
-            await addWork(st);await updateStats();await showCustomerDetail(settleData.phone);toast('✅ بدهی تسویه شد');closeModal('settleDebtModal');
-        }catch(e){console.error(e);toast('❌ خطا در تسویه بدهی')}
-    }
+            function fmt(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
+            
+            function playAlarmSound() {
+                if (window.AudioContext || window.webkitAudioContext) {
+                    try {
+                        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.type = 'square';
+                        osc.frequency.setValueAtTime(440, ctx.currentTime);
+                        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.5);
+                        osc.start();
+                        osc.stop(ctx.currentTime + 1);
+                    } catch(e) { console.error('Audio error', e); }
+                }
+            }
 
-    async function renderDebtors(){try{console.log('renderDebtors called');const ws=await getWorks();console.log('Total works:',ws.length);const dm=new Map();ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement).forEach(w=>{const ph=w.customerPhone;if(!dm.has(ph))dm.set(ph,{name:w.customerName,phone:ph,debts:[]});dm.get(ph).debts.push(w)});console.log('Debtors map:',dm.size);const sts=ws.filter(w=>w.isSettlement),sm=new Map();sts.forEach(s=>{const ph=s.customerPhone,am=parseFloat(s.amount.replace(/,/g,'')||0);sm.set(ph,(sm.get(ph)||0)+am)});let dts=Array.from(dm.values());const td=new Date();dts.forEach(d=>{let tdt=d.debts.reduce((s,x)=>{let da;if(x.paymentStatus==='چک'){da=parseFloat(x.amount.replace(/,/g,'')||0)}else{da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0)}return s+da},0);const st=sm.get(d.phone)||0;d.totalDebt=Math.max(0,tdt-st);d.nearestDue=d.debts.filter(x=>x.dueDate).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate))[0];
-    
-    // --- FIXED NaN and 0 days issue ---
-    d.daysUntilDue = null; // Default to null
-    if(d.nearestDue){
-        let dd = new Date(d.nearestDue.dueDate);
-        let valid = !isNaN(dd.getTime());
-        
-        // If parsing failed (likely due to Persian string format in old data)
-        if(!valid) {
-             // try to parse manual persian date if needed, or just skip calculation
-             const parts = d.nearestDue.dueDate.split(/[-/ ]/); // Try split by dash, slash or space
-             if(parts.length >= 3) {
-                 // We assume it's Persian text, so we can't calc days easily without a full parser. 
-                 // For now, we mark it invalid for calc but valid for display text.
-                 valid = false; 
-             }
-        } else {
-             // It is a valid ISO date, calculate difference
-             // Create dates at midnight to avoid timezone off-by-one
-             let n = new Date(); n.setHours(0,0,0,0);
-             let t = new Date(dd); t.setHours(0,0,0,0);
-             d.daysUntilDue = Math.ceil((t - n)/(1000*60*60*24));
-        }
-    }
-    
-    });dts=dts.filter(d=>d.totalDebt>0);
-    // Sort: Put those with calculated days first, then unknown
-    dts.sort((a,b)=>{
-        if(a.daysUntilDue === null && b.daysUntilDue === null) return 0;
-        if(a.daysUntilDue === null) return 1;
-        if(b.daysUntilDue === null) return -1;
-        return a.daysUntilDue - b.daysUntilDue;
-    });
-    
-    console.log('Filtered debtors:',dts.length);const cn=document.getElementById('debtorsList'),tda=dts.reduce((s,d)=>s+d.totalDebt,0);document.getElementById('debtorListCount').textContent=`${dts.length} مورد - مجموع: ${fmt(tda)} تومان`;if(dts.length===0){cn.innerHTML='<div class="empty-state"><p>🎉 بدهکاری وجود ندارد!</p></div>';return}cn.innerHTML='';dts.forEach(d=>{console.log('Processing debtor:',d.name,d.phone);const di=document.createElement('div');di.className='debt-item';let sc='',st='',dueDateTxt='';
-    if(d.nearestDue){
-        // --- Robust Display Logic ---
-        if(d.daysUntilDue !== null){
-            if(d.daysUntilDue<0){sc='overdue';st=`🔴 ${Math.abs(d.daysUntilDue)} روز گذشته!`}
-            else if(d.daysUntilDue<=3){sc='upcoming';st=`🟡 ${d.daysUntilDue} روز دیگر`}
-            else st=`🟢 ${d.daysUntilDue} روز دیگر`;
-            if(sc)di.classList.add(sc);
-        } else {
-            st = ''; // Don't show "0 days" if we couldn't calculate
-        }
+            // --- Database Functions ---
+            async function initDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onerror=()=>rej(r.error);r.onsuccess=()=>{db=r.result;res(db)};r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains(WORKS)){const s=d.createObjectStore(WORKS,{keyPath:'id',autoIncrement:true});s.createIndex('customerPhone','customerPhone',{unique:false});s.createIndex('date','date',{unique:false});s.createIndex('paymentStatus','paymentStatus',{unique:false})}if(!d.objectStoreNames.contains(CUSTOMERS)){const s=d.createObjectStore(CUSTOMERS,{keyPath:'phone'});s.createIndex('name','name',{unique:false})}}})}
+            async function addWork(w){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readwrite'),s=t.objectStore(WORKS),r=s.add(w);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+            async function getWorks(){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readonly'),s=t.objectStore(WORKS),r=s.getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+            async function getWork(id){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readonly'),s=t.objectStore(WORKS),r=s.get(id);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+            async function updateWork(id,w){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readwrite'),s=t.objectStore(WORKS),r=s.put({...w,id});r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+            async function deleteWork(id){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readwrite'),s=t.objectStore(WORKS),r=s.delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+            async function saveCust(p,n,note='',phones=null){return new Promise((res,rej)=>{const t=db.transaction([CUSTOMERS],'readwrite'),s=t.objectStore(CUSTOMERS),r=s.put({phone:p,name:n,note,phones:phones||[p]});r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+            async function getCust(p){return new Promise((res,rej)=>{const t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.get(p);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+            async function delCust(p){return new Promise((res,rej)=>{const t=db.transaction([CUSTOMERS],'readwrite'),s=t.objectStore(CUSTOMERS),r=s.delete(p);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
 
-        // --- Fix NaN-NaN-NaN Display ---
-        // Check if it matches ISO format YYYY-MM-DD
-        if(d.nearestDue.dueDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-             const parts = d.nearestDue.dueDate.split('-');
-             const pd=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
-             dueDateTxt=fmtDate(pd.year,pd.month,pd.day);
-        } else {
-             // Fallback to original string (e.g. Persian text)
-             dueDateTxt = d.nearestDue.dueDate; 
-        }
-    }
-    di.innerHTML=`<div class="customer-header"><div><div class="customer-name">${d.name}</div><div class="customer-phone">📞 ${d.phone}</div></div></div><div style="margin:10px 0;"><div style="font-size:18px;font-weight:bold;color:#dc2626;">بدهی: ${fmt(d.totalDebt)} تومان</div>${d.nearestDue?`<div style="font-size:14px;color:#64748b;margin-top:5px;">سررسید: ${dueDateTxt} ${st}</div>`:''}</div><div style="display:flex;gap:8px;"><button class="btn-small btn-call">📞 تماس</button><button class="btn-small btn-settle">📋 مشاهده کارتابل</button></div>`;di.querySelector('.btn-call').onclick=()=>window.location.href=`tel:${d.phone}`;di.querySelector('.btn-settle').onclick=()=>showCustomerDetail(d.phone);cn.appendChild(di)});console.log('renderDebtors completed')}catch(e){console.error('Error in renderDebtors:',e);toast('❌ خطا در بارگذاری لیست بدهکاران')}}
+            function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
 
-    function checkAlarms(){getWorks().then(ws=>{const td=new Date();td.setHours(7,0,0,0);ws.filter(w=>w.paymentStatus==='چک'&&w.dueDate).forEach(w=>{const dd=new Date(w.dueDate);dd.setHours(7,0,0,0);if(dd.getTime()===td.getTime()){
-        if('Notification'in window&&Notification.permission==='granted') {
-             new Notification('🔔 یادآوری سررسید چک',{body:`چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`, vibrate: [200, 100, 200]});
-             playAlarmSound();
-             if(navigator.vibrate) navigator.vibrate([300, 100, 300]);
-        }
-        toast(`⏰ یادآوری: چک ${w.customerName} - ${fmt(w.amount)} تومان`);
-    }})}).catch(e=>console.error(e))}
+            function loadTypes(){const s=localStorage.getItem('workTypes');if(s)try{workTypes=JSON.parse(s)}catch(e){}}
+            function saveTypes(){localStorage.setItem('workTypes',JSON.stringify(workTypes))}
+            
+            function openWorkTypeModal() {
+                const list = document.getElementById('workTypeListInModal');
+                list.innerHTML = '';
+                workTypes.forEach((t, i) => {
+                    const row = document.createElement('div');
+                    row.className = 'work-type-row';
+                    row.innerHTML = `
+                        <span class="work-type-label" onclick="APP.selectWorkType('${t}')">${t}</span>
+                        <button class="work-type-delete" onclick="APP.deleteType(${i})">🗑️</button>
+                    `;
+                    list.appendChild(row);
+                });
+                document.getElementById('workTypeModal').classList.add('show');
+            }
+            
+            function selectWorkType(val) {
+                document.getElementById('workType').value = val;
+                const display = document.getElementById('workTypeDisplay');
+                display.textContent = val;
+                display.style.color = '#1e293b';
+                closeModal('workTypeModal');
+            }
+            
+            function addWorkTypeFromModal() {
+                const inp = document.getElementById('newWorkTypeInModal');
+                const nt = inp.value.trim();
+                if(!nt){toast('⚠️ لطفاً نوع کار را وارد کنید');return}
+                if(workTypes.includes(nt)){toast('⚠️ تکراری است');return}
+                workTypes.push(nt);
+                saveTypes();
+                inp.value = '';
+                openWorkTypeModal(); // Re-render list
+                toast('✅ اضافه شد');
+            }
 
-    async function exportData(){try{const ws=await getWorks(),t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.getAll();r.onsuccess=()=>{const cs=r.result,d={version:3,exportDate:new Date().toISOString(),workTypes,works:ws.map(w=>{const{id,...rest}=w;return rest}),customers:cs},b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast(`✅ بکاپ ${ws.length} کار ذخیره شد`)}}catch(e){console.error(e);toast('❌ خطا در ذخیره بکاپ')}}
+            function deleteType(i){
+                if(workTypes.length<=1){toast('⚠️ حداقل یک مورد لازم است');return}
+                if(confirm(`حذف "${workTypes[i]}"؟`)){
+                    workTypes.splice(i,1);
+                    saveTypes();
+                    openWorkTypeModal();
+                    toast('✅ حذف شد');
+                }
+            }
 
-    async function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async function(ev){try{const d=JSON.parse(ev.target.result);if(!d.works||!Array.isArray(d.works)){toast('❌ فایل بکاپ نامعتبر است');return}if(!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: داده‌های فعلی حذف خواهند شد!`))return;const t=db.transaction([WORKS,CUSTOMERS],'readwrite'),ws=t.objectStore(WORKS),cs=t.objectStore(CUSTOMERS);ws.clear();cs.clear();if(d.workTypes&&Array.isArray(d.workTypes)){workTypes=d.workTypes;saveTypes();updateTypeDropdown()}for(const w of d.works)await addWork(w);if(d.customers&&Array.isArray(d.customers))for(const c of d.customers)await saveCust(c.phone,c.name,c.note,c.phones);await updateStats();await setupAuto();toast(`✅ ${d.works.length} کار بازگردانی شد`)}catch(er){console.error(er);toast('❌ خطا در بازگردانی بکاپ')}};r.readAsText(f);e.target.value=''}
+            // --- Voice Logic with Number Converter ---
+            if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){const S=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new S();recognition.lang='fa-IR';recognition.continuous=false;recognition.interimResults=false;recognition.onresult=e=>{const t=e.results[0][0].transcript;handleVoice(t)};recognition.onerror=()=>{toast('❌ خطا در تشخیص صدا');stopVoice()};recognition.onend=()=>stopVoice()}
+            function startVoice(f){if(!recognition){toast('⚠️ مرورگر شما از ورودی صوتی پشتیبانی نمی‌کند');return}voiceField=f;try{recognition.start();toast('🎤 در حال گوش دادن...')}catch(e){stopVoice()}}
+            function stopVoice(){if(recognition)try{recognition.stop()}catch(e){}document.querySelectorAll('.voice-btn').forEach(b=>{b.classList.remove('listening')})}
+            
+            function normalizePersianNumbers(text) {
+                const map = {
+                    'یک': '1', 'دو': '2', 'سه': '3', 'چهار': '4', 'پنج': '5',
+                    'شش': '6', 'شیش': '6', 'هفت': '7', 'هشت': '8', 'نه': '9', 'ده': '10',
+                    'یازده': '11', 'دوازده': '12', 'سیزده': '13', 'چهارده': '14', 'پانزده': '15',
+                    'شانزده': '16', 'هفده': '17', 'هجده': '18', 'نوزده': '19', 'بیست': '20',
+                    'سی': '30', 'یکم': '1', 'دوی': '2', 'سوم': '3', 'چهارم': '4', 'پنجم': '5',
+                    'ششم': '6', 'هفتم': '7', 'هشتم': '8', 'نهم': '9', 'دهم': '10',
+                    '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9', '۰': '0'
+                };
+                for (let word in map) { let regex = new RegExp(word, 'g'); text = text.replace(regex, map[word]); }
+                return text;
+            }
 
-    function showPage(pg){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));const p=document.getElementById(`page-${pg}`);if(p)p.classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>{if(b.textContent.includes('ثبت')&&pg==='add-work')b.classList.add('active');else if(b.textContent.includes('مشتریان')&&pg==='customers')b.classList.add('active');else if(b.textContent.includes('بدهکاران')&&pg==='debtors')b.classList.add('active')});if(pg==='customers')renderCustomers();else if(pg==='debtors')renderDebtors()}
+            function handleVoice(t){
+                if(!voiceField)return;
+                const f=document.getElementById(voiceField);
+                if(!f)return;
+                let c=t.trim();
+                if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount' || voiceField === 'settleDate') { c = normalizePersianNumbers(c); }
+                if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+                if(voiceField==='amount'||voiceField==='paidAmount'){
+                    c=c.replace(/تومان|ریال|میلیون|هزار/g,'').trim().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+                    if(t.includes('میلیون')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000000).toString()}
+                    else if(t.includes('هزار')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000).toString()}
+                }
+                f.value=c;
+                if(voiceField==='amount'||voiceField==='paidAmount'){formatAmount(f);calcRemaining()}
+                toast(`✅ "${c}" ثبت شد`);
+                stopVoice()
+            }
 
-    function closeModal(id){document.getElementById(id).classList.remove('show')}
+            function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
+            function calcRemaining(){const t=parseFloat(document.getElementById('amount').value.replace(/,/g,'')||0),p=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0),r=t-p;document.getElementById('remainingAmount').value=r>=0?fmt(r):'0'}
 
-    async function init(){try{console.log('🚀 Initializing...');await initDB();console.log('✅ DB ready');loadTypes();console.log('✅ Types loaded');await updateStats();console.log('✅ Stats updated');
-    console.log('✅ Date set to empty');
-    await setupAuto();console.log('✅ Auto setup');if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();checkAlarms();setInterval(checkAlarms,60*60*1000);console.log('✅ Alarms setup');console.log('✅✅✅ App ready!');
-    }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
+            // --- Calendar Logic using jalaali-js ---
+            function showCal(target){
+                let el = document.getElementById(target==='dueDate'?'dueDateDisplay':target);
+                let initialVal = el.value;
+                let jy, jm, jd;
+                
+                const parsed = parseAnyDateToJalaali(initialVal);
+                if (parsed) {
+                    jy = parsed.jy; jm = parsed.jm; jd = parsed.jd;
+                } else {
+                    const today = new Date();
+                    const j = jalaali.toJalaali(today);
+                    jy = j.jy; jm = j.jm; jd = j.jd;
+                }
 
-    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal}
-})();
+                const m = document.createElement('div');
+                m.className = 'datepicker-modal';
+                m.innerHTML = `<div class="datepicker-content"><div class="datepicker-header"><button type="button" onclick="window.prevM()">‹</button><span id="dpMonthTitle"></span><button type="button" onclick="window.nextM()">›</button></div><div class="datepicker-weekdays"><span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span style="color:#ef4444">ج</span></div><div class="datepicker-days" id="dpDays"></div><button type="button" class="btn-close" onclick="window.closeCal()">بستن</button></div>`;
+                document.body.appendChild(m);
+                window.dpModal = m;
+                window.dpTarget = target;
+                window.dpCurY = jy;
+                window.dpCurM = jm;
+                window.dpSelectedD = jd;
+                renderCal();
+                setTimeout(() => m.classList.add('show'), 10);
+            }
+            
+            window.prevM = function() { window.dpCurM--; if(window.dpCurM < 1) { window.dpCurM = 12; window.dpCurY--; } renderCal(); };
+            window.nextM = function() { window.dpCurM++; if(window.dpCurM > 12) { window.dpCurM = 1; window.dpCurY++; } renderCal(); };
+            window.closeCal = function() { if(window.dpModal) { window.dpModal.classList.remove('show'); setTimeout(() => { if(window.dpModal && window.dpModal.parentNode) window.dpModal.parentNode.removeChild(window.dpModal); window.dpModal = null; }, 300); } };
+            
+            function renderCal() {
+                const title = document.getElementById('dpMonthTitle');
+                const daysContainer = document.getElementById('dpDays');
+                if(!title || !daysContainer) return;
+                title.textContent = `${pMonths[window.dpCurM-1]} ${window.dpCurY}`;
+                daysContainer.innerHTML = '';
+                const daysInMonth = jalaali.jalaaliMonthLength(window.dpCurY, window.dpCurM);
+                const gDateFirst = jalaali.toGregorian(window.dpCurY, window.dpCurM, 1);
+                const gDateObj = new Date(gDateFirst.gy, gDateFirst.gm - 1, gDateFirst.gd);
+                let startDay = gDateObj.getDay() + 1; // 0=Sun..6=Sat. We want 0=Sat.
+                if(startDay === 7) startDay = 0; 
+                for(let i=0; i<startDay; i++) { daysContainer.appendChild(document.createElement('div')); }
+                
+                const today = new Date();
+                const jToday = jalaali.toJalaali(today);
+                
+                for(let i=1; i<=daysInMonth; i++) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.textContent = i;
+                    if(window.dpCurY === jToday.jy && window.dpCurM === jToday.jm && i === jToday.jd) { btn.classList.add('today'); }
+                    if(i === window.dpSelectedD) btn.classList.add('selected');
+                    btn.onclick = () => selectDate(i);
+                    daysContainer.appendChild(btn);
+                }
+            }
+            
+            function selectDate(d) {
+                const pDateStr = `${d} ${pMonths[window.dpCurM-1]} ${window.dpCurY}`;
+                const g = jalaali.toGregorian(window.dpCurY, window.dpCurM, d);
+                const gDateIso = `${g.gy}-${String(g.gm).padStart(2,'0')}-${String(g.gd).padStart(2,'0')}`;
+                
+                if(window.dpTarget === 'date') {
+                    document.getElementById('date').value = pDateStr;
+                } else if (window.dpTarget === 'dueDate') {
+                    document.getElementById('dueDateDisplay').value = pDateStr;
+                    document.getElementById('dueDate').value = gDateIso;
+                } else if (window.dpTarget === 'settleDate') {
+                    document.getElementById('settleDate').value = pDateStr;
+                }
+                window.closeCal();
+            }
 
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
+            async function setupAuto(){const ni=document.getElementById('customerName'),pi=document.getElementById('phone'),sg=document.getElementById('customerSuggestions');if(!ni||!sg)return;const ws=await getWorks(),cm=new Map();for(const w of ws){if(!cm.has(w.customerPhone)){const cd=await getCust(w.customerPhone);cm.set(w.customerPhone,{name:w.customerName,phone:w.customerPhone,phones:cd?.phones||[w.customerPhone]})}}allCustomers=Array.from(cm.values());ni.addEventListener('input',function(){const q=this.value.trim();if(q.length<2){sg.classList.add('hidden');sg.innerHTML='';return}const m=allCustomers.filter(c=>c.name.includes(q)).slice(0,10);if(m.length>0){sg.innerHTML='';m.forEach(c=>{const it=document.createElement('div');it.className='autocomplete-item';it.innerHTML=`<strong>${c.name}</strong><br><span style="font-size:13px;color:#64748b;">📞 ${c.phone}</span>`;it.onclick=()=>{ni.value=c.name;pi.value=c.phone;sg.classList.add('hidden');sg.innerHTML=''};sg.appendChild(it)});sg.classList.remove('hidden')}else{sg.classList.add('hidden');sg.innerHTML=''}});document.addEventListener('click',e=>{if(!ni.contains(e.target)&&!sg.contains(e.target)){sg.classList.add('hidden');sg.innerHTML=''}})}
+
+            function selectPayment(v,e){document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected');document.getElementById('paymentStatus').value=v;document.getElementById('dueDateSection').classList.remove('show');document.getElementById('partialPaymentSection').classList.remove('show');document.getElementById('dueDate').value='';document.getElementById('dueDateDisplay').value='';document.getElementById('paidAmount').value='';document.getElementById('remainingAmount').value='';if(v==='چک')document.getElementById('dueDateSection').classList.add('show');else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show')}
+
+            async function submitWork(e){e.preventDefault();const ps=document.getElementById('paymentStatus').value;if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}const ta=document.getElementById('amount').value.replace(/,/g,'');let ada=ta,pa=0;if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}const w={date:document.getElementById('date').value,customerName:document.getElementById('customerName').value,customerPhone:document.getElementById('phone').value,workType:document.getElementById('workType').value,amount:ta,paymentStatus:ps,dueDate:ps==='چک'?document.getElementById('dueDate').value:null,paidAmount:ps==='نسیه'?pa.toString():null,debtAmount:(ps==='نسیه'||ps==='چک')?ada.toString():null,isSettlement:false};try{const sb=document.getElementById('submitBtn');sb.disabled=true;sb.textContent='⏳ در حال ثبت...';if(editWorkId!==null){await updateWork(editWorkId,w);editWorkId=null;toast('✅ کار ویرایش شد');sb.textContent='✅ ثبت'}else{await addWork(w);toast('✅ کار جدید ثبت شد')}const cd=await getCust(w.customerPhone);await saveCust(w.customerPhone,w.customerName,cd?.note||'',cd?.phones);await updateStats();await setupAuto();
+            document.getElementById('workForm').reset();
+            document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
+            document.getElementById('dueDateSection').classList.remove('show');
+            document.getElementById('partialPaymentSection').classList.remove('show');
+            document.getElementById('paymentStatus').value='';
+            document.getElementById('date').value='';
+            document.getElementById('workTypeDisplay').textContent = 'انتخاب کنید...';
+            document.getElementById('workTypeDisplay').style.color = '#94a3b8';
+            sb.disabled=false;sb.textContent='✅ ثبت'}catch(er){console.error(er);toast('❌ خطا در ثبت اطلاعات');document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent=editWorkId!==null?'✏️ ویرایش':'✅ ثبت'}}
+
+            async function updateStats(){try{const ws=await getWorks(),up=new Set(ws.map(w=>w.customerPhone));document.getElementById('totalCustomers').textContent=fmt(up.size);
+            const tr=ws.reduce((s,w)=>{
+                const am=parseFloat(w.amount.replace(/,/g,'')||0);
+                if(w.isSettlement) return s + am;
+                if(w.paymentStatus==='نقدی'||w.paymentStatus==='کارت به کارت'||w.paymentStatus==='کارتخوان'){return s+am}
+                else if(w.paymentStatus==='نسیه'&&w.paidAmount){return s+parseFloat(w.paidAmount.replace(/,/g,'')||0)}
+                return s
+            },0);
+            document.getElementById('totalRevenue').textContent=fmt(tr);
+            const dbs=ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement),sts=ws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('totalDebt').textContent=fmt(td);const dp=new Set();for(const w of dbs){const ph=w.customerPhone,cdb=dbs.filter(x=>x.customerPhone===ph),cst=sts.filter(x=>x.customerPhone===ph);let ctd=cdb.reduce((s,x)=>{const da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0);return s+da},0);const cts=cst.reduce((s,x)=>s+parseFloat(x.amount.replace(/,/g,'')||0),0),rd=ctd-cts;if(rd>0)dp.add(ph)}document.getElementById('debtorCount').textContent=fmt(dp.size)}catch(e){console.error(e)}}
+
+            async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w);
+            if(!c.lastWorkDate || getDateValue(w.date) > getDateValue(c.lastWorkDate)){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date}
+            const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));
+            cs.sort((a,b) => getDateValue(b.lastWorkDate) - getDateValue(a.lastWorkDate));
+            const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;color:#2563eb;font-size:16px;margin-left:5px;">📞</span> ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
+
+            async function showCustomerDetail(ph){try{console.log('showCustomerDetail called with phone:',ph);currentCustomerPhone=ph;const ws=await getWorks();console.log('Total works:',ws.length);
+            const cws=ws.filter(w=>w.customerPhone===ph).sort((a,b)=> {
+                const da = getDateValue(a.date);
+                const db = getDateValue(b.date);
+                if (da !== db) return db - da; 
+                return (b.id||0)-(a.id||0); 
+            });
+            console.log('Customer works:',cws.length);if(cws.length===0){console.log('No works found for customer');return}const cd=await getCust(ph);console.log('Customer data:',cd);document.getElementById('detailCustomerName').textContent=cws[0].customerName;document.getElementById('detailCustomerPhone').textContent=`📞 ${ph}`;document.getElementById('customerNote').value=cd?.note||'';const tp=cws.reduce((s,w)=>{const am=parseFloat(w.amount.replace(/,/g,'')||0);if(!['نسیه','چک'].includes(w.paymentStatus))return s+am;else if(w.paymentStatus==='نسیه'&&w.paidAmount)return s+parseFloat(w.paidAmount.replace(/,/g,'')||0);return s},0);const dbs=cws.filter(w=>['نسیه','چک'].includes(w.paymentStatus)&&!w.isSettlement),sts=cws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('detailWorkCount').textContent=cws.length;document.getElementById('detailTotalPaid').textContent=fmt(tp);document.getElementById('detailCurrentDebt').textContent=fmt(td);const sb=document.getElementById('settleDebtBtn');if(td>0){sb.classList.remove('hidden');settleData={phone:ph,amount:td,name:cws[0].customerName}}else sb.classList.add('hidden');const phs=cd?.phones||[ph],pc=document.getElementById('phoneNumbersList');pc.innerHTML='';phs.forEach((p,i)=>{const pi=document.createElement('div');pi.className='phone-item';pi.innerHTML=`<span>📞 ${p}${i===0?' (اصلی)':''}</span>`;if(phs.length>1&&i>0){const del=document.createElement('button');del.className='btn-small btn-delete';del.textContent='🗑️';del.onclick=()=>deletePhone(ph,p);pi.appendChild(del)}pc.appendChild(pi)});const lw=cws[0];document.getElementById('detailLastWork').textContent=`${lw.date} - ${lw.workType}`;const nd=document.getElementById('customerNoteDisplay'),nt=document.getElementById('customerNoteText');if(cd?.note){nt.textContent=cd.note;nd.classList.remove('hidden')}else nd.classList.add('hidden');const hc=document.getElementById('workHistory');hc.innerHTML='';
+            cws.forEach(w=>{const wi=document.createElement('div');wi.className='work-history-item';if(w.isSettlement)wi.classList.add('settlement');let bg='',dueDateTxt='';
+            if(w.dueDate){
+                dueDateTxt = formatJalaali(w.dueDate);
+            }
+            if(w.isSettlement)bg=`<span class="payment-badge settlement">💰 تسویه بدهی - ${w.paymentStatus}</span>`;else if(w.paymentStatus==='نسیه'){const da=w.debtAmount?fmt(w.debtAmount):fmt(w.amount),pi=w.paidAmount?` - پرداخت شده: ${fmt(w.paidAmount)}`:'';bg=`<span class="payment-badge debt">نسیه: ${da} تومان${pi}</span>`}else if(w.paymentStatus==='چک')bg=`<span class="payment-badge check">چک${dueDateTxt?' - سررسید: '+dueDateTxt:''}</span>`;else bg=`<span class="payment-badge paid">✅ ${w.paymentStatus}</span>`;wi.innerHTML=`<div class="work-history-header"><div class="work-date">📅 ${w.date}</div><div class="work-amount">${fmt(w.amount)} تومان</div></div><div class="work-details"><div>🔧 ${w.workType}</div><div>${bg}</div></div><div style="display:flex;gap:8px;margin-top:10px;"><button class="btn-small btn-edit" onclick="APP.editWork(${w.id})">✏️ ویرایش</button><button class="btn-small btn-delete" onclick="APP.showDelWorkModal(${w.id})">🗑️ حذف</button></div>`;hc.appendChild(wi)});console.log('Showing customer detail page');showPage('customer-detail')}catch(e){console.error('Error in showCustomerDetail:',e);toast('❌ خطا در بارگذاری اطلاعات مشتری')}}
+
+            async function saveNote(){if(!currentCustomerPhone)return;try{const nt=document.getElementById('customerNote').value,ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);if(cw){const cd=await getCust(currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,nt,cd?.phones);toast('✅ یادداشت ذخیره شد');await showCustomerDetail(currentCustomerPhone);await renderCustomers()}}catch(e){console.error(e);toast('❌ خطا در ذخیره یادداشت')}}
+
+            async function editWork(id){try{editWorkId=id;const w=await getWork(id);if(!w)return;showPage('add-work');document.getElementById('date').value=w.date;document.getElementById('customerName').value=w.customerName;document.getElementById('phone').value=w.customerPhone;
+            document.getElementById('workType').value=w.workType;
+            document.getElementById('workTypeDisplay').textContent=w.workType;
+            document.getElementById('workTypeDisplay').style.color='#1e293b';
+            document.getElementById('amount').value=w.amount;document.querySelectorAll('#page-add-work .payment-option').forEach(o=>{if(o.textContent.includes(w.paymentStatus))o.classList.add('selected');else o.classList.remove('selected')});document.getElementById('paymentStatus').value=w.paymentStatus;
+            if(w.paymentStatus==='چک'&&w.dueDate){
+                document.getElementById('dueDateSection').classList.add('show');
+                document.getElementById('dueDateDisplay').value = formatJalaali(w.dueDate);
+                document.getElementById('dueDate').value=w.dueDate
+            }else if(w.paymentStatus==='نسیه'&&w.paidAmount){document.getElementById('partialPaymentSection').classList.add('show');document.getElementById('paidAmount').value=w.paidAmount;calcRemaining()}document.getElementById('submitBtn').textContent='✏️ ویرایش';window.scrollTo({top:0,behavior:'smooth'});toast('💡 در حال ویرایش کار...')}catch(e){console.error(e);toast('❌ خطا در بارگذاری اطلاعات کار')}}
+
+            function showDelWorkModal(id){deleteWorkId=id;document.getElementById('deleteModal').classList.add('show')}
+            async function confirmDeleteWork(){if(deleteWorkId===null)return;try{await deleteWork(deleteWorkId);await updateStats();if(currentCustomerPhone)await showCustomerDetail(currentCustomerPhone);else await renderCustomers();toast('✅ کار حذف شد');closeModal('deleteModal');deleteWorkId=null}catch(e){console.error(e);toast('❌ خطا در حذف کار')}}
+
+            function showDelCustModal(p,n,wc,ta){deleteCustomerPhone=p;document.getElementById('deleteCustomerName').textContent=n;document.getElementById('deleteCustomerPhone').textContent=p;document.getElementById('deleteCustomerWorks').textContent=wc;document.getElementById('deleteCustomerAmount').textContent=fmt(ta);document.getElementById('deleteCustomerModal').classList.add('show')}
+            async function confirmDeleteCustomer(){if(!deleteCustomerPhone)return;try{const ws=await getWorks(),cws=ws.filter(w=>w.customerPhone===deleteCustomerPhone);for(const w of cws)await deleteWork(w.id);await delCust(deleteCustomerPhone);await updateStats();await renderCustomers();toast('✅ مشتری و همه کارهایش حذف شد');closeModal('deleteCustomerModal');deleteCustomerPhone=null}catch(e){console.error(e);toast('❌ خطا در حذف مشتری')}}
+
+            function showAddPhoneModal(){if(!currentCustomerPhone)return;document.getElementById('newPhoneNumber').value='';document.getElementById('addPhoneModal').classList.add('show')}
+            async function confirmAddPhone(){const np=document.getElementById('newPhoneNumber').value.trim();if(!np){toast('⚠️ لطفاً شماره تلفن را وارد کنید');return}if(!/^09\d{9}$/.test(np)){toast('⚠️ شماره تلفن نامعتبر است');return}try{const cd=await getCust(currentCustomerPhone),phs=cd?.phones||[currentCustomerPhone];if(phs.includes(np)){toast('⚠️ این شماره قبلاً اضافه شده است');return}phs.push(np);const ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,cd?.note||'',phs);await showCustomerDetail(currentCustomerPhone);toast('✅ شماره جدید اضافه شد');closeModal('addPhoneModal')}catch(e){console.error(e);toast('❌ خطا در افزودن شماره')}}
+            async function deletePhone(mp,pd){if(mp===pd){toast('⚠️ نمی‌توانید شماره اصلی را حذف کنید');return}if(!confirm(`آیا از حذف شماره ${pd} مطمئن هستید؟`))return;try{const cd=await getCust(mp);let phs=cd?.phones||[mp];phs=phs.filter(p=>p!==pd);const ws=await getWorks(),cw=ws.find(w=>w.customerPhone===mp);await saveCust(mp,cw.customerName,cd?.note||'',phs);await showCustomerDetail(mp);toast('✅ شماره حذف شد')}catch(e){console.error(e);toast('❌ خطا در حذف شماره')}}
+
+            function showSettleModal(){
+                if(!settleData)return;
+                settlePayment=null;
+                document.getElementById('settleCustomerName').textContent=settleData.name;
+                document.getElementById('settleDebtAmount').textContent=fmt(settleData.amount);
+                document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));
+                document.getElementById('settleDate').value = '';
+                document.getElementById('settleDebtModal').classList.add('show');
+            }
+
+            function selectSettlePayment(v,e){settlePayment=v;document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected')}
+            
+            async function confirmSettle(){
+                if(!settleData||!settlePayment){toast('⚠️ لطفاً نوع پرداخت را انتخاب کنید');return}
+                const pd = document.getElementById('settleDate').value;
+                if(!pd) { toast('⚠️ لطفاً تاریخ تسویه را وارد کنید'); return; }
+                try{
+                    const st={date:pd,customerName:settleData.name,customerPhone:settleData.phone,workType:'[تسویه بدهی]',amount:settleData.amount.toString(),paymentStatus:settlePayment,dueDate:null,paidAmount:null,debtAmount:null,isSettlement:true};
+                    await addWork(st);await updateStats();await showCustomerDetail(settleData.phone);toast('✅ بدهی تسویه شد');closeModal('settleDebtModal');
+                }catch(e){console.error(e);toast('❌ خطا در تسویه بدهی')}
+            }
+
+            async function renderDebtors(){try{console.log('renderDebtors called');const ws=await getWorks();const dm=new Map();ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement).forEach(w=>{const ph=w.customerPhone;if(!dm.has(ph))dm.set(ph,{name:w.customerName,phone:ph,debts:[]});dm.get(ph).debts.push(w)});const sts=ws.filter(w=>w.isSettlement),sm=new Map();sts.forEach(s=>{const ph=s.customerPhone,am=parseFloat(s.amount.replace(/,/g,'')||0);sm.set(ph,(sm.get(ph)||0)+am)});let dts=Array.from(dm.values());
+            dts.forEach(d=>{let tdt=d.debts.reduce((s,x)=>{let da;if(x.paymentStatus==='چک'){da=parseFloat(x.amount.replace(/,/g,'')||0)}else{da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0)}return s+da},0);const st=sm.get(d.phone)||0;d.totalDebt=Math.max(0,tdt-st);d.nearestDue=d.debts.filter(x=>x.dueDate).sort((a,b)=>getDateValue(a.dueDate)-getDateValue(b.dueDate))[0];
+            
+            d.daysUntilDue = null;
+            if(d.nearestDue) d.daysUntilDue = getDaysUntil(d.nearestDue.dueDate);
+            });
+            dts=dts.filter(d=>d.totalDebt>0);
+            dts.sort((a,b)=>{
+                if(a.daysUntilDue === null && b.daysUntilDue === null) return 0;
+                if(a.daysUntilDue === null) return 1;
+                if(b.daysUntilDue === null) return -1;
+                return a.daysUntilDue - b.daysUntilDue;
+            });
+            
+            const cn=document.getElementById('debtorsList'),tda=dts.reduce((s,d)=>s+d.totalDebt,0);document.getElementById('debtorListCount').textContent=`${dts.length} مورد - مجموع: ${fmt(tda)} تومان`;if(dts.length===0){cn.innerHTML='<div class="empty-state"><p>🎉 بدهکاری وجود ندارد!</p></div>';return}cn.innerHTML='';dts.forEach(d=>{
+            const di=document.createElement('div');di.className='debt-item';let sc='',st='',dueDateTxt='';
+            if(d.nearestDue){
+                if(d.daysUntilDue !== null){
+                    if(d.daysUntilDue<0){sc='overdue';st=`🔴 ${Math.abs(d.daysUntilDue)} روز گذشته!`}
+                    else if(d.daysUntilDue<=3){sc='upcoming';st=`🟡 ${d.daysUntilDue} روز دیگر`}
+                    else st=`🟢 ${d.daysUntilDue} روز دیگر`;
+                    if(sc)di.classList.add(sc);
+                }
+                dueDateTxt = formatJalaali(d.nearestDue.dueDate);
+            }
+            di.innerHTML=`<div class="customer-header"><div><div class="customer-name">${d.name}</div><div class="customer-phone">📞 ${d.phone}</div></div></div><div style="margin:10px 0;"><div style="font-size:18px;font-weight:bold;color:#dc2626;">بدهی: ${fmt(d.totalDebt)} تومان</div>${d.nearestDue?`<div style="font-size:14px;color:#64748b;margin-top:5px;">سررسید: ${dueDateTxt} ${st}</div>`:''}</div><div style="display:flex;gap:8px;"><button class="btn-small btn-call">📞 تماس</button><button class="btn-small btn-settle">📋 مشاهده کارتابل</button></div>`;di.querySelector('.btn-call').onclick=()=>window.location.href=`tel:${d.phone}`;di.querySelector('.btn-settle').onclick=()=>showCustomerDetail(d.phone);cn.appendChild(di)});}catch(e){console.error('Error in renderDebtors:',e);toast('❌ خطا در بارگذاری لیست بدهکاران')}}
+
+            function checkAlarms(){getWorks().then(ws=>{const td=new Date();td.setHours(7,0,0,0);ws.filter(w=>w.paymentStatus==='چک'&&w.dueDate).forEach(w=>{const dd=parseAnyDateToJalaali(w.dueDate);if(!dd)return;const g=jalaali.toGregorian(dd.jy,dd.jm,dd.jd);const checkDate=new Date(g.gy,g.gm-1,g.gd);checkDate.setHours(7,0,0,0);if(checkDate.getTime()===td.getTime()){
+                if('Notification'in window&&Notification.permission==='granted') {
+                    new Notification('🔔 یادآوری سررسید چک',{body:`چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`, vibrate: [200, 100, 200]});
+                    playAlarmSound();
+                    if(navigator.vibrate) navigator.vibrate([300, 100, 300]);
+                }
+                toast(`⏰ یادآوری: چک ${w.customerName} - ${fmt(w.amount)} تومان`);
+            }})}).catch(e=>console.error(e))}
+
+            async function exportData(){try{const ws=await getWorks(),t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.getAll();r.onsuccess=()=>{const cs=r.result,d={version:3,exportDate:new Date().toISOString(),workTypes,works:ws.map(w=>{const{id,...rest}=w;return rest}),customers:cs},b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast(`✅ بکاپ ${ws.length} کار ذخیره شد`)}}catch(e){console.error(e);toast('❌ خطا در ذخیره بکاپ')}}
+
+            async function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async function(ev){try{const d=JSON.parse(ev.target.result);if(!d.works||!Array.isArray(d.works)){toast('❌ فایل بکاپ نامعتبر است');return}if(!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: داده‌های فعلی حذف خواهند شد!`))return;const t=db.transaction([WORKS,CUSTOMERS],'readwrite'),ws=t.objectStore(WORKS),cs=t.objectStore(CUSTOMERS);ws.clear();cs.clear();if(d.workTypes&&Array.isArray(d.workTypes)){workTypes=d.workTypes;saveTypes();updateTypeDropdown()}for(const w of d.works)await addWork(w);if(d.customers&&Array.isArray(d.customers))for(const c of d.customers)await saveCust(c.phone,c.name,c.note,c.phones);await updateStats();await setupAuto();toast(`✅ ${d.works.length} کار بازگردانی شد`)}catch(er){console.error(er);toast('❌ خطا در بازگردانی بکاپ')}};r.readAsText(f);e.target.value=''}
+
+            function showPage(pg){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));const p=document.getElementById(`page-${pg}`);if(p)p.classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>{if(b.textContent.includes('ثبت')&&pg==='add-work')b.classList.add('active');else if(b.textContent.includes('مشتریان')&&pg==='customers')b.classList.add('active');else if(b.textContent.includes('بدهکاران')&&pg==='debtors')b.classList.add('active')});if(pg==='customers')renderCustomers();else if(pg==='debtors')renderDebtors()}
+
+            function closeModal(id){document.getElementById(id).classList.remove('show')}
+
+            async function init(){try{console.log('🚀 Initializing...');await initDB();console.log('✅ DB ready');loadTypes();console.log('✅ Types loaded');await updateStats();console.log('✅ Stats updated');
+            console.log('✅ Date set to empty');
+            await setupAuto();console.log('✅ Auto setup');if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();checkAlarms();setInterval(checkAlarms,60*60*1000);console.log('✅ Alarms setup');console.log('✅✅✅ App ready!');
+            }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
+
+            return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal}
+        })();
+
+        if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
     </script>
 </body>
 </html>
