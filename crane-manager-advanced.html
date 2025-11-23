@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.4)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.5)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -46,7 +46,9 @@
         
         /* --- Aligned Inputs and Buttons --- */
         .input-wrapper { display: flex; gap: 8px; align-items: stretch; height: 50px; } 
-        .form-group input, .form-group select, .custom-select-trigger { 
+        
+        /* UPDATED CSS: Added .styled-input class for shared styling */
+        .form-group input, .form-group select, .custom-select-trigger, .styled-input { 
             flex: 1; 
             padding: 0 15px; 
             border: 2px solid #e2e8f0; 
@@ -80,7 +82,8 @@
             overflow: hidden;
         }
 
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .customer-notes textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        /* UPDATED CSS: Added .styled-input:focus */
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .customer-notes textarea:focus, .styled-input:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
         /* Input that triggers calendar */
         .date-input { cursor: pointer; }
@@ -432,7 +435,7 @@
             <div style="margin: 20px 0;">
                 <label style="font-weight: bold; color: #1e293b; margin-bottom: 8px; display: block;">📅 تاریخ تسویه</label>
                 <div class="input-wrapper" style="margin-bottom: 15px;">
-                    <input type="text" id="settleDate" class="date-input" readonly onclick="APP.showCal('settleDate')" placeholder="انتخاب تاریخ...">
+                    <input type="text" id="settleDate" class="date-input styled-input" readonly onclick="APP.showCal('settleDate')">
                     <div class="button-group">
                         <button type="button" class="voice-btn" onclick="APP.startVoice('settleDate')">🎤</button>
                     </div>
