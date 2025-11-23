@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.0)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.1)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -35,7 +35,7 @@
         .btn-export { background: #10b981; }
         .btn-import { background: #f59e0b; }
         
-        /* Pages */
+        /* Common Page Styles */
         .page { display: none; animation: fadeIn 0.3s ease; }
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -46,7 +46,7 @@
         
         /* --- Aligned Inputs and Buttons --- */
         .input-wrapper { display: flex; gap: 8px; align-items: stretch; height: 50px; } 
-        .form-group input, .form-group select, .form-group textarea, .custom-select-trigger { 
+        .form-group input, .form-group select, .custom-select-trigger { 
             flex: 1; 
             padding: 0 15px; 
             border: 2px solid #e2e8f0; 
@@ -60,29 +60,27 @@
             align-items: center; 
             color: #334155;
         }
-        /* Special styling for Note Textarea to look like Input */
-        .form-group textarea { 
-            /* این دو خط عرض رو درست میکنن */
-            flex: 1; 
-            width: 100%; 
         
-            /* اینا ارتفاع رو فیکس میکنن */
+        /* Fix for Customer Note Textarea to match Inputs exactly */
+        .customer-notes textarea, .form-group textarea {
+            flex: 1;
+            width: 100%;
             height: 50px !important;
             min-height: 50px !important;
-            
-            /* اینا ظاهرش رو شبیه بقیه میکنن */
-            padding: 12px 15px; 
-            border: 2px solid #e2e8f0; 
-            border-radius: 12px; 
-            background: #f8fafc; 
-            font-size: 16px; 
-            font-family: inherit; 
-            color: #334155; 
-            resize: none; 
-            box-sizing: border-box; 
+            max-height: 50px !important;
+            padding: 12px 15px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            background: #f8fafc;
+            font-size: 16px;
+            font-family: inherit;
+            color: #334155;
+            resize: none;
+            box-sizing: border-box;
+            overflow: hidden;
         }
-        
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .customer-notes textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
         /* Input that triggers calendar */
         .date-input { cursor: pointer; }
@@ -125,7 +123,7 @@
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         
         /* Work Type Drawer */
-        .custom-select-trigger { cursor: pointer; display: flex; justify-content: space-between; align-items: center; height: 50px; width: 100%; }
+        .custom-select-trigger { cursor: pointer; display: flex; justify-content: space-between; align-items: center; height: 50px; width: 100%; padding: 0 15px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc; font-size: 16px; color: #334155; box-sizing: border-box; }
         .custom-select-trigger::after { content: '▼'; font-size: 12px; color: #94a3b8; margin-right: 10px; }
         .work-type-modal-list { margin-top: 15px; max-height: 300px; overflow-y: auto; }
         .work-type-row { display: flex; align-items: center; justify-content: space-between; padding: 12px; border-bottom: 1px solid #f1f5f9; transition: 0.2s; }
@@ -213,8 +211,6 @@
         .btn-settle { background: #2563eb; color: white; }
         .btn-delete { background: #ef4444; color: white; }
         .btn-edit { background: #f59e0b; color: white; }
-        
-        .work-type-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: #f8fafc; border-radius: 10px; margin-bottom: 5px; border: 1px solid #e2e8f0; font-size: 14px; color: #334155; }
     </style>
 </head>
 <body>
@@ -499,7 +495,7 @@ const APP = (function() {
         gy+=parseInt((days-1)/365);
         if(days>365)days=(days-1)%365;
         var gd=days+1;
-        var sal_a=[0,31,((gy%4==0&&gy%100!=0)||(gy%400==0))?29:28,31,30,31,31,30,31,30,31];
+        var sal_a=[0,31,((gy%4==0&&gy%100!=0)||(gy%400==0))?29:28,31,30,31,31,30,31,30,31,30,31];
         var gm;
         for(gm=0;gm<13;gm++){var v=sal_a[gm];if(gd<=v)break;gd-=v;}
         return new Date(gy,gm-1,gd);
