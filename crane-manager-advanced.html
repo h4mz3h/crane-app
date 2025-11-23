@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.2)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.3)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -428,7 +428,13 @@
                 <div style="font-size: 24px; font-weight: bold; color: #dc2626; margin: 10px 0;"><span id="settleDebtAmount"></span> تومان</div>
                 <div style="color: #1e40af; font-size: 14px;">مبلغ بدهی</div>
             </div>
+            
             <div style="margin: 20px 0;">
+                <label style="font-weight: bold; color: #1e293b; margin-bottom: 8px; display: block;">📅 تاریخ تسویه</label>
+                <div class="input-wrapper" style="margin-bottom: 15px;">
+                    <input type="text" id="settleDate" class="date-input" readonly onclick="APP.showCal('settleDate')">
+                </div>
+
                 <label style="font-weight: bold; color: #1e293b; margin-bottom: 10px; display: block;">💳 نوع پرداخت</label>
                 <div class="payment-status">
                     <div class="payment-option" onclick="APP.selectSettlePayment('نقدی', event)">💵 نقدی</div>
@@ -740,6 +746,8 @@ const APP = (function() {
         } else if (window.dpTarget === 'dueDate') {
             document.getElementById('dueDateDisplay').value = pDateStr;
             document.getElementById('dueDate').value = gDateIso;
+        } else if (window.dpTarget === 'settleDate') {
+            document.getElementById('settleDate').value = pDateStr;
         }
         window.closeCal();
     }
@@ -816,9 +824,35 @@ const APP = (function() {
     async function confirmAddPhone(){const np=document.getElementById('newPhoneNumber').value.trim();if(!np){toast('⚠️ لطفاً شماره تلفن را وارد کنید');return}if(!/^09\d{9}$/.test(np)){toast('⚠️ شماره تلفن نامعتبر است');return}try{const cd=await getCust(currentCustomerPhone),phs=cd?.phones||[currentCustomerPhone];if(phs.includes(np)){toast('⚠️ این شماره قبلاً اضافه شده است');return}phs.push(np);const ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,cd?.note||'',phs);await showCustomerDetail(currentCustomerPhone);toast('✅ شماره جدید اضافه شد');closeModal('addPhoneModal')}catch(e){console.error(e);toast('❌ خطا در افزودن شماره')}}
     async function deletePhone(mp,pd){if(mp===pd){toast('⚠️ نمی‌توانید شماره اصلی را حذف کنید');return}if(!confirm(`آیا از حذف شماره ${pd} مطمئن هستید؟`))return;try{const cd=await getCust(mp);let phs=cd?.phones||[mp];phs=phs.filter(p=>p!==pd);const ws=await getWorks(),cw=ws.find(w=>w.customerPhone===mp);await saveCust(mp,cw.customerName,cd?.note||'',phs);await showCustomerDetail(mp);toast('✅ شماره حذف شد')}catch(e){console.error(e);toast('❌ خطا در حذف شماره')}}
 
-    function showSettleModal(){if(!settleData)return;settlePayment=null;document.getElementById('settleCustomerName').textContent=settleData.name;document.getElementById('settleDebtAmount').textContent=fmt(settleData.amount);document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));document.getElementById('settleDebtModal').classList.add('show')}
+    function showSettleModal(){
+        if(!settleData)return;
+        settlePayment=null;
+        document.getElementById('settleCustomerName').textContent=settleData.name;
+        document.getElementById('settleDebtAmount').textContent=fmt(settleData.amount);
+        document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));
+        
+        // --- Set current date as default ---
+        const td = new Date();
+        const j = toJalaali(td.getFullYear(), td.getMonth() + 1, td.getDate());
+        document.getElementById('settleDate').value = fmtDate(j.year, j.month, j.day);
+        
+        document.getElementById('settleDebtModal').classList.add('show');
+    }
+
     function selectSettlePayment(v,e){settlePayment=v;document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected')}
-    async function confirmSettle(){if(!settleData||!settlePayment){toast('⚠️ لطفاً نوع پرداخت را انتخاب کنید');return}try{const td=new Date(),p=toJalaali(td.getFullYear(),td.getMonth()+1,td.getDate()),pd=fmtDate(p.year,p.month,p.day),st={date:pd,customerName:settleData.name,customerPhone:settleData.phone,workType:'[تسویه بدهی]',amount:settleData.amount.toString(),paymentStatus:settlePayment,dueDate:null,paidAmount:null,debtAmount:null,isSettlement:true};await addWork(st);await updateStats();await showCustomerDetail(settleData.phone);toast('✅ بدهی تسویه شد');closeModal('settleDebtModal')}catch(e){console.error(e);toast('❌ خطا در تسویه بدهی')}}
+    
+    async function confirmSettle(){
+        if(!settleData||!settlePayment){toast('⚠️ لطفاً نوع پرداخت را انتخاب کنید');return}
+        
+        // --- Get Date from Input ---
+        const pd = document.getElementById('settleDate').value;
+        if(!pd) { toast('⚠️ لطفاً تاریخ تسویه را وارد کنید'); return; }
+
+        try{
+            const st={date:pd,customerName:settleData.name,customerPhone:settleData.phone,workType:'[تسویه بدهی]',amount:settleData.amount.toString(),paymentStatus:settlePayment,dueDate:null,paidAmount:null,debtAmount:null,isSettlement:true};
+            await addWork(st);await updateStats();await showCustomerDetail(settleData.phone);toast('✅ بدهی تسویه شد');closeModal('settleDebtModal');
+        }catch(e){console.error(e);toast('❌ خطا در تسویه بدهی')}
+    }
 
     async function renderDebtors(){try{console.log('renderDebtors called');const ws=await getWorks();console.log('Total works:',ws.length);const dm=new Map();ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement).forEach(w=>{const ph=w.customerPhone;if(!dm.has(ph))dm.set(ph,{name:w.customerName,phone:ph,debts:[]});dm.get(ph).debts.push(w)});console.log('Debtors map:',dm.size);const sts=ws.filter(w=>w.isSettlement),sm=new Map();sts.forEach(s=>{const ph=s.customerPhone,am=parseFloat(s.amount.replace(/,/g,'')||0);sm.set(ph,(sm.get(ph)||0)+am)});let dts=Array.from(dm.values());const td=new Date();dts.forEach(d=>{let tdt=d.debts.reduce((s,x)=>{let da;if(x.paymentStatus==='چک'){da=parseFloat(x.amount.replace(/,/g,'')||0)}else{da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0)}return s+da},0);const st=sm.get(d.phone)||0;d.totalDebt=Math.max(0,tdt-st);d.nearestDue=d.debts.filter(x=>x.dueDate).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate))[0];if(d.nearestDue){const dd=new Date(d.nearestDue.dueDate);d.daysUntilDue=Math.ceil((dd-td)/(1000*60*60*24))}else d.daysUntilDue=999});dts=dts.filter(d=>d.totalDebt>0);dts.sort((a,b)=>a.daysUntilDue-b.daysUntilDue);console.log('Filtered debtors:',dts.length);const cn=document.getElementById('debtorsList'),tda=dts.reduce((s,d)=>s+d.totalDebt,0);document.getElementById('debtorListCount').textContent=`${dts.length} مورد - مجموع: ${fmt(tda)} تومان`;if(dts.length===0){cn.innerHTML='<div class="empty-state"><p>🎉 بدهکاری وجود ندارد!</p></div>';return}cn.innerHTML='';dts.forEach(d=>{console.log('Processing debtor:',d.name,d.phone);const di=document.createElement('div');di.className='debt-item';let sc='',st='',dueDateTxt='';
     if(d.nearestDue){
