@@ -689,46 +689,102 @@ const APP = (function() {
         return 0;
     }
 
-    function startAlarmSound() {
-        if (window.AudioContext || window.webkitAudioContext) {
-            try {
-                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                // Resume context if suspended (common on mobile)
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.type = 'square';
-                let t = audioCtx.currentTime;
-                osc.frequency.setValueAtTime(600, t);
-                osc.frequency.linearRampToValueAtTime(800, t + 0.5);
-                osc.frequency.linearRampToValueAtTime(600, t + 1);
-                
-                osc.start();
-                
-                window.alarmInterval = setInterval(() => {
-                    if(osc && audioCtx) {
-                        const now = audioCtx.currentTime;
-                        osc.frequency.setValueAtTime(600, now);
-                        osc.frequency.linearRampToValueAtTime(900, now + 0.4);
-                    }
-                }, 500);
+function startAlarmSound() {
+        if (!window.AudioContext && !window.webkitAudioContext) return;
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // تلاش برای بیدار کردن AudioContext اگر خواب رفته باشد (مخصوص موبایل)
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
 
-            } catch(e) { console.error('Audio error', e); }
-        }
+            osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            osc.type = 'square'; // صدای زنگ دار و تیز
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime); // فرکانس پایه
+            
+            osc.start();
+
+            // افکت آژیر پلیسی (بالا و پایین رفتن فرکانس)
+            window.alarmInterval = setInterval(() => {
+                if (osc && audioCtx) {
+                    const now = audioCtx.currentTime;
+                    // تغییر فرکانس بین 800 و 1200 هرتز
+                    osc.frequency.setValueAtTime(800, now);
+                    osc.frequency.linearRampToValueAtTime(1200, now + 0.2);
+                    osc.frequency.linearRampToValueAtTime(800, now + 0.4);
+                }
+            }, 500); // هر نیم ثانیه تکرار شود
+
+        } catch (e) { console.error('Audio Error:', e); }
     }
-    
+
     function stopAlarm() {
         const modal = document.getElementById('alarmModal');
-        modal.classList.remove('show');
-        if(osc) {
-            try{ osc.stop(); } catch(e){}
+        if(modal) modal.classList.remove('show');
+        
+        if (osc) {
+            try { osc.stop(); osc.disconnect(); } catch (e) {}
             osc = null;
         }
-        if(window.alarmInterval) clearInterval(window.alarmInterval);
+        if (window.alarmInterval) {
+            clearInterval(window.alarmInterval);
+            window.alarmInterval = null;
+        }
+    }
+
+    // --- سیستم بررسی هوشمند آلارم (Smart Check System) ---
+    // متغیر برای جلوگیری از تکرار آلارم در یک دقیقه
+    let lastTriggeredTime = ""; 
+
+    function checkAlarms() {
+        const now = new Date();
+        // تبدیل تاریخ میلادی گوشی به شمسی برای مقایسه دقیق
+        const jNow = toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
+        
+        // ساخت فرمت‌های مقایسه
+        const currentJalaliDate = `${jNow.year}-${String(jNow.month).padStart(2, '0')}-${String(jNow.day).padStart(2, '0')}`; // مثلا 1403-09-05
+        const currentH = now.getHours();
+        const currentM = now.getMinutes();
+        
+        // ایجاد یک کلید زمانی برای جلوگیری از زنگ زدن تکراری در همان دقیقه
+        const timeKey = `${currentJalaliDate}-${currentH}:${currentM}`;
+        if (lastTriggeredTime === timeKey) return; // اگر در این دقیقه قبلا زنگ زده، دوباره نزن
+
+        console.log(`Checking Alarms... Time: ${currentH}:${currentM} | Date: ${currentJalaliDate}`);
+
+        getWorks().then(ws => {
+            // 1. بررسی چک‌های معمولی (سررسید ساعت 7 صبح)
+            ws.filter(w => w.paymentStatus === 'چک' && w.dueDate).forEach(w => {
+                // استانداردسازی تاریخ دیتابیس (تبدیل / به - و نرمال کردن اعداد)
+                let dbDate = w.dueDate.replace(/\//g, '-'); 
+                // اگر تاریخ‌ها یکی بود و ساعت 7:00 صبح بود
+                if (dbDate === currentJalaliDate && currentH === 7 && currentM === 0) {
+                    notify(w);
+                    lastTriggeredTime = timeKey;
+                }
+            });
+
+            // 2. بررسی یادآورهای تنظیم شده دقیق (سفارشی)
+            ws.filter(w => w.paymentStatus === 'چک' && w.reminderDate && w.reminderTime).forEach(w => {
+                let dbRemDate = w.reminderDate.replace(/\//g, '-');
+                
+                // پارس کردن ساعت یادآور
+                const [rH, rM] = w.reminderTime.split(':').map(Number);
+
+                // مقایسه دقیق: آیا تاریخ شمسی برابر است؟ آیا ساعت برابر است؟ آیا دقیقه برابر است؟
+                if (dbRemDate === currentJalaliDate && rH === currentH && rM === currentM) {
+                    console.log("ALARM MATCH FOUND!", w.customerName);
+                    triggerFullAlarm(w);
+                    lastTriggeredTime = timeKey;
+                }
+            });
+        }).catch(e => console.error("DB Error:", e));
     }
 
     // --- Invoice Generation Logic (Updated Text) ---
@@ -1374,25 +1430,55 @@ const APP = (function() {
     
     let lastTriggeredId = null; 
 
-    function triggerFullAlarm(w) {
-        if(lastTriggeredId === w.id) return;
-        lastTriggeredId = w.id;
-        
+        function triggerFullAlarm(w) {
         const modal = document.getElementById('alarmModal');
+        // پر کردن اطلاعات مودال
         document.getElementById('alarmCustomerName').textContent = w.customerName;
         document.getElementById('alarmAmount').textContent = fmt(w.amount) + ' تومان';
+        
+        // نمایش مودال
         modal.classList.add('show');
         
+        // پخش صدا و ویبره
         startAlarmSound();
-        if(navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]);
+        
+        // ویبره طولانی و ممتد (برای جلب توجه)
+        if (navigator.vibrate) {
+            // الگوی: 1ثانیه لرزش، 0.5ثانیه مکث، تکرار...
+            navigator.vibrate([1000, 500, 1000, 500, 1000, 500, 2000]); 
+        }
+        
+        // ارسال نوتیفیکیشن همزمان (برای روشن شدن صفحه گوشی)
+        notify(w, true);
     }
 
-    function notify(w) {
-        if('Notification'in window&&Notification.permission==='granted') {
-             new Notification('🔔 یادآوری سررسید چک',{body:`چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`, vibrate: [200, 100, 200]});
-             if(navigator.vibrate) navigator.vibrate([300, 100, 300]);
+    function notify(w, isFullAlarm = false) {
+        if ('Notification' in window && Notification.permission === 'granted') {
+            const title = isFullAlarm ? '🚨 هشدار فوری چک!' : '🔔 یادآوری سررسید چک';
+            const body = `چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان. موعدش رسیده!`;
+            
+            // تنظیمات خاص برای بیدار کردن گوشی
+            const options = {
+                body: body,
+                icon: 'https://cdn-icons-png.flaticon.com/512/2942/2942878.png', // آیکون زنگ (اختیاری)
+                vibrate: [500, 200, 500],
+                requireInteraction: true, // تا کاربر کلیک نکند، نوتیفیکیشن نمی‌رود (مهم برای کروم)
+                tag: 'crane-alarm-' + w.id // جلوگیری از تکرار بیهوده
+            };
+
+            const notif = new Notification(title, options);
+            
+            notif.onclick = function() {
+                window.focus(); // تلاش برای باز کردن پنجره مرورگر
+                if(isFullAlarm) {
+                     document.getElementById('alarmModal').classList.add('show');
+                }
+                this.close();
+            };
+        } else {
+            // اگر دسترسی نوتیفیکیشن نبود، فقط تست (Toast) نشان بده
+            toast(`⏰ هشدار چک: ${w.customerName}`);
         }
-        toast(`⏰ یادآوری: چک ${w.customerName}`);
     }
 
     async function exportData(){try{const ws=await getWorks(),t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.getAll();r.onsuccess=()=>{const cs=r.result,d={version:3,exportDate:new Date().toISOString(),workTypes,works:ws.map(w=>{const{id,...rest}=w;return rest}),customers:cs},b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast(`✅ بکاپ ${ws.length} کار ذخیره شد`)}}catch(e){console.error(e);toast('❌ خطا در ذخیره بکاپ')}}
