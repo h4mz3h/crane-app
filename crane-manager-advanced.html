@@ -2,10 +2,10 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت جرثقیل حسین کُرد (نسخه 9.0 - مدیریت مخارج)</title>
+    <title>مدیریت جرثقیل حسین کُرد (نسخه 9.5 - امنیتی)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -46,10 +46,8 @@
         .form-group { margin-bottom: 15px; position: relative; }
         .form-group label { display: block; margin-bottom: 8px; color: #334155; font-weight: 700; font-size: 13px; }
         
-        /* --- Aligned Inputs and Buttons --- */
         .input-wrapper { display: flex; gap: 8px; align-items: stretch; height: 50px; } 
         
-        /* .styled-input class for shared styling */
         .form-group input, .form-group select, .custom-select-trigger, .styled-input { 
             flex: 1; 
             padding: 0 15px; 
@@ -66,7 +64,6 @@
             width: 100%; 
         }
         
-        /* Fix for Customer Note Textarea */
         .customer-notes textarea, .form-group textarea {
             flex: 1;
             width: 100%;
@@ -86,27 +83,10 @@
         }
 
         .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .customer-notes textarea:focus, .styled-input:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
-        
-        /* Input that triggers calendar */
         .date-input { cursor: pointer; }
-
         .button-group { display: flex; gap: 8px; width: 45px; justify-content: flex-end; flex-shrink: 0; } 
         
-        .voice-btn { 
-            width: 45px; 
-            height: 100%; 
-            border: none; 
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            color: white; 
-            border-radius: 12px; 
-            cursor: pointer; 
-            font-size: 20px; 
-            transition: transform 0.2s; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3); 
-        }
+        .voice-btn { width: 45px; height: 100%; border: none; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border-radius: 12px; cursor: pointer; font-size: 20px; transition: transform 0.2s; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px rgba(102, 126, 234, 0.3); }
         .voice-btn:active { transform: scale(0.95); }
         .voice-btn.listening { animation: pulse 1.5s infinite; background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
@@ -122,46 +102,11 @@
         .due-date-section.show, .partial-payment.show { display: block; animation: slideDown 0.3s ease; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* --- Reminder Box Styling --- */
-        .reminder-box {
-            background: white;
-            border: 2px dashed #f87171;
-            border-radius: 10px;
-            padding: 10px;
-            margin-top: 15px;
-        }
-        .reminder-inputs-row {
-            display: flex;
-            gap: 8px;
-            height: 50px; 
-            align-items: center;
-        }
+        .reminder-box { background: white; border: 2px dashed #f87171; border-radius: 10px; padding: 10px; margin-top: 15px; }
+        .reminder-inputs-row { display: flex; gap: 8px; height: 50px; align-items: center; }
         .date-part { flex: 3; }
-        .time-part {
-            flex: 2; 
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            height: 100%;
-            direction: ltr; 
-            padding: 0 5px;
-        }
-        .time-select {
-            border: none;
-            background: transparent;
-            font-size: 18px;
-            font-weight: bold;
-            color: #334155;
-            appearance: none;
-            outline: none;
-            cursor: pointer;
-            text-align: center;
-            padding: 0 2px;
-            font-family: inherit;
-        }
+        .time-part { flex: 2; display: flex; align-items: center; justify-content: center; background: #f8fafc; border: 2px solid #e2e8f0; border-radius: 12px; height: 100%; direction: ltr; padding: 0 5px; }
+        .time-select { border: none; background: transparent; font-size: 18px; font-weight: bold; color: #334155; appearance: none; outline: none; cursor: pointer; text-align: center; padding: 0 2px; font-family: inherit; }
         .time-separator { font-weight: bold; margin: 0 2px; color: #334155; padding-bottom: 3px; }
 
         .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -169,7 +114,6 @@
         .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         
-        /* Work Type Drawer */
         .custom-select-trigger { cursor: pointer; display: flex; justify-content: space-between; align-items: center; height: 50px; width: 100%; padding: 0 15px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc; font-size: 16px; color: #334155; box-sizing: border-box; }
         .custom-select-trigger::after { content: '▼'; font-size: 12px; color: #94a3b8; margin-right: 10px; }
         .work-type-modal-list { margin-top: 15px; max-height: 300px; overflow-y: auto; }
@@ -183,7 +127,6 @@
         .add-new-type-input { flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; font-family: inherit; }
         .add-new-type-btn { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
-        /* Customer List */
         .customer-list { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
         .customer-item { padding: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
         .customer-item:hover { background: #f8fafc; }
@@ -261,12 +204,7 @@
         .btn-invoice { background: #6366f1; color: white; }
 
         /* Alarm Modal Style */
-        .alarm-modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #ef4444; color: white; z-index: 9999;
-            display: none; flex-direction: column; justify-content: center; align-items: center;
-            padding: 30px; text-align: center;
-        }
+        .alarm-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #ef4444; color: white; z-index: 9999; display: none; flex-direction: column; justify-content: center; align-items: center; padding: 30px; text-align: center; }
         .alarm-modal.show { display: flex; animation: pulseRed 1s infinite; }
         @keyframes pulseRed { 0% { background: #ef4444; } 50% { background: #dc2626; } 100% { background: #ef4444; } }
         .alarm-icon { font-size: 80px; margin-bottom: 20px; animation: ring 0.5s infinite; }
@@ -283,9 +221,58 @@
         .expense-title { font-weight: bold; color: #334155; font-size: 15px; }
         .expense-amount { font-weight: 800; color: #d97706; font-size: 15px; margin-top: 2px; }
         .expense-note { font-size: 12px; color: #64748b; margin-top: 4px; background: #fef3c7; padding: 4px 8px; border-radius: 6px; display: inline-block; }
+
+        /* --- Lock Screen Styles --- */
+        #lockScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            z-index: 10000; display: none; flex-direction: column; justify-content: center; align-items: center;
+            padding: 20px; color: white;
+        }
+        #lockScreen.show { display: flex; }
+        .lock-icon { font-size: 60px; margin-bottom: 20px; }
+        .pin-display {
+            display: flex; gap: 10px; margin-bottom: 30px;
+        }
+        .pin-dot { width: 15px; height: 15px; border: 2px solid #64748b; border-radius: 50%; transition: 0.2s; }
+        .pin-dot.filled { background: #3b82f6; border-color: #3b82f6; box-shadow: 0 0 10px rgba(59,130,246,0.5); }
+        .pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 300px; width: 100%; }
+        .pin-btn {
+            width: 70px; height: 70px; border-radius: 50%; background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2); color: white; font-size: 24px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center; cursor: pointer; margin: 0 auto;
+            transition: 0.2s;
+        }
+        .pin-btn:active { background: rgba(255,255,255,0.3); transform: scale(0.95); }
+        .lock-msg { margin-bottom: 30px; font-size: 16px; opacity: 0.8; text-align: center; }
     </style>
 </head>
 <body>
+    <div id="lockScreen" class="show">
+        <div class="lock-icon">🔒</div>
+        <div class="lock-msg" id="lockMsg">لطفاً رمز عبور را وارد کنید</div>
+        <div class="pin-display">
+            <div class="pin-dot" id="d1"></div>
+            <div class="pin-dot" id="d2"></div>
+            <div class="pin-dot" id="d3"></div>
+            <div class="pin-dot" id="d4"></div>
+        </div>
+        <div class="pin-pad">
+            <div class="pin-btn" onclick="APP.enterPin(1)">1</div>
+            <div class="pin-btn" onclick="APP.enterPin(2)">2</div>
+            <div class="pin-btn" onclick="APP.enterPin(3)">3</div>
+            <div class="pin-btn" onclick="APP.enterPin(4)">4</div>
+            <div class="pin-btn" onclick="APP.enterPin(5)">5</div>
+            <div class="pin-btn" onclick="APP.enterPin(6)">6</div>
+            <div class="pin-btn" onclick="APP.enterPin(7)">7</div>
+            <div class="pin-btn" onclick="APP.enterPin(8)">8</div>
+            <div class="pin-btn" onclick="APP.enterPin(9)">9</div>
+            <div class="pin-btn" style="background:transparent; border:none;"></div>
+            <div class="pin-btn" onclick="APP.enterPin(0)">0</div>
+            <div class="pin-btn" style="background:rgba(239,68,68,0.2); border-color:rgba(239,68,68,0.5); color:#fca5a5;" onclick="APP.clearPin()">⌫</div>
+        </div>
+    </div>
+
     <div class="container">
         <div class="header">
             <h1>مدیریت مشتریان - جرثقیل حسین کُرد</h1>
@@ -657,7 +644,7 @@
 
 <script>
 const APP = (function() {
-    const DB_NAME='CraneManagerProDB', DB_VERSION=4, WORKS='works', CUSTOMERS='customers', EXPENSES='expenses'; // Updated Version
+    const DB_NAME='CraneManagerProDB', DB_VERSION=4, WORKS='works', CUSTOMERS='customers', EXPENSES='expenses';
     let db, editWorkId=null, deleteWorkId=null, deleteCustomerPhone=null, currentCustomerPhone=null, settleData=null, settlePayment=null;
     let workTypes=['تانکر آب','سوله','حمل مصالح','نصب تیرآهن','بلند کردن بار','کانکس','سایر'];
     let expenseTypes=['سوخت','روغن','مکانیک','لاستیک','بیمه','کارواش','لوازم یدکی','سایر'];
@@ -666,7 +653,71 @@ const APP = (function() {
     let audioCtx = null, osc = null, gainNode = null;
     let currentInvoiceBlob = null;
     let alarmIntervalId = null; 
-    let isAudioUnlock = false; 
+    let isAudioUnlock = false;
+    
+    // --- Lock Screen State ---
+    let currentPin = '';
+    let storedPin = localStorage.getItem('appPin');
+
+    function checkLock() {
+        const lockScreen = document.getElementById('lockScreen');
+        const lockMsg = document.getElementById('lockMsg');
+        
+        if (!storedPin) {
+            lockMsg.textContent = '🔒 برای اولین بار یک رمز ۴ رقمی تنظیم کنید';
+        } else {
+            lockMsg.textContent = '🔒 لطفاً رمز عبور را وارد کنید';
+        }
+        lockScreen.classList.add('show');
+    }
+
+    function enterPin(num) {
+        if (currentPin.length < 4) {
+            currentPin += num;
+            updatePinDisplay();
+        }
+        if (currentPin.length === 4) {
+            setTimeout(validatePin, 200);
+        }
+    }
+
+    function clearPin() {
+        currentPin = '';
+        updatePinDisplay();
+    }
+
+    function updatePinDisplay() {
+        for (let i = 1; i <= 4; i++) {
+            const dot = document.getElementById('d' + i);
+            if (i <= currentPin.length) dot.classList.add('filled');
+            else dot.classList.remove('filled');
+        }
+    }
+
+    function validatePin() {
+        const lockScreen = document.getElementById('lockScreen');
+        const lockMsg = document.getElementById('lockMsg');
+
+        if (!storedPin) {
+            // Setting new PIN
+            localStorage.setItem('appPin', currentPin);
+            storedPin = currentPin;
+            toast('✅ رمز عبور تنظیم شد');
+            lockScreen.classList.remove('show');
+        } else {
+            // Checking PIN
+            if (currentPin === storedPin) {
+                lockScreen.classList.remove('show');
+            } else {
+                toast('❌ رمز اشتباه است');
+                lockMsg.textContent = '❌ رمز اشتباه است، دوباره تلاش کنید';
+                lockMsg.style.color = '#fca5a5';
+                currentPin = '';
+                updatePinDisplay();
+                if(navigator.vibrate) navigator.vibrate(300);
+            }
+        }
+    }
 
     function toJalaali(gy, gm, gd) {
         var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
@@ -1089,7 +1140,6 @@ const APP = (function() {
                     const s=d.createObjectStore(CUSTOMERS,{keyPath:'phone'});
                     s.createIndex('name','name',{unique:false});
                 }
-                // New Expense Store
                 if(!d.objectStoreNames.contains(EXPENSES)){
                     const s=d.createObjectStore(EXPENSES,{keyPath:'id',autoIncrement:true});
                     s.createIndex('date','date',{unique:false});
@@ -1106,7 +1156,6 @@ const APP = (function() {
     async function getCust(p){return new Promise((res,rej)=>{const t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.get(p);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
     async function delCust(p){return new Promise((res,rej)=>{const t=db.transaction([CUSTOMERS],'readwrite'),s=t.objectStore(CUSTOMERS),r=s.delete(p);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
 
-    // --- Expense Functions ---
     async function addExpense(ex){return new Promise((res,rej)=>{const t=db.transaction([EXPENSES],'readwrite'),s=t.objectStore(EXPENSES),r=s.add(ex);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
     async function getExpenses(){return new Promise((res,rej)=>{const t=db.transaction([EXPENSES],'readonly'),s=t.objectStore(EXPENSES),r=s.getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
     async function deleteExpense(id){return new Promise((res,rej)=>{const t=db.transaction([EXPENSES],'readwrite'),s=t.objectStore(EXPENSES),r=s.delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
@@ -1138,7 +1187,6 @@ const APP = (function() {
     async function renderExpenses() {
         try {
             const exs = await getExpenses();
-            // Sort by date descending
             exs.sort((a,b) => getDateValue(b.date) - getDateValue(a.date));
             
             const list = document.getElementById('expensesList');
@@ -1232,7 +1280,6 @@ const APP = (function() {
         }
     }
 
-    // --- Expense Types Logic ---
     function openExpenseTypeModal() {
         const list = document.getElementById('expTypeListInModal');
         list.innerHTML = '';
@@ -1903,13 +1950,17 @@ async function showCustomerDetail(ph){try{console.log('showCustomerDetail called
     document.body.addEventListener('click', unlockAudioContext);
     document.body.addEventListener('touchstart', unlockAudioContext);
 
+    // *** Check Lock Screen ***
+    checkLock();
+
     console.log('✅ Alarms setup (Every 15s)');
     console.log('✅✅✅ App ready!');
     }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
     return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice, generateReport,
-    // New Exports
-    submitExpense, openExpenseTypeModal, addExpTypeFromModal, deleteExpType, selectExpType, confirmDeleteExpense, renderExpenses
+    submitExpense, openExpenseTypeModal, addExpTypeFromModal, deleteExpType, selectExpType, confirmDeleteExpense, renderExpenses,
+    // Lock Exports
+    enterPin, clearPin
     }
 })();
 
