@@ -602,10 +602,11 @@ const APP = (function() {
     const pMonths=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
     let audioCtx = null, osc = null, gainNode = null;
     let currentInvoiceBlob = null;
-    let alarmIntervalId = null; // برای مدیریت تکرار صدا
-    let isAudioUnlock = false;  // برای مدیریت اجازه پخش صدا در موبایل
+    let alarmIntervalId = null; 
+    let isAudioUnlock = false;
+    let wakeLock = null; // برای روشن نگه داشتن صفحه
 
-    // --- توابع دقیق تقویم جلالی (الگوریتم خیام) ---
+    // --- توابع دقیق تقویم ---
     function toJalaali(gy, gm, gd) {
         var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
         var gy2 = (gm > 2) ? (gy + 1) : gy;
@@ -691,7 +692,21 @@ const APP = (function() {
         return 0;
     }
 
-    // --- سیستم صوتی جدید و بهینه شده ---
+    // --- سیستم روشن نگه داشتن صفحه (Wake Lock) ---
+    async function requestWakeLock() {
+        if ('wakeLock' in navigator) {
+            try {
+                wakeLock = await navigator.wakeLock.request('screen');
+                toast('💡 حالت آماده‌باش فعال شد (صفحه روشن می‌ماند)');
+            } catch (err) {
+                console.error(`${err.name}, ${err.message}`);
+            }
+        } else {
+            toast('⚠️ مرورگر شما از حالت بیداری پشتیبانی نمی‌کند');
+        }
+    }
+
+    // --- سیستم صوتی ---
     function unlockAudioContext() {
         if (isAudioUnlock) return;
         const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -707,7 +722,6 @@ const APP = (function() {
                  if(tempCtx.state === 'running') isAudioUnlock = true;
             }, 0);
         }
-        // حذف لیسنر بعد از اولین کلیک
         document.body.removeEventListener('click', unlockAudioContext);
         document.body.removeEventListener('touchstart', unlockAudioContext);
     }
@@ -717,18 +731,16 @@ const APP = (function() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
-            // قطع صدای قبلی اگر وجود دارد
             if (osc) { osc.stop(); osc.disconnect(); }
             if (alarmIntervalId) clearInterval(alarmIntervalId);
 
-            // ایجاد صدای آژیر مانند
             function playBeep() {
                 osc = audioCtx.createOscillator();
                 gainNode = audioCtx.createGain();
                 
                 osc.type = 'square';
                 osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
-                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.5); // صدای کاهشی (آژیر)
+                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.5); 
 
                 gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
@@ -740,7 +752,6 @@ const APP = (function() {
             }
 
             playBeep();
-            // تکرار صدا هر 1 ثانیه
             alarmIntervalId = setInterval(playBeep, 1000);
 
         } catch (e) {
@@ -757,11 +768,77 @@ const APP = (function() {
             try { osc.stop(); osc.disconnect(); } catch(e){}
             osc = null;
         }
-        // قطع ویبره
         if(navigator.vibrate) navigator.vibrate(0);
     }
 
-    // --- Invoice Generation Logic ---
+    // --- افزودن به تقویم گوشی (راه حل تضمینی) ---
+    function addToPhoneCalendar(workId) {
+        getWork(workId).then(w => {
+            if(!w) return;
+            
+            // تعیین تاریخ و زمان
+            let gDate;
+            let hour = 9, minute = 0;
+            
+            if(w.reminderDate && w.reminderTime) {
+                const parts = w.reminderDate.split('-');
+                gDate = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+                const timeParts = w.reminderTime.split(':');
+                hour = parseInt(timeParts[0]);
+                minute = parseInt(timeParts[1]);
+            } else if (w.dueDate) {
+                const parts = w.dueDate.split('-');
+                gDate = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
+            } else {
+                toast('⚠️ تاریخی برای این کار ثبت نشده');
+                return;
+            }
+
+            // ساخت فرمت زمان برای فایل ICS
+            const start = new Date(gDate);
+            start.setHours(hour, minute, 0);
+            const end = new Date(start);
+            end.setHours(hour + 1, minute, 0);
+
+            const formatDate = (date) => {
+                return date.toISOString().replace(/-|:|\.\d+/g, '');
+            };
+
+            const title = `چک مشتری: ${w.customerName}`;
+            const desc = `مبلغ: ${fmt(w.amount)} تومان - شماره: ${w.customerPhone}`;
+            
+            // ساخت محتوای فایل ICS
+            const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//CraneManager//NM//EN
+BEGIN:VEVENT
+UID:${Date.now()}@cranemanager
+DTSTAMP:${formatDate(new Date())}
+DTSTART:${formatDate(start)}
+DTEND:${formatDate(end)}
+SUMMARY:${title}
+DESCRIPTION:${desc}
+BEGIN:VALARM
+TRIGGER:-PT15M
+ACTION:DISPLAY
+DESCRIPTION:Reminder
+END:VALARM
+END:VEVENT
+END:VCALENDAR`;
+
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.setAttribute('download', `reminder-${w.customerName}.ics`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            toast('📅 فایل تقویم دانلود شد. آن را باز کنید تا در تقویم ذخیره شود.');
+        });
+    }
+
+    // --- Invoice Logic ---
     function generateInvoice(workId) {
         getWork(workId).then(w => {
             if (!w) return;
@@ -889,7 +966,6 @@ const APP = (function() {
         }
     }
 
-    // --- Reporting Logic ---
     async function generateReport() {
         const startVal = document.getElementById('reportStartVal').value;
         const endVal = document.getElementById('reportEndVal').value;
@@ -1161,7 +1237,6 @@ const APP = (function() {
         document.getElementById('paidAmount').value='';
         document.getElementById('remainingAmount').value='';
         
-        // Reset Alarm fields
         document.getElementById('reminderDateDisplay').value='';
         document.getElementById('reminderDate').value='';
         document.getElementById('alarmHour').value='09';
@@ -1244,7 +1319,7 @@ const APP = (function() {
             } else { dueDateTxt = w.dueDate; }
         }catch(e){dueDateTxt=w.dueDate}
     }
-    // Alarm Display Info
+    
     let reminderInfo = '';
     if(w.reminderDate && w.reminderTime) {
          try{
@@ -1256,7 +1331,14 @@ const APP = (function() {
 
     if(w.isSettlement)bg=`<span class="payment-badge settlement">💰 تسویه بدهی - ${w.paymentStatus}</span>`;else if(w.paymentStatus==='نسیه'){const da=w.debtAmount?fmt(w.debtAmount):fmt(w.amount),pi=w.paidAmount?` - پرداخت شده: ${fmt(w.paidAmount)}`:'';bg=`<span class="payment-badge debt">نسیه: ${da} تومان${pi}</span>`}else if(w.paymentStatus==='چک')bg=`<span class="payment-badge check">چک${dueDateTxt?' - سررسید: '+dueDateTxt:''}</span>`;else bg=`<span class="payment-badge paid">✅ ${w.paymentStatus}</span>`;
     
-    wi.innerHTML=`<div class="work-history-header"><div class="work-date">📅 ${w.date}</div><div class="work-amount">${fmt(w.amount)} تومان</div></div><div class="work-details"><div>🔧 ${w.workType}</div><div>${bg}</div>${reminderInfo}</div><div style="display:flex;gap:8px;margin-top:10px;"><button class="btn-small btn-invoice" onclick="APP.generateInvoice(${w.id})">🧾 فاکتور</button><button class="btn-small btn-edit" onclick="APP.editWork(${w.id})">✏️ ویرایش</button><button class="btn-small btn-delete" onclick="APP.showDelWorkModal(${w.id})">🗑️ حذف</button></div>`;hc.appendChild(wi)});console.log('Showing customer detail page');showPage('customer-detail')}catch(e){console.error('Error in showCustomerDetail:',e);toast('❌ خطا در بارگذاری اطلاعات مشتری')}}
+    wi.innerHTML=`<div class="work-history-header"><div class="work-date">📅 ${w.date}</div><div class="work-amount">${fmt(w.amount)} تومان</div></div><div class="work-details"><div>🔧 ${w.workType}</div><div>${bg}</div>${reminderInfo}</div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn-small btn-invoice" onclick="APP.generateInvoice(${w.id})">🧾 فاکتور</button>
+        <button class="btn-small btn-edit" onclick="APP.editWork(${w.id})" style="background:#f59e0b;color:white;">✏️</button>
+        <button class="btn-small btn-delete" onclick="APP.showDelWorkModal(${w.id})" style="background:#ef4444;color:white;">🗑️</button>
+        ${w.paymentStatus==='چک' || w.reminderDate ? `<button class="btn-small" onclick="APP.addToPhoneCalendar(${w.id})" style="background:#0ea5e9;color:white;">📅 افزودن به تقویم</button>` : ''}
+    </div>`;
+    hc.appendChild(wi)});console.log('Showing customer detail page');showPage('customer-detail')}catch(e){console.error('Error in showCustomerDetail:',e);toast('❌ خطا در بارگذاری اطلاعات مشتری')}}
 
     async function saveNote(){if(!currentCustomerPhone)return;try{const nt=document.getElementById('customerNote').value,ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);if(cw){const cd=await getCust(currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,nt,cd?.phones);toast('✅ یادداشت ذخیره شد');await showCustomerDetail(currentCustomerPhone);await renderCustomers()}}catch(e){console.error(e);toast('❌ خطا در ذخیره یادداشت')}}
 
@@ -1355,7 +1437,6 @@ const APP = (function() {
         const currentM = now.getMinutes();
 
         getWorks().then(ws => {
-            // 1. چک کردن سررسیدهای معمولی (چک‌های روز - ساعت 7 صبح)
             const td = new Date();
             td.setHours(7, 0, 0, 0);
             ws.filter(w => w.paymentStatus === 'چک' && w.dueDate).forEach(w => {
@@ -1370,7 +1451,6 @@ const APP = (function() {
                 }
             });
 
-            // 2. چک کردن یادآوری‌های دقیق (آلارم قرمز رنگ)
             ws.filter(w => w.paymentStatus === 'چک' && w.reminderDate && w.reminderTime).forEach(w => {
                 const dParts = w.reminderDate.split('-');
                 const rYear = parseInt(dParts[0]);
@@ -1401,7 +1481,6 @@ const APP = (function() {
         document.getElementById('alarmAmount').textContent = fmt(w.amount) + ' تومان';
         modal.classList.add('show');
 
-        // پخش صدا و ویبره
         startAlarmSound();
         if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]);
     }
@@ -1434,21 +1513,30 @@ const APP = (function() {
     const mSel = document.getElementById('alarmMinute');
     for(let i=0; i<24; i++) { const opt = document.createElement('option'); const val = i.toString().padStart(2,'0'); opt.value = val; opt.textContent = val; hSel.appendChild(opt); }
     for(let i=0; i<60; i++) { const opt = document.createElement('option'); const val = i.toString().padStart(2,'0'); opt.value = val; opt.textContent = val; mSel.appendChild(opt); }
-    // Defaults
     hSel.value = '09'; mSel.value = '00';
 
     if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
-    setInterval(checkAlarms, 15000); // Check every 15 seconds for precision
+    setInterval(checkAlarms, 15000); 
     
     // Unlock Audio Context on first interaction
     document.body.addEventListener('click', unlockAudioContext);
     document.body.addEventListener('touchstart', unlockAudioContext);
 
+    // افزودن دکمه آماده‌باش به هدر
+    const header = document.querySelector('.header');
+    if(header) {
+        const btn = document.createElement('button');
+        btn.innerHTML = '⚡ فعال‌سازی حالت آماده‌باش';
+        btn.style.cssText = "width:100%; padding:10px; background:#4f46e5; color:white; border:none; border-radius:10px; margin-top:10px; font-weight:bold; cursor:pointer;";
+        btn.onclick = requestWakeLock;
+        header.appendChild(btn);
+    }
+
     console.log('✅ Alarms setup (Every 15s)');
     console.log('✅✅✅ App ready!');
     }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
-    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice, generateReport}
+    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice, generateReport, addToPhoneCalendar, requestWakeLock}
 })();
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
