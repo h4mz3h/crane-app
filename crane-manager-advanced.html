@@ -600,13 +600,16 @@ const APP = (function() {
     let workTypes=['تانکر آب','سوله','حمل مصالح','نصب تیرآهن','بلند کردن بار','کانکس','سایر'];
     let recognition=null, voiceField=null, allCustomers=[];
     const pMonths=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
-    let audioCtx = null, osc = null, gainNode = null;
+    let audioCtx = null, osc = null;
     let currentInvoiceBlob = null;
     let alarmIntervalId = null; 
-    let isAudioUnlock = false;
-    let wakeLock = null; // برای روشن نگه داشتن صفحه
+    let wakeLock = null;
+    let keepAliveInterval = null;
 
-    // --- توابع دقیق تقویم ---
+    // --- 1. تنظیمات ضروری مرورگر ---
+    // کاربر باید در تنظیمات سایت (Site Settings) مجوز Sound و Popups را روی Allow بگذارد.
+
+    // --- توابع تقویم ---
     function toJalaali(gy, gm, gd) {
         var g_d_m = [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334];
         var gy2 = (gm > 2) ? (gy + 1) : gy;
@@ -692,325 +695,174 @@ const APP = (function() {
         return 0;
     }
 
-    // --- سیستم روشن نگه داشتن صفحه (Wake Lock) ---
-    async function requestWakeLock() {
+    // --- سیستم "شب بیداری" (Keep Alive System) ---
+    // این بخش حیاتی‌ترین قسمت برای درخواست شماست
+    async function activateStandbyMode() {
+        // 1. تلاش برای روشن نگه داشتن صفحه
         if ('wakeLock' in navigator) {
             try {
                 wakeLock = await navigator.wakeLock.request('screen');
-                toast('💡 حالت آماده‌باش فعال شد (صفحه روشن می‌ماند)');
-            } catch (err) {
-                console.error(`${err.name}, ${err.message}`);
-            }
-        } else {
-            toast('⚠️ مرورگر شما از حالت بیداری پشتیبانی نمی‌کند');
+            } catch (err) { console.error(err); }
         }
+
+        // 2. ایجاد یک overlay سیاه
+        let overlay = document.getElementById('standbyOverlay');
+        if(!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'standbyOverlay';
+            overlay.style.cssText = "position:fixed; top:0; left:0; width:100%; height:100%; background:black; z-index:10000; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#333;";
+            overlay.innerHTML = `
+                <div style="font-size:50px;">🌙</div>
+                <div style="margin-top:20px; font-weight:bold;">حالت آماده‌باش فعال است</div>
+                <div style="margin-top:10px; font-size:12px;">صفحه را خاموش نکنید. آلارم فعال است.</div>
+                <button style="margin-top:50px; padding:15px 30px; background:#ef4444; border:none; border-radius:10px; color:white; font-weight:bold; font-size:18px;" onclick="APP.deactivateStandbyMode()">خروج</button>
+            `;
+            document.body.appendChild(overlay);
+        }
+        overlay.style.display = 'flex';
+
+        // 3. ترفند پخش صدای صامت (برای جلوگیری از توقف پردازش توسط مرورگر)
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        
+        if(keepAliveInterval) clearInterval(keepAliveInterval);
+        
+        // هر 20 ثانیه یک نویز بسیار کوتاه و بی‌صدا پخش می‌کند تا موتور صوتی مرورگر بیدار بماند
+        keepAliveInterval = setInterval(() => {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.frequency.value = 100; 
+            gain.gain.value = 0.001; // تقریباً بی‌صدا
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.01);
+            console.log('Keep-alive ping');
+        }, 20000);
+
+        toast('🌙 حالت شب فعال شد. آلارم‌ها زنگ خواهند خورد.');
     }
 
-    // --- سیستم صوتی ---
-    function unlockAudioContext() {
-        if (isAudioUnlock) return;
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (Ctx) {
-            const tempCtx = new Ctx();
-            const buffer = tempCtx.createBuffer(1, 1, 22050);
-            const source = tempCtx.createBufferSource();
-            source.buffer = buffer;
-            source.connect(tempCtx.destination);
-            if (source.start) source.start(0);
-            else if (source.noteOn) source.noteOn(0);
-            setTimeout(() => {
-                 if(tempCtx.state === 'running') isAudioUnlock = true;
-            }, 0);
+    function deactivateStandbyMode() {
+        const overlay = document.getElementById('standbyOverlay');
+        if(overlay) overlay.style.display = 'none';
+        
+        if (wakeLock) {
+            wakeLock.release().then(() => { wakeLock = null; });
         }
-        document.body.removeEventListener('click', unlockAudioContext);
-        document.body.removeEventListener('touchstart', unlockAudioContext);
+        if(keepAliveInterval) clearInterval(keepAliveInterval);
     }
 
+    // --- سیستم آلارم و صدا ---
     function startAlarmSound() {
         try {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
-            if (osc) { osc.stop(); osc.disconnect(); }
+            if (osc) { try{osc.stop();}catch(e){} osc = null; }
             if (alarmIntervalId) clearInterval(alarmIntervalId);
 
-            function playBeep() {
+            function playSiren() {
                 osc = audioCtx.createOscillator();
-                gainNode = audioCtx.createGain();
+                const gain = audioCtx.createGain();
                 
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
-                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.5); 
+                osc.type = 'sawtooth'; // صدای تیزتر برای بیدار کردن
+                osc.frequency.setValueAtTime(600, audioCtx.currentTime); 
+                osc.frequency.linearRampToValueAtTime(1200, audioCtx.currentTime + 0.3); 
+                osc.frequency.linearRampToValueAtTime(600, audioCtx.currentTime + 0.6); 
 
-                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
-
-                osc.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
+                gain.gain.setValueAtTime(1, audioCtx.currentTime);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.6);
             }
 
-            playBeep();
-            alarmIntervalId = setInterval(playBeep, 1000);
+            playSiren();
+            alarmIntervalId = setInterval(playSiren, 800); // تکرار سریع
 
-        } catch (e) {
-            console.error('Audio Error:', e);
-        }
+        } catch (e) { console.error('Audio Error:', e); }
     }
     
     function stopAlarm() {
+        // خروج خودکار از حالت استندبای وقتی کاربر بیدار شد
+        deactivateStandbyMode(); 
+
         const modal = document.getElementById('alarmModal');
         modal.classList.remove('show');
         
         if (alarmIntervalId) clearInterval(alarmIntervalId);
-        if (osc) {
-            try { osc.stop(); osc.disconnect(); } catch(e){}
-            osc = null;
-        }
+        if (osc) { try { osc.stop(); } catch(e){} osc = null; }
         if(navigator.vibrate) navigator.vibrate(0);
     }
 
-    // --- افزودن به تقویم گوشی (راه حل تضمینی) ---
-    function addToPhoneCalendar(workId) {
-        getWork(workId).then(w => {
-            if(!w) return;
-            
-            // تعیین تاریخ و زمان
-            let gDate;
-            let hour = 9, minute = 0;
-            
-            if(w.reminderDate && w.reminderTime) {
-                const parts = w.reminderDate.split('-');
-                gDate = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-                const timeParts = w.reminderTime.split(':');
-                hour = parseInt(timeParts[0]);
-                minute = parseInt(timeParts[1]);
-            } else if (w.dueDate) {
-                const parts = w.dueDate.split('-');
-                gDate = new Date(parseInt(parts[0]), parseInt(parts[1])-1, parseInt(parts[2]));
-            } else {
-                toast('⚠️ تاریخی برای این کار ثبت نشده');
-                return;
-            }
-
-            // ساخت فرمت زمان برای فایل ICS
-            const start = new Date(gDate);
-            start.setHours(hour, minute, 0);
-            const end = new Date(start);
-            end.setHours(hour + 1, minute, 0);
-
-            const formatDate = (date) => {
-                return date.toISOString().replace(/-|:|\.\d+/g, '');
-            };
-
-            const title = `چک مشتری: ${w.customerName}`;
-            const desc = `مبلغ: ${fmt(w.amount)} تومان - شماره: ${w.customerPhone}`;
-            
-            // ساخت محتوای فایل ICS
-            const icsContent = `BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//CraneManager//NM//EN
-BEGIN:VEVENT
-UID:${Date.now()}@cranemanager
-DTSTAMP:${formatDate(new Date())}
-DTSTART:${formatDate(start)}
-DTEND:${formatDate(end)}
-SUMMARY:${title}
-DESCRIPTION:${desc}
-BEGIN:VALARM
-TRIGGER:-PT15M
-ACTION:DISPLAY
-DESCRIPTION:Reminder
-END:VALARM
-END:VEVENT
-END:VCALENDAR`;
-
-            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-            const link = document.createElement('a');
-            link.href = window.URL.createObjectURL(blob);
-            link.setAttribute('download', `reminder-${w.customerName}.ics`);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            
-            toast('📅 فایل تقویم دانلود شد. آن را باز کنید تا در تقویم ذخیره شود.');
-        });
-    }
-
-    // --- Invoice Logic ---
+    // --- Invoice Logic (Same as before) ---
     function generateInvoice(workId) {
         getWork(workId).then(w => {
             if (!w) return;
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const width = 800;
-            const height = 1000;
-            canvas.width = width;
-            canvas.height = height;
-
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, width, height);
-
-            ctx.fillStyle = '#2563eb';
-            ctx.fillRect(0, 0, width, 150);
-
-            ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 40px Tahoma, "Segoe UI", sans-serif';
-            ctx.textAlign = 'center';
+            const width = 800; const height = 1000;
+            canvas.width = width; canvas.height = height;
+            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = '#2563eb'; ctx.fillRect(0, 0, width, 150);
+            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 40px Tahoma, "Segoe UI", sans-serif'; ctx.textAlign = 'center';
             ctx.fillText('فاکتور خدمات جرثقیل', width / 2, 70);
-            ctx.font = 'bold 25px Tahoma';
-            ctx.fillText('حسین کُرد', width / 2, 120);
-
-            ctx.fillStyle = '#1e293b';
-            ctx.textAlign = 'right';
-            ctx.font = 'bold 24px Tahoma';
-            ctx.direction = 'rtl';
-            
-            const startY = 220;
-            const lineHeight = 50;
-            const rightX = width - 50;
-            const leftX = 50;
-
-            ctx.strokeStyle = '#e2e8f0';
-            ctx.lineWidth = 2;
-            ctx.strokeRect(40, 180, width - 80, 160);
-            
+            ctx.font = 'bold 25px Tahoma'; ctx.fillText('حسین کُرد', width / 2, 120);
+            ctx.fillStyle = '#1e293b'; ctx.textAlign = 'right'; ctx.font = 'bold 24px Tahoma'; ctx.direction = 'rtl';
+            const startY = 220; const lineHeight = 50; const rightX = width - 50; const leftX = 50;
+            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 2; ctx.strokeRect(40, 180, width - 80, 160);
             ctx.fillText(`نام مشتری: ${w.customerName}`, rightX - 20, startY);
             ctx.fillText(`شماره تماس: ${w.customerPhone}`, rightX - 20, startY + lineHeight);
             ctx.fillText(`تاریخ انجام کار: ${w.date}`, rightX - 20, startY + lineHeight * 2);
-
-            const detailsY = 380;
-            ctx.strokeRect(40, detailsY, width - 80, 300);
-            ctx.fillStyle = '#f8fafc';
-            ctx.fillRect(42, detailsY + 2, width - 84, 60);
-            
-            ctx.fillStyle = '#1e293b';
-            ctx.font = 'bold 26px Tahoma';
-            ctx.fillText('شرح خدمات', rightX - 30, detailsY + 40);
-            ctx.textAlign = 'left';
-            ctx.fillText('مبلغ', leftX + 30, detailsY + 40);
-
-            ctx.font = '24px Tahoma';
-            ctx.textAlign = 'right';
-            ctx.fillText(w.workType, rightX - 30, detailsY + 110);
-            
-            ctx.textAlign = 'left';
-            ctx.font = 'bold 24px Tahoma';
-            ctx.fillStyle = '#059669';
+            const detailsY = 380; ctx.strokeRect(40, detailsY, width - 80, 300);
+            ctx.fillStyle = '#f8fafc'; ctx.fillRect(42, detailsY + 2, width - 84, 60);
+            ctx.fillStyle = '#1e293b'; ctx.font = 'bold 26px Tahoma';
+            ctx.fillText('شرح خدمات', rightX - 30, detailsY + 40); ctx.textAlign = 'left'; ctx.fillText('مبلغ', leftX + 30, detailsY + 40);
+            ctx.font = '24px Tahoma'; ctx.textAlign = 'right'; ctx.fillText(w.workType, rightX - 30, detailsY + 110);
+            ctx.textAlign = 'left'; ctx.font = 'bold 24px Tahoma'; ctx.fillStyle = '#059669';
             ctx.fillText(fmt(w.amount) + ' تومان', leftX + 30, detailsY + 110);
-
             let payStatusText = `وضعیت: ${w.paymentStatus}`;
-            if (w.paymentStatus === 'نسیه') {
-                const remaining = w.debtAmount ? fmt(w.debtAmount) : '0';
-                payStatusText += ` (باقیمانده: ${remaining})`;
-            }
-            
-            ctx.textAlign = 'center';
-            ctx.fillStyle = '#64748b';
-            ctx.font = '20px Tahoma';
-            ctx.fillText(payStatusText, width / 2, detailsY + 250);
-
-            ctx.fillStyle = '#eff6ff';
-            ctx.fillRect(40, 700, width - 80, 100);
-            ctx.fillStyle = '#1e40af';
-            ctx.font = 'bold 35px Tahoma';
-            ctx.fillText(`مبلغ قابل پرداخت: ${fmt(w.amount)} تومان`, width / 2, 765);
-
-            ctx.fillStyle = '#64748b';
-            ctx.font = 'bold 20px Tahoma';
-            ctx.fillText('از حسن اعتماد و انتخاب شما سپاسگزاریم', width / 2, 900);
-            
-            ctx.font = '18px Tahoma';
-            ctx.fillStyle = '#94a3b8';
-            ctx.fillText('تعهد ما، دقت و ایمنی در انجام پروژه‌های شماست', width / 2, 940);
-
+            if (w.paymentStatus === 'نسیه') { const remaining = w.debtAmount ? fmt(w.debtAmount) : '0'; payStatusText += ` (باقیمانده: ${remaining})`; }
+            ctx.textAlign = 'center'; ctx.fillStyle = '#64748b'; ctx.font = '20px Tahoma'; ctx.fillText(payStatusText, width / 2, detailsY + 250);
+            ctx.fillStyle = '#eff6ff'; ctx.fillRect(40, 700, width - 80, 100);
+            ctx.fillStyle = '#1e40af'; ctx.font = 'bold 35px Tahoma'; ctx.fillText(`مبلغ قابل پرداخت: ${fmt(w.amount)} تومان`, width / 2, 765);
+            ctx.fillStyle = '#64748b'; ctx.font = 'bold 20px Tahoma'; ctx.fillText('از حسن اعتماد و انتخاب شما سپاسگزاریم', width / 2, 900);
+            ctx.font = '18px Tahoma'; ctx.fillStyle = '#94a3b8'; ctx.fillText('تعهد ما، دقت و ایمنی در انجام پروژه‌های شماست', width / 2, 940);
             const dataUrl = canvas.toDataURL('image/png');
             document.getElementById('invoiceImage').src = dataUrl;
-            
-            canvas.toBlob(blob => {
-                currentInvoiceBlob = blob;
-            });
-
+            canvas.toBlob(blob => { currentInvoiceBlob = blob; });
             document.getElementById('invoiceModal').classList.add('show');
         });
     }
-
-    function downloadInvoice() {
-        const link = document.createElement('a');
-        link.download = 'invoice.png';
-        link.href = document.getElementById('invoiceImage').src;
-        link.click();
-    }
-
-    async function shareInvoice() {
-        if (!currentInvoiceBlob) return;
-        if (navigator.share && navigator.canShare) {
-            const file = new File([currentInvoiceBlob], 'invoice.png', { type: 'image/png' });
-            const data = {
-                files: [file],
-                title: 'فاکتور خدمات',
-                text: 'فاکتور خدمات جرثقیل حسین کُرد'
-            };
-            if (navigator.canShare(data)) {
-                try {
-                    await navigator.share(data);
-                } catch (err) {
-                    console.error('Share failed:', err);
-                }
-            } else {
-                toast('⚠️ مرورگر شما اشتراک‌گذاری فایل را پشتیبانی نمی‌کند');
-            }
-        } else {
-            toast('⚠️ اشتراک‌گذاری در این مرورگر پشتیبانی نمی‌شود');
-        }
-    }
+    function downloadInvoice() { const link = document.createElement('a'); link.download = 'invoice.png'; link.href = document.getElementById('invoiceImage').src; link.click(); }
+    async function shareInvoice() { if (!currentInvoiceBlob) return; if (navigator.share && navigator.canShare) { const file = new File([currentInvoiceBlob], 'invoice.png', { type: 'image/png' }); const data = { files: [file], title: 'فاکتور خدمات', text: 'فاکتور خدمات جرثقیل حسین کُرد' }; if (navigator.canShare(data)) { try { await navigator.share(data); } catch (err) { console.error('Share failed:', err); } } else { toast('⚠️ مرورگر شما اشتراک‌گذاری فایل را پشتیبانی نمی‌کند'); } } else { toast('⚠️ اشتراک‌گذاری در این مرورگر پشتیبانی نمی‌شود'); } }
 
     async function generateReport() {
         const startVal = document.getElementById('reportStartVal').value;
         const endVal = document.getElementById('reportEndVal').value;
-        
         if(!startVal || !endVal) { toast('⚠️ لطفاً بازه زمانی را انتخاب کنید'); return; }
-        
-        const sDate = parseInt(startVal);
-        const eDate = parseInt(endVal);
-        
+        const sDate = parseInt(startVal); const eDate = parseInt(endVal);
         if(sDate > eDate) { toast('⚠️ تاریخ شروع نباید بعد از پایان باشد'); return; }
-        
         const ws = await getWorks();
-        
         let total = 0, cash = 0, check = 0, credit = 0, count = 0;
-        
         ws.forEach(w => {
             const wDateVal = getDateValue(w.date); 
             if(wDateVal >= sDate && wDateVal <= eDate) {
                 count++;
                 const am = parseFloat(w.amount.replace(/,/g,'')||0);
                 if(!w.isSettlement) {
-                    if(w.paymentStatus === 'نقدی' || w.paymentStatus === 'کارت به کارت' || w.paymentStatus === 'کارتخوان') {
-                        total += am; cash += am;
-                    } else if (w.paymentStatus === 'چک') {
-                        total += am; check += am;
-                    } else if (w.paymentStatus === 'نسیه') {
-                        total += am;
-                        const paid = w.paidAmount ? parseFloat(w.paidAmount.replace(/,/g,'')||0) : 0;
-                        cash += paid;
-                        credit += (am - paid);
-                    }
+                    if(w.paymentStatus === 'نقدی' || w.paymentStatus === 'کارت به کارت' || w.paymentStatus === 'کارتخوان') { total += am; cash += am; }
+                    else if (w.paymentStatus === 'چک') { total += am; check += am; }
+                    else if (w.paymentStatus === 'نسیه') { total += am; const paid = w.paidAmount ? parseFloat(w.paidAmount.replace(/,/g,'')||0) : 0; cash += paid; credit += (am - paid); }
                 }
             }
         });
-        
-        document.getElementById('repTotal').textContent = fmt(total);
-        document.getElementById('repCash').textContent = fmt(cash);
-        document.getElementById('repCheck').textContent = fmt(check);
-        document.getElementById('repCredit').textContent = fmt(credit);
-        document.getElementById('repCount').textContent = count;
-        
-        document.getElementById('reportResults').style.display = 'block';
+        document.getElementById('repTotal').textContent = fmt(total); document.getElementById('repCash').textContent = fmt(cash); document.getElementById('repCheck').textContent = fmt(check); document.getElementById('repCredit').textContent = fmt(credit); document.getElementById('repCount').textContent = count; document.getElementById('reportResults').style.display = 'block';
     }
 
-    // --- Database Functions ---
+    // --- Database ---
     async function initDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onerror=()=>rej(r.error);r.onsuccess=()=>{db=r.result;res(db)};r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains(WORKS)){const s=d.createObjectStore(WORKS,{keyPath:'id',autoIncrement:true});s.createIndex('customerPhone','customerPhone',{unique:false});s.createIndex('date','date',{unique:false});s.createIndex('paymentStatus','paymentStatus',{unique:false})}if(!d.objectStoreNames.contains(CUSTOMERS)){const s=d.createObjectStore(CUSTOMERS,{keyPath:'phone'});s.createIndex('name','name',{unique:false})}}})}
     async function addWork(w){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readwrite'),s=t.objectStore(WORKS),r=s.add(w);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
     async function getWorks(){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readonly'),s=t.objectStore(WORKS),r=s.getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -1022,521 +874,103 @@ END:VCALENDAR`;
     async function delCust(p){return new Promise((res,rej)=>{const t=db.transaction([CUSTOMERS],'readwrite'),s=t.objectStore(CUSTOMERS),r=s.delete(p);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
 
     function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000)}
-
     function loadTypes(){const s=localStorage.getItem('workTypes');if(s)try{workTypes=JSON.parse(s)}catch(e){}}
     function saveTypes(){localStorage.setItem('workTypes',JSON.stringify(workTypes))}
     
-    function openWorkTypeModal() {
-        const list = document.getElementById('workTypeListInModal');
-        list.innerHTML = '';
-        workTypes.forEach((t, i) => {
-            const row = document.createElement('div');
-            row.className = 'work-type-row';
-            row.innerHTML = `
-                <span class="work-type-label" onclick="APP.selectWorkType('${t}')">${t}</span>
-                <button class="work-type-delete" onclick="APP.deleteType(${i})">🗑️</button>
-            `;
-            list.appendChild(row);
-        });
-        document.getElementById('workTypeModal').classList.add('show');
-    }
-    
-    function selectWorkType(val) {
-        document.getElementById('workType').value = val;
-        const display = document.getElementById('workTypeDisplay');
-        display.textContent = val;
-        display.style.color = '#1e293b';
-        closeModal('workTypeModal');
-    }
-    
-    function addWorkTypeFromModal() {
-        const inp = document.getElementById('newWorkTypeInModal');
-        const nt = inp.value.trim();
-        if(!nt){toast('⚠️ لطفاً نوع کار را وارد کنید');return}
-        if(workTypes.includes(nt)){toast('⚠️ تکراری است');return}
-        workTypes.push(nt);
-        saveTypes();
-        inp.value = '';
-        openWorkTypeModal(); 
-        toast('✅ اضافه شد');
-    }
-
-    function deleteType(i){
-        if(workTypes.length<=1){toast('⚠️ حداقل یک مورد لازم است');return}
-        if(confirm(`حذف "${workTypes[i]}"؟`)){
-            workTypes.splice(i,1);
-            saveTypes();
-            openWorkTypeModal();
-            toast('✅ حذف شد');
-        }
-    }
+    function openWorkTypeModal() { const list = document.getElementById('workTypeListInModal'); list.innerHTML = ''; workTypes.forEach((t, i) => { const row = document.createElement('div'); row.className = 'work-type-row'; row.innerHTML = `<span class="work-type-label" onclick="APP.selectWorkType('${t}')">${t}</span><button class="work-type-delete" onclick="APP.deleteType(${i})">🗑️</button>`; list.appendChild(row); }); document.getElementById('workTypeModal').classList.add('show'); }
+    function selectWorkType(val) { document.getElementById('workType').value = val; const display = document.getElementById('workTypeDisplay'); display.textContent = val; display.style.color = '#1e293b'; closeModal('workTypeModal'); }
+    function addWorkTypeFromModal() { const inp = document.getElementById('newWorkTypeInModal'); const nt = inp.value.trim(); if(!nt){toast('⚠️ لطفاً نوع کار را وارد کنید');return} if(workTypes.includes(nt)){toast('⚠️ تکراری است');return} workTypes.push(nt); saveTypes(); inp.value = ''; openWorkTypeModal(); toast('✅ اضافه شد'); }
+    function deleteType(i){ if(workTypes.length<=1){toast('⚠️ حداقل یک مورد لازم است');return} if(confirm(`حذف "${workTypes[i]}"؟`)){ workTypes.splice(i,1); saveTypes(); openWorkTypeModal(); toast('✅ حذف شد'); } }
 
     if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){const S=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new S();recognition.lang='fa-IR';recognition.continuous=false;recognition.interimResults=false;recognition.onresult=e=>{const t=e.results[0][0].transcript;handleVoice(t)};recognition.onerror=()=>{toast('❌ خطا در تشخیص صدا');stopVoice()};recognition.onend=()=>stopVoice()}
     function startVoice(f){if(!recognition){toast('⚠️ مرورگر شما از ورودی صوتی پشتیبانی نمی‌کند');return}voiceField=f;try{recognition.start();toast('🎤 در حال گوش دادن...')}catch(e){stopVoice()}}
     function stopVoice(){if(recognition)try{recognition.stop()}catch(e){}document.querySelectorAll('.voice-btn').forEach(b=>{b.classList.remove('listening')})}
     
-    function normalizePersianNumbers(text) {
-        const map = {
-            'یک': '1', 'دو': '2', 'سه': '3', 'چهار': '4', 'پنج': '5',
-            'شش': '6', 'شیش': '6', 'هفت': '7', 'هشت': '8', 'نه': '9', 'ده': '10',
-            'یازده': '11', 'دوازده': '12', 'سیزده': '13', 'چهارده': '14', 'پانزده': '15',
-            'شانزده': '16', 'هفده': '17', 'هجده': '18', 'نوزده': '19', 'بیست': '20',
-            'سی': '30', 'یکم': '1', 'دوی': '2', 'سوم': '3', 'چهارم': '4', 'پنجم': '5',
-            'ششم': '6', 'هفتم': '7', 'هشتم': '8', 'نهم': '9', 'دهم': '10',
-            '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9', '۰': '0'
-        };
-        for (let word in map) {
-            let regex = new RegExp(word, 'g');
-            text = text.replace(regex, map[word]);
-        }
-        return text;
-    }
-
-    function handleVoice(t){
-        if(!voiceField)return;
-        const f=document.getElementById(voiceField);
-        if(!f)return;
-        let c=t.trim();
-        if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount' || voiceField === 'settleDate' || voiceField.includes('report')) {
-            c = normalizePersianNumbers(c);
-        }
-        if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-        if(voiceField==='amount'||voiceField==='paidAmount'){
-            c=c.replace(/تومان|ریال|میلیون|هزار/g,'').trim().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-            if(t.includes('میلیون')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000000).toString()}
-            else if(t.includes('هزار')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000).toString()}
-        }
-        f.value=c;
-        if(voiceField==='amount'||voiceField==='paidAmount'){formatAmount(f);calcRemaining()}
-        toast(`✅ "${c}" ثبت شد`);
-        stopVoice()
-    }
-
+    function normalizePersianNumbers(text) { const map = { 'یک': '1', 'دو': '2', 'سه': '3', 'چهار': '4', 'پنج': '5', 'شش': '6', 'شیش': '6', 'هفت': '7', 'هشت': '8', 'نه': '9', 'ده': '10', 'یازده': '11', 'دوازده': '12', 'سیزده': '13', 'چهارده': '14', 'پانزده': '15', 'شانزده': '16', 'هفده': '17', 'هجده': '18', 'نوزده': '19', 'بیست': '20', 'سی': '30', 'یکم': '1', 'دوی': '2', 'سوم': '3', 'چهارم': '4', 'پنجم': '5', 'ششم': '6', 'هفتم': '7', 'هشتم': '8', 'نهم': '9', 'دهم': '10', '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9', '۰': '0' }; for (let word in map) { let regex = new RegExp(word, 'g'); text = text.replace(regex, map[word]); } return text; }
+    function handleVoice(t){ if(!voiceField)return; const f=document.getElementById(voiceField); if(!f)return; let c=t.trim(); if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount' || voiceField === 'settleDate' || voiceField.includes('report')) { c = normalizePersianNumbers(c); } if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)); if(voiceField==='amount'||voiceField==='paidAmount'){ c=c.replace(/تومان|ریال|میلیون|هزار/g,'').trim().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d)); if(t.includes('میلیون')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000000).toString()} else if(t.includes('هزار')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000).toString()} } f.value=c; if(voiceField==='amount'||voiceField==='paidAmount'){formatAmount(f);calcRemaining()} toast(`✅ "${c}" ثبت شد`); stopVoice() }
     function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
     function calcRemaining(){const t=parseFloat(document.getElementById('amount').value.replace(/,/g,'')||0),p=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0),r=t-p;document.getElementById('remainingAmount').value=r>=0?fmt(r):'0'}
 
-    // --- Logic تقویم ---
+    // --- Calendar UI ---
     function showCal(target){
         let el = document.getElementById(target.includes('reminder') || target.includes('report') ? target : (target==='dueDate'?'dueDateDisplay':target));
-        let initialVal = el.value;
-        let jy, jm, jd;
-        if(initialVal && initialVal.split(' ').length === 3) {
-            const parts = initialVal.split(' ');
-            jd = parseInt(parts[0]);
-            jm = pMonths.indexOf(parts[1]) + 1;
-            jy = parseInt(parts[2]);
-        } 
-        if (!jy || !jm) {
-            const today = new Date();
-            const j = toJalaali(today.getFullYear(), today.getMonth()+1, today.getDate());
-            jy = j.year; jm = j.month; jd = j.day;
-        }
-        const m = document.createElement('div');
-        m.className = 'datepicker-modal';
-        m.innerHTML = `<div class="datepicker-content"><div class="datepicker-header"><button type="button" onclick="window.prevM()">‹</button><span id="dpMonthTitle"></span><button type="button" onclick="window.nextM()">›</button></div><div class="datepicker-weekdays"><span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span style="color:#ef4444">ج</span></div><div class="datepicker-days" id="dpDays"></div><button type="button" class="btn-close" onclick="window.closeCal()">بستن</button></div>`;
-        document.body.appendChild(m);
-        window.dpModal = m;
-        window.dpTarget = target;
-        window.dpCurY = jy;
-        window.dpCurM = jm;
-        window.dpSelectedD = jd;
-        renderCal();
-        setTimeout(() => m.classList.add('show'), 10);
+        let initialVal = el.value; let jy, jm, jd;
+        if(initialVal && initialVal.split(' ').length === 3) { const parts = initialVal.split(' '); jd = parseInt(parts[0]); jm = pMonths.indexOf(parts[1]) + 1; jy = parseInt(parts[2]); } 
+        if (!jy || !jm) { const today = new Date(); const j = toJalaali(today.getFullYear(), today.getMonth()+1, today.getDate()); jy = j.year; jm = j.month; jd = j.day; }
+        const m = document.createElement('div'); m.className = 'datepicker-modal'; m.innerHTML = `<div class="datepicker-content"><div class="datepicker-header"><button type="button" onclick="window.prevM()">‹</button><span id="dpMonthTitle"></span><button type="button" onclick="window.nextM()">›</button></div><div class="datepicker-weekdays"><span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span style="color:#ef4444">ج</span></div><div class="datepicker-days" id="dpDays"></div><button type="button" class="btn-close" onclick="window.closeCal()">بستن</button></div>`; document.body.appendChild(m); window.dpModal = m; window.dpTarget = target; window.dpCurY = jy; window.dpCurM = jm; window.dpSelectedD = jd; renderCal(); setTimeout(() => m.classList.add('show'), 10);
     }
-    
-    window.prevM = function() {
-        window.dpCurM--;
-        if(window.dpCurM < 1) { window.dpCurM = 12; window.dpCurY--; }
-        renderCal();
-    };
-    
-    window.nextM = function() {
-        window.dpCurM++;
-        if(window.dpCurM > 12) { window.dpCurM = 1; window.dpCurY++; }
-        renderCal();
-    };
-    
-    window.closeCal = function() {
-        if(window.dpModal) {
-            window.dpModal.classList.remove('show');
-            setTimeout(() => {
-                if(window.dpModal && window.dpModal.parentNode) window.dpModal.parentNode.removeChild(window.dpModal);
-                window.dpModal = null;
-            }, 300);
-        }
-    };
-    
-    function renderCal() {
-        const title = document.getElementById('dpMonthTitle');
-        const daysContainer = document.getElementById('dpDays');
-        if(!title || !daysContainer) return;
-        title.textContent = `${pMonths[window.dpCurM-1]} ${window.dpCurY}`;
-        daysContainer.innerHTML = '';
-        const daysInMonth = jalaliMonthLength(window.dpCurY, window.dpCurM);
-        const gDateFirst = toGregorian(window.dpCurY, window.dpCurM, 1);
-        let startDay = gDateFirst.getDay() + 1; // 0=Sun, 6=Sat in JS. We want 0=Sat.
-        if(startDay === 7) startDay = 0; 
-        for(let i=0; i<startDay; i++) {
-            daysContainer.appendChild(document.createElement('div'));
-        }
-        const today = new Date();
-        const jToday = toJalaali(today.getFullYear(), today.getMonth()+1, today.getDate());
-        for(let i=1; i<=daysInMonth; i++) {
-            const btn = document.createElement('button');
-            btn.type = 'button';
-            btn.textContent = i;
-            if(window.dpCurY === jToday.year && window.dpCurM === jToday.month && i === jToday.day) {
-                btn.classList.add('today');
-            }
-            if(i === window.dpSelectedD) btn.classList.add('selected');
-            btn.onclick = () => selectDate(i);
-            daysContainer.appendChild(btn);
-        }
-    }
-    
-    function selectDate(d) {
-        const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
-        const gDateObj = toGregorian(window.dpCurY, window.dpCurM, d);
-        const gy = gDateObj.getFullYear();
-        const gm = String(gDateObj.getMonth() + 1).padStart(2, '0');
-        const gd = String(gDateObj.getDate()).padStart(2, '0');
-        const gDateIso = `${gy}-${gm}-${gd}`;
-        
-        const jDateIso = `${window.dpCurY}${String(window.dpCurM).padStart(2,'0')}${String(d).padStart(2,'0')}`;
-
-        if(window.dpTarget === 'date') {
-            document.getElementById('date').value = pDateStr;
-        } else if (window.dpTarget === 'dueDate') {
-            document.getElementById('dueDateDisplay').value = pDateStr;
-            document.getElementById('dueDate').value = gDateIso;
-        } else if (window.dpTarget === 'settleDate') {
-            document.getElementById('settleDate').value = pDateStr;
-        } else if (window.dpTarget === 'reminderDate') {
-            document.getElementById('reminderDateDisplay').value = pDateStr;
-            document.getElementById('reminderDate').value = gDateIso;
-        } else if (window.dpTarget === 'reportStartDate') {
-            document.getElementById('reportStartDate').value = pDateStr;
-            document.getElementById('reportStartVal').value = jDateIso; 
-        } else if (window.dpTarget === 'reportEndDate') {
-            document.getElementById('reportEndDate').value = pDateStr;
-            document.getElementById('reportEndVal').value = jDateIso; 
-        }
-        window.closeCal();
-    }
+    window.prevM = function() { window.dpCurM--; if(window.dpCurM < 1) { window.dpCurM = 12; window.dpCurY--; } renderCal(); };
+    window.nextM = function() { window.dpCurM++; if(window.dpCurM > 12) { window.dpCurM = 1; window.dpCurY++; } renderCal(); };
+    window.closeCal = function() { if(window.dpModal) { window.dpModal.classList.remove('show'); setTimeout(() => { if(window.dpModal && window.dpModal.parentNode) window.dpModal.parentNode.removeChild(window.dpModal); window.dpModal = null; }, 300); } };
+    function renderCal() { const title = document.getElementById('dpMonthTitle'); const daysContainer = document.getElementById('dpDays'); if(!title || !daysContainer) return; title.textContent = `${pMonths[window.dpCurM-1]} ${window.dpCurY}`; daysContainer.innerHTML = ''; const daysInMonth = jalaliMonthLength(window.dpCurY, window.dpCurM); const gDateFirst = toGregorian(window.dpCurY, window.dpCurM, 1); let startDay = gDateFirst.getDay() + 1; if(startDay === 7) startDay = 0; for(let i=0; i<startDay; i++) { daysContainer.appendChild(document.createElement('div')); } const today = new Date(); const jToday = toJalaali(today.getFullYear(), today.getMonth()+1, today.getDate()); for(let i=1; i<=daysInMonth; i++) { const btn = document.createElement('button'); btn.type = 'button'; btn.textContent = i; if(window.dpCurY === jToday.year && window.dpCurM === jToday.month && i === jToday.day) { btn.classList.add('today'); } if(i === window.dpSelectedD) btn.classList.add('selected'); btn.onclick = () => selectDate(i); daysContainer.appendChild(btn); } }
+    function selectDate(d) { const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d); const gDateObj = toGregorian(window.dpCurY, window.dpCurM, d); const gy = gDateObj.getFullYear(); const gm = String(gDateObj.getMonth() + 1).padStart(2, '0'); const gd = String(gDateObj.getDate()).padStart(2, '0'); const gDateIso = `${gy}-${gm}-${gd}`; const jDateIso = `${window.dpCurY}${String(window.dpCurM).padStart(2,'0')}${String(d).padStart(2,'0')}`; if(window.dpTarget === 'date') { document.getElementById('date').value = pDateStr; } else if (window.dpTarget === 'dueDate') { document.getElementById('dueDateDisplay').value = pDateStr; document.getElementById('dueDate').value = gDateIso; } else if (window.dpTarget === 'settleDate') { document.getElementById('settleDate').value = pDateStr; } else if (window.dpTarget === 'reminderDate') { document.getElementById('reminderDateDisplay').value = pDateStr; document.getElementById('reminderDate').value = gDateIso; } else if (window.dpTarget === 'reportStartDate') { document.getElementById('reportStartDate').value = pDateStr; document.getElementById('reportStartVal').value = jDateIso; } else if (window.dpTarget === 'reportEndDate') { document.getElementById('reportEndDate').value = pDateStr; document.getElementById('reportEndVal').value = jDateIso; } window.closeCal(); }
 
     async function setupAuto(){const ni=document.getElementById('customerName'),pi=document.getElementById('phone'),sg=document.getElementById('customerSuggestions');if(!ni||!sg)return;const ws=await getWorks(),cm=new Map();for(const w of ws){if(!cm.has(w.customerPhone)){const cd=await getCust(w.customerPhone);cm.set(w.customerPhone,{name:w.customerName,phone:w.customerPhone,phones:cd?.phones||[w.customerPhone]})}}allCustomers=Array.from(cm.values());ni.addEventListener('input',function(){const q=this.value.trim();if(q.length<2){sg.classList.add('hidden');sg.innerHTML='';return}const m=allCustomers.filter(c=>c.name.includes(q)).slice(0,10);if(m.length>0){sg.innerHTML='';m.forEach(c=>{const it=document.createElement('div');it.className='autocomplete-item';it.innerHTML=`<strong>${c.name}</strong><br><span style="font-size:13px;color:#64748b;">📞 ${c.phone}</span>`;it.onclick=()=>{ni.value=c.name;pi.value=c.phone;sg.classList.add('hidden');sg.innerHTML=''};sg.appendChild(it)});sg.classList.remove('hidden')}else{sg.classList.add('hidden');sg.innerHTML=''}});document.addEventListener('click',e=>{if(!ni.contains(e.target)&&!sg.contains(e.target)){sg.classList.add('hidden');sg.innerHTML=''}})}
 
-    function selectPayment(v,e){
-        document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
-        e.target.classList.add('selected');
-        document.getElementById('paymentStatus').value=v;
-        document.getElementById('dueDateSection').classList.remove('show');
-        document.getElementById('partialPaymentSection').classList.remove('show');
-        document.getElementById('dueDate').value='';
-        document.getElementById('dueDateDisplay').value='';
-        document.getElementById('paidAmount').value='';
-        document.getElementById('remainingAmount').value='';
-        
-        document.getElementById('reminderDateDisplay').value='';
-        document.getElementById('reminderDate').value='';
-        document.getElementById('alarmHour').value='09';
-        document.getElementById('alarmMinute').value='00';
-        
-        if(v==='چک')document.getElementById('dueDateSection').classList.add('show');
-        else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show');
-    }
+    function selectPayment(v,e){ document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected')); e.target.classList.add('selected'); document.getElementById('paymentStatus').value=v; document.getElementById('dueDateSection').classList.remove('show'); document.getElementById('partialPaymentSection').classList.remove('show'); document.getElementById('dueDate').value=''; document.getElementById('dueDateDisplay').value=''; document.getElementById('paidAmount').value=''; document.getElementById('remainingAmount').value=''; document.getElementById('reminderDateDisplay').value=''; document.getElementById('reminderDate').value=''; document.getElementById('alarmHour').value='09'; document.getElementById('alarmMinute').value='00'; if(v==='چک')document.getElementById('dueDateSection').classList.add('show'); else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show'); }
 
     async function submitWork(e){e.preventDefault();const ps=document.getElementById('paymentStatus').value;if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}const ta=document.getElementById('amount').value.replace(/,/g,'');let ada=ta,pa=0;if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}
-    
-    let remDate = null, remTime = null;
-    if(ps==='چک') {
-        remDate = document.getElementById('reminderDate').value;
-        const h = document.getElementById('alarmHour').value;
-        const m = document.getElementById('alarmMinute').value;
-        
-        if(remDate) {
-             remTime = `${h}:${m}`;
-        }
-    }
+    let remDate = null, remTime = null; if(ps==='چک') { remDate = document.getElementById('reminderDate').value; const h = document.getElementById('alarmHour').value; const m = document.getElementById('alarmMinute').value; if(remDate) { remTime = `${h}:${m}`; } }
+    const w={ date:document.getElementById('date').value, customerName:document.getElementById('customerName').value, customerPhone:document.getElementById('phone').value, workType:document.getElementById('workType').value, amount:ta, paymentStatus:ps, dueDate:ps==='چک'?document.getElementById('dueDate').value:null, reminderDate: remDate, reminderTime: remTime, paidAmount:ps==='نسیه'?pa.toString():null, debtAmount:(ps==='نسیه'||ps==='چک')?ada.toString():null, isSettlement:false };
+    try{const sb=document.getElementById('submitBtn');sb.disabled=true;sb.textContent='⏳ در حال ثبت...';if(editWorkId!==null){await updateWork(editWorkId,w);editWorkId=null;toast('✅ کار ویرایش شد');sb.textContent='✅ ثبت'}else{await addWork(w);toast('✅ کار جدید ثبت شد')}const cd=await getCust(w.customerPhone);await saveCust(w.customerPhone,w.customerName,cd?.note||'',cd?.phones);await updateStats();await setupAuto(); document.getElementById('workForm').reset(); document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected')); document.getElementById('dueDateSection').classList.remove('show'); document.getElementById('partialPaymentSection').classList.remove('show'); document.getElementById('paymentStatus').value=''; document.getElementById('date').value=''; document.getElementById('workTypeDisplay').textContent = 'انتخاب کنید...'; document.getElementById('workTypeDisplay').style.color = '#94a3b8'; sb.disabled=false;sb.textContent='✅ ثبت'}catch(er){console.error(er);toast('❌ خطا در ثبت اطلاعات');document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent=editWorkId!==null?'✏️ ویرایش':'✅ ثبت'}}
 
-    const w={
-        date:document.getElementById('date').value,
-        customerName:document.getElementById('customerName').value,
-        customerPhone:document.getElementById('phone').value,
-        workType:document.getElementById('workType').value,
-        amount:ta,
-        paymentStatus:ps,
-        dueDate:ps==='چک'?document.getElementById('dueDate').value:null,
-        reminderDate: remDate,
-        reminderTime: remTime,
-        paidAmount:ps==='نسیه'?pa.toString():null,
-        debtAmount:(ps==='نسیه'||ps==='چک')?ada.toString():null,
-        isSettlement:false
-    };
-    try{const sb=document.getElementById('submitBtn');sb.disabled=true;sb.textContent='⏳ در حال ثبت...';if(editWorkId!==null){await updateWork(editWorkId,w);editWorkId=null;toast('✅ کار ویرایش شد');sb.textContent='✅ ثبت'}else{await addWork(w);toast('✅ کار جدید ثبت شد')}const cd=await getCust(w.customerPhone);await saveCust(w.customerPhone,w.customerName,cd?.note||'',cd?.phones);await updateStats();await setupAuto();
-    document.getElementById('workForm').reset();
-    document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
-    document.getElementById('dueDateSection').classList.remove('show');
-    document.getElementById('partialPaymentSection').classList.remove('show');
-    document.getElementById('paymentStatus').value='';
-    document.getElementById('date').value='';
-    document.getElementById('workTypeDisplay').textContent = 'انتخاب کنید...';
-    document.getElementById('workTypeDisplay').style.color = '#94a3b8';
-    sb.disabled=false;sb.textContent='✅ ثبت'}catch(er){console.error(er);toast('❌ خطا در ثبت اطلاعات');document.getElementById('submitBtn').disabled=false;document.getElementById('submitBtn').textContent=editWorkId!==null?'✏️ ویرایش':'✅ ثبت'}}
+    async function updateStats(){try{const ws=await getWorks(),up=new Set(ws.map(w=>w.customerPhone));document.getElementById('totalCustomers').textContent=fmt(up.size); const tr=ws.reduce((s,w)=>{ const am=parseFloat(w.amount.replace(/,/g,'')||0); if(w.isSettlement) return s + am; if(w.paymentStatus==='نقدی'||w.paymentStatus==='کارت به کارت'||w.paymentStatus==='کارتخوان'){return s+am} else if(w.paymentStatus==='نسیه'&&w.paidAmount){return s+parseFloat(w.paidAmount.replace(/,/g,'')||0)} return s },0); document.getElementById('totalRevenue').textContent=fmt(tr); const dbs=ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement),sts=ws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('totalDebt').textContent=fmt(td);const dp=new Set();for(const w of dbs){const ph=w.customerPhone,cdb=dbs.filter(x=>x.customerPhone===ph),cst=sts.filter(x=>x.customerPhone===ph);let ctd=cdb.reduce((s,x)=>{const da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0);return s+da},0);const cts=cst.reduce((s,x)=>s+parseFloat(x.amount.replace(/,/g,'')||0),0),rd=ctd-cts;if(rd>0)dp.add(ph)}document.getElementById('debtorCount').textContent=fmt(dp.size)}catch(e){console.error(e)}}
 
-    async function updateStats(){try{const ws=await getWorks(),up=new Set(ws.map(w=>w.customerPhone));document.getElementById('totalCustomers').textContent=fmt(up.size);
-    const tr=ws.reduce((s,w)=>{
-        const am=parseFloat(w.amount.replace(/,/g,'')||0);
-        if(w.isSettlement) return s + am;
-        if(w.paymentStatus==='نقدی'||w.paymentStatus==='کارت به کارت'||w.paymentStatus==='کارتخوان'){return s+am}
-        else if(w.paymentStatus==='نسیه'&&w.paidAmount){return s+parseFloat(w.paidAmount.replace(/,/g,'')||0)}
-        return s
-    },0);
-    document.getElementById('totalRevenue').textContent=fmt(tr);
-    const dbs=ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement),sts=ws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('totalDebt').textContent=fmt(td);const dp=new Set();for(const w of dbs){const ph=w.customerPhone,cdb=dbs.filter(x=>x.customerPhone===ph),cst=sts.filter(x=>x.customerPhone===ph);let ctd=cdb.reduce((s,x)=>{const da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0);return s+da},0);const cts=cst.reduce((s,x)=>s+parseFloat(x.amount.replace(/,/g,'')||0),0),rd=ctd-cts;if(rd>0)dp.add(ph)}document.getElementById('debtorCount').textContent=fmt(dp.size)}catch(e){console.error(e)}}
+    async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w); if(!c.lastWorkDate || getDateValue(w.date) > getDateValue(c.lastWorkDate)){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date} const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq)); cs.sort((a,b) => getDateValue(b.lastWorkDate) - getDateValue(a.lastWorkDate)); const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;color:#2563eb;font-size:16px;margin-left:5px;">📞</span> ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
 
-    async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w);
-    if(!c.lastWorkDate || getDateValue(w.date) > getDateValue(c.lastWorkDate)){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date}
-    const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));
-    cs.sort((a,b) => getDateValue(b.lastWorkDate) - getDateValue(a.lastWorkDate));
-    const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;color:#2563eb;font-size:16px;margin-left:5px;">📞</span> ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
-
-    async function showCustomerDetail(ph){try{console.log('showCustomerDetail called with phone:',ph);currentCustomerPhone=ph;const ws=await getWorks();console.log('Total works:',ws.length);
-    const cws=ws.filter(w=>w.customerPhone===ph).sort((a,b)=> {
-        const da = getDateValue(a.date);
-        const db = getDateValue(b.date);
-        if (da !== db) return db - da; 
-        return (b.id||0)-(a.id||0); 
-    });
-    console.log('Customer works:',cws.length);if(cws.length===0){console.log('No works found for customer');return}const cd=await getCust(ph);console.log('Customer data:',cd);document.getElementById('detailCustomerName').textContent=cws[0].customerName;document.getElementById('detailCustomerPhone').textContent=`📞 ${ph}`;document.getElementById('customerNote').value=cd?.note||'';const tp=cws.reduce((s,w)=>{const am=parseFloat(w.amount.replace(/,/g,'')||0);if(!['نسیه','چک'].includes(w.paymentStatus))return s+am;else if(w.paymentStatus==='نسیه'&&w.paidAmount)return s+parseFloat(w.paidAmount.replace(/,/g,'')||0);return s},0);const dbs=cws.filter(w=>['نسیه','چک'].includes(w.paymentStatus)&&!w.isSettlement),sts=cws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('detailWorkCount').textContent=cws.length;document.getElementById('detailTotalPaid').textContent=fmt(tp);document.getElementById('detailCurrentDebt').textContent=fmt(td);const sb=document.getElementById('settleDebtBtn');if(td>0){sb.classList.remove('hidden');settleData={phone:ph,amount:td,name:cws[0].customerName}}else sb.classList.add('hidden');const phs=cd?.phones||[ph],pc=document.getElementById('phoneNumbersList');pc.innerHTML='';phs.forEach((p,i)=>{const pi=document.createElement('div');pi.className='phone-item';pi.innerHTML=`<span>📞 ${p}${i===0?' (اصلی)':''}</span>`;if(phs.length>1&&i>0){const del=document.createElement('button');del.className='btn-small btn-delete';del.textContent='🗑️';del.onclick=()=>deletePhone(ph,p);pi.appendChild(del)}pc.appendChild(pi)});const lw=cws[0];document.getElementById('detailLastWork').textContent=`${lw.date} - ${lw.workType}`;const nd=document.getElementById('customerNoteDisplay'),nt=document.getElementById('customerNoteText');if(cd?.note){nt.textContent=cd.note;nd.classList.remove('hidden')}else nd.classList.add('hidden');const hc=document.getElementById('workHistory');hc.innerHTML='';
-    cws.forEach(w=>{const wi=document.createElement('div');wi.className='work-history-item';if(w.isSettlement)wi.classList.add('settlement');let bg='',dueDateTxt='';
-    if(w.dueDate){
-        try{
-            const parts = w.dueDate.split('-');
-            if(parts.length === 3) {
-                const pd = toJalaali(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
-                dueDateTxt = fmtDate(pd.year, pd.month, pd.day);
-            } else { dueDateTxt = w.dueDate; }
-        }catch(e){dueDateTxt=w.dueDate}
-    }
-    
-    let reminderInfo = '';
-    if(w.reminderDate && w.reminderTime) {
-         try{
-            const parts = w.reminderDate.split('-');
-            const pd = toJalaali(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
-            reminderInfo = `<div style="margin-top:4px; font-size:11px; color:#ef4444; font-weight:bold;">⏰ یادآوری: ${fmtDate(pd.year, pd.month, pd.day)} ساعت ${w.reminderTime}</div>`;
-         } catch(e){}
-    }
-
-    if(w.isSettlement)bg=`<span class="payment-badge settlement">💰 تسویه بدهی - ${w.paymentStatus}</span>`;else if(w.paymentStatus==='نسیه'){const da=w.debtAmount?fmt(w.debtAmount):fmt(w.amount),pi=w.paidAmount?` - پرداخت شده: ${fmt(w.paidAmount)}`:'';bg=`<span class="payment-badge debt">نسیه: ${da} تومان${pi}</span>`}else if(w.paymentStatus==='چک')bg=`<span class="payment-badge check">چک${dueDateTxt?' - سررسید: '+dueDateTxt:''}</span>`;else bg=`<span class="payment-badge paid">✅ ${w.paymentStatus}</span>`;
-    
-    wi.innerHTML=`<div class="work-history-header"><div class="work-date">📅 ${w.date}</div><div class="work-amount">${fmt(w.amount)} تومان</div></div><div class="work-details"><div>🔧 ${w.workType}</div><div>${bg}</div>${reminderInfo}</div>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-        <button class="btn-small btn-invoice" onclick="APP.generateInvoice(${w.id})">🧾 فاکتور</button>
-        <button class="btn-small btn-edit" onclick="APP.editWork(${w.id})" style="background:#f59e0b;color:white;">✏️</button>
-        <button class="btn-small btn-delete" onclick="APP.showDelWorkModal(${w.id})" style="background:#ef4444;color:white;">🗑️</button>
-        ${w.paymentStatus==='چک' || w.reminderDate ? `<button class="btn-small" onclick="APP.addToPhoneCalendar(${w.id})" style="background:#0ea5e9;color:white;">📅 افزودن به تقویم</button>` : ''}
-    </div>`;
-    hc.appendChild(wi)});console.log('Showing customer detail page');showPage('customer-detail')}catch(e){console.error('Error in showCustomerDetail:',e);toast('❌ خطا در بارگذاری اطلاعات مشتری')}}
+    async function showCustomerDetail(ph){try{console.log('showCustomerDetail called with phone:',ph);currentCustomerPhone=ph;const ws=await getWorks();console.log('Total works:',ws.length); const cws=ws.filter(w=>w.customerPhone===ph).sort((a,b)=> { const da = getDateValue(a.date); const db = getDateValue(b.date); if (da !== db) return db - da; return (b.id||0)-(a.id||0); }); console.log('Customer works:',cws.length);if(cws.length===0){console.log('No works found for customer');return}const cd=await getCust(ph);console.log('Customer data:',cd);document.getElementById('detailCustomerName').textContent=cws[0].customerName;document.getElementById('detailCustomerPhone').textContent=`📞 ${ph}`;document.getElementById('customerNote').value=cd?.note||'';const tp=cws.reduce((s,w)=>{const am=parseFloat(w.amount.replace(/,/g,'')||0);if(!['نسیه','چک'].includes(w.paymentStatus))return s+am;else if(w.paymentStatus==='نسیه'&&w.paidAmount)return s+parseFloat(w.paidAmount.replace(/,/g,'')||0);return s},0);const dbs=cws.filter(w=>['نسیه','چک'].includes(w.paymentStatus)&&!w.isSettlement),sts=cws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('detailWorkCount').textContent=cws.length;document.getElementById('detailTotalPaid').textContent=fmt(tp);document.getElementById('detailCurrentDebt').textContent=fmt(td);const sb=document.getElementById('settleDebtBtn');if(td>0){sb.classList.remove('hidden');settleData={phone:ph,amount:td,name:cws[0].customerName}}else sb.classList.add('hidden');const phs=cd?.phones||[ph],pc=document.getElementById('phoneNumbersList');pc.innerHTML='';phs.forEach((p,i)=>{const pi=document.createElement('div');pi.className='phone-item';pi.innerHTML=`<span>📞 ${p}${i===0?' (اصلی)':''}</span>`;if(phs.length>1&&i>0){const del=document.createElement('button');del.className='btn-small btn-delete';del.textContent='🗑️';del.onclick=()=>deletePhone(ph,p);pi.appendChild(del)}pc.appendChild(pi)});const lw=cws[0];document.getElementById('detailLastWork').textContent=`${lw.date} - ${lw.workType}`;const nd=document.getElementById('customerNoteDisplay'),nt=document.getElementById('customerNoteText');if(cd?.note){nt.textContent=cd.note;nd.classList.remove('hidden')}else nd.classList.add('hidden');const hc=document.getElementById('workHistory');hc.innerHTML='';
+    cws.forEach(w=>{const wi=document.createElement('div');wi.className='work-history-item';if(w.isSettlement)wi.classList.add('settlement');let bg='',dueDateTxt=''; if(w.dueDate){ try{ const parts = w.dueDate.split('-'); if(parts.length === 3) { const pd = toJalaali(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2])); dueDateTxt = fmtDate(pd.year, pd.month, pd.day); } else { dueDateTxt = w.dueDate; } }catch(e){dueDateTxt=w.dueDate} } let reminderInfo = ''; if(w.reminderDate && w.reminderTime) { try{ const parts = w.reminderDate.split('-'); const pd = toJalaali(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2])); reminderInfo = `<div style="margin-top:4px; font-size:11px; color:#ef4444; font-weight:bold;">⏰ یادآوری: ${fmtDate(pd.year, pd.month, pd.day)} ساعت ${w.reminderTime}</div>`; } catch(e){} } if(w.isSettlement)bg=`<span class="payment-badge settlement">💰 تسویه بدهی - ${w.paymentStatus}</span>`;else if(w.paymentStatus==='نسیه'){const da=w.debtAmount?fmt(w.debtAmount):fmt(w.amount),pi=w.paidAmount?` - پرداخت شده: ${fmt(w.paidAmount)}`:'';bg=`<span class="payment-badge debt">نسیه: ${da} تومان${pi}</span>`}else if(w.paymentStatus==='چک')bg=`<span class="payment-badge check">چک${dueDateTxt?' - سررسید: '+dueDateTxt:''}</span>`;else bg=`<span class="payment-badge paid">✅ ${w.paymentStatus}</span>`;
+    wi.innerHTML=`<div class="work-history-header"><div class="work-date">📅 ${w.date}</div><div class="work-amount">${fmt(w.amount)} تومان</div></div><div class="work-details"><div>🔧 ${w.workType}</div><div>${bg}</div>${reminderInfo}</div><div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;"><button class="btn-small btn-invoice" onclick="APP.generateInvoice(${w.id})">🧾 فاکتور</button><button class="btn-small btn-edit" style="background:#f59e0b;color:white;" onclick="APP.editWork(${w.id})">✏️</button><button class="btn-small btn-delete" style="background:#ef4444;color:white;" onclick="APP.showDelWorkModal(${w.id})">🗑️</button></div>`;hc.appendChild(wi)});console.log('Showing customer detail page');showPage('customer-detail')}catch(e){console.error('Error in showCustomerDetail:',e);toast('❌ خطا در بارگذاری اطلاعات مشتری')}}
 
     async function saveNote(){if(!currentCustomerPhone)return;try{const nt=document.getElementById('customerNote').value,ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);if(cw){const cd=await getCust(currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,nt,cd?.phones);toast('✅ یادداشت ذخیره شد');await showCustomerDetail(currentCustomerPhone);await renderCustomers()}}catch(e){console.error(e);toast('❌ خطا در ذخیره یادداشت')}}
-
-    async function editWork(id){try{editWorkId=id;const w=await getWork(id);if(!w)return;showPage('add-work');document.getElementById('date').value=w.date;document.getElementById('customerName').value=w.customerName;document.getElementById('phone').value=w.customerPhone;
-    document.getElementById('workType').value=w.workType;
-    document.getElementById('workTypeDisplay').textContent=w.workType;
-    document.getElementById('workTypeDisplay').style.color='#1e293b';
-    
-    document.getElementById('amount').value=w.amount;document.querySelectorAll('#page-add-work .payment-option').forEach(o=>{if(o.textContent.includes(w.paymentStatus))o.classList.add('selected');else o.classList.remove('selected')});document.getElementById('paymentStatus').value=w.paymentStatus;
-    if(w.paymentStatus==='چک'){
-        document.getElementById('dueDateSection').classList.add('show');
-        if(w.dueDate) {
-            const parts = w.dueDate.split('-');
-            if(parts.length===3) {
-                 const p=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
-                 document.getElementById('dueDateDisplay').value=fmtDate(p.year,p.month,p.day);
-            }
-            document.getElementById('dueDate').value=w.dueDate
-        }
-        if(w.reminderDate && w.reminderTime) {
-            const parts = w.reminderDate.split('-');
-            if(parts.length===3) {
-                 const p=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
-                 document.getElementById('reminderDateDisplay').value=fmtDate(p.year,p.month,p.day);
-            }
-            document.getElementById('reminderDate').value = w.reminderDate;
-            const [h, m] = w.reminderTime.split(':');
-            document.getElementById('alarmHour').value = h;
-            document.getElementById('alarmMinute').value = m;
-        }
-    }else if(w.paymentStatus==='نسیه'&&w.paidAmount){document.getElementById('partialPaymentSection').classList.add('show');document.getElementById('paidAmount').value=w.paidAmount;calcRemaining()}document.getElementById('submitBtn').textContent='✏️ ویرایش';window.scrollTo({top:0,behavior:'smooth'});toast('💡 در حال ویرایش کار...')}catch(e){console.error(e);toast('❌ خطا در بارگذاری اطلاعات کار')}}
-
+    async function editWork(id){try{editWorkId=id;const w=await getWork(id);if(!w)return;showPage('add-work');document.getElementById('date').value=w.date;document.getElementById('customerName').value=w.customerName;document.getElementById('phone').value=w.customerPhone; document.getElementById('workType').value=w.workType; document.getElementById('workTypeDisplay').textContent=w.workType; document.getElementById('workTypeDisplay').style.color='#1e293b'; document.getElementById('amount').value=w.amount;document.querySelectorAll('#page-add-work .payment-option').forEach(o=>{if(o.textContent.includes(w.paymentStatus))o.classList.add('selected');else o.classList.remove('selected')});document.getElementById('paymentStatus').value=w.paymentStatus; if(w.paymentStatus==='چک'){ document.getElementById('dueDateSection').classList.add('show'); if(w.dueDate) { const parts = w.dueDate.split('-'); if(parts.length===3) { const p=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2])); document.getElementById('dueDateDisplay').value=fmtDate(p.year,p.month,p.day); } document.getElementById('dueDate').value=w.dueDate } if(w.reminderDate && w.reminderTime) { const parts = w.reminderDate.split('-'); if(parts.length===3) { const p=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2])); document.getElementById('reminderDateDisplay').value=fmtDate(p.year,p.month,p.day); } document.getElementById('reminderDate').value = w.reminderDate; const [h, m] = w.reminderTime.split(':'); document.getElementById('alarmHour').value = h; document.getElementById('alarmMinute').value = m; } }else if(w.paymentStatus==='نسیه'&&w.paidAmount){document.getElementById('partialPaymentSection').classList.add('show');document.getElementById('paidAmount').value=w.paidAmount;calcRemaining()}document.getElementById('submitBtn').textContent='✏️ ویرایش';window.scrollTo({top:0,behavior:'smooth'});toast('💡 در حال ویرایش کار...')}catch(e){console.error(e);toast('❌ خطا در بارگذاری اطلاعات کار')}}
     function showDelWorkModal(id){deleteWorkId=id;document.getElementById('deleteModal').classList.add('show')}
     async function confirmDeleteWork(){if(deleteWorkId===null)return;try{await deleteWork(deleteWorkId);await updateStats();if(currentCustomerPhone)await showCustomerDetail(currentCustomerPhone);else await renderCustomers();toast('✅ کار حذف شد');closeModal('deleteModal');deleteWorkId=null}catch(e){console.error(e);toast('❌ خطا در حذف کار')}}
-
     function showDelCustModal(p,n,wc,ta){deleteCustomerPhone=p;document.getElementById('deleteCustomerName').textContent=n;document.getElementById('deleteCustomerPhone').textContent=p;document.getElementById('deleteCustomerWorks').textContent=wc;document.getElementById('deleteCustomerAmount').textContent=fmt(ta);document.getElementById('deleteCustomerModal').classList.add('show')}
     async function confirmDeleteCustomer(){if(!deleteCustomerPhone)return;try{const ws=await getWorks(),cws=ws.filter(w=>w.customerPhone===deleteCustomerPhone);for(const w of cws)await deleteWork(w.id);await delCust(deleteCustomerPhone);await updateStats();await renderCustomers();toast('✅ مشتری و همه کارهایش حذف شد');closeModal('deleteCustomerModal');deleteCustomerPhone=null}catch(e){console.error(e);toast('❌ خطا در حذف مشتری')}}
-
     function showAddPhoneModal(){if(!currentCustomerPhone)return;document.getElementById('newPhoneNumber').value='';document.getElementById('addPhoneModal').classList.add('show')}
     async function confirmAddPhone(){const np=document.getElementById('newPhoneNumber').value.trim();if(!np){toast('⚠️ لطفاً شماره تلفن را وارد کنید');return}if(!/^09\d{9}$/.test(np)){toast('⚠️ شماره تلفن نامعتبر است');return}try{const cd=await getCust(currentCustomerPhone),phs=cd?.phones||[currentCustomerPhone];if(phs.includes(np)){toast('⚠️ این شماره قبلاً اضافه شده است');return}phs.push(np);const ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,cd?.note||'',phs);await showCustomerDetail(currentCustomerPhone);toast('✅ شماره جدید اضافه شد');closeModal('addPhoneModal')}catch(e){console.error(e);toast('❌ خطا در افزودن شماره')}}
     async function deletePhone(mp,pd){if(mp===pd){toast('⚠️ نمی‌توانید شماره اصلی را حذف کنید');return}if(!confirm(`آیا از حذف شماره ${pd} مطمئن هستید؟`))return;try{const cd=await getCust(mp);let phs=cd?.phones||[mp];phs=phs.filter(p=>p!==pd);const ws=await getWorks(),cw=ws.find(w=>w.customerPhone===mp);await saveCust(mp,cw.customerName,cd?.note||'',phs);await showCustomerDetail(mp);toast('✅ شماره حذف شد')}catch(e){console.error(e);toast('❌ خطا در حذف شماره')}}
-
-    function showSettleModal(){
-        if(!settleData)return;
-        settlePayment=null;
-        document.getElementById('settleCustomerName').textContent=settleData.name;
-        document.getElementById('settleDebtAmount').textContent=fmt(settleData.amount);
-        document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));
-        document.getElementById('settleDate').value = '';
-        document.getElementById('settleDebtModal').classList.add('show');
-    }
-
+    function showSettleModal(){ if(!settleData)return; settlePayment=null; document.getElementById('settleCustomerName').textContent=settleData.name; document.getElementById('settleDebtAmount').textContent=fmt(settleData.amount); document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected')); document.getElementById('settleDate').value = ''; document.getElementById('settleDebtModal').classList.add('show'); }
     function selectSettlePayment(v,e){settlePayment=v;document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected')}
-    
-    async function confirmSettle(){
-        if(!settleData||!settlePayment){toast('⚠️ لطفاً نوع پرداخت را انتخاب کنید');return}
-        const pd = document.getElementById('settleDate').value;
-        if(!pd) { toast('⚠️ لطفاً تاریخ تسویه را وارد کنید'); return; }
-        try{
-            const st={date:pd,customerName:settleData.name,customerPhone:settleData.phone,workType:'[تسویه بدهی]',amount:settleData.amount.toString(),paymentStatus:settlePayment,dueDate:null,paidAmount:null,debtAmount:null,isSettlement:true};
-            await addWork(st);await updateStats();await showCustomerDetail(settleData.phone);toast('✅ بدهی تسویه شد');closeModal('settleDebtModal');
-        }catch(e){console.error(e);toast('❌ خطا در تسویه بدهی')}
-    }
-
-    async function renderDebtors(){try{console.log('renderDebtors called');const ws=await getWorks();console.log('Total works:',ws.length);const dm=new Map();ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement).forEach(w=>{const ph=w.customerPhone;if(!dm.has(ph))dm.set(ph,{name:w.customerName,phone:ph,debts:[]});dm.get(ph).debts.push(w)});console.log('Debtors map:',dm.size);const sts=ws.filter(w=>w.isSettlement),sm=new Map();sts.forEach(s=>{const ph=s.customerPhone,am=parseFloat(s.amount.replace(/,/g,'')||0);sm.set(ph,(sm.get(ph)||0)+am)});let dts=Array.from(dm.values());const td=new Date();dts.forEach(d=>{let tdt=d.debts.reduce((s,x)=>{let da;if(x.paymentStatus==='چک'){da=parseFloat(x.amount.replace(/,/g,'')||0)}else{da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0)}return s+da},0);const st=sm.get(d.phone)||0;d.totalDebt=Math.max(0,tdt-st);d.nearestDue=d.debts.filter(x=>x.dueDate).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate))[0];
-    if(d.nearestDue){
-        let dd = new Date(d.nearestDue.dueDate);
-        if (isNaN(dd.getTime())) {
-             const parts = d.nearestDue.dueDate.split(/[/-]/); 
-             if(parts.length === 3) {
-                 try { const gy = toGregorian(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2])); dd = gy; } catch(e) { dd = new Date(); } 
-             }
-        }
-        if (!isNaN(dd.getTime())) { d.daysUntilDue = Math.ceil((dd - td)/(1000*60*60*24)); } else { d.daysUntilDue = 0; }
-    } else { d.daysUntilDue = 999; }
-    });dts=dts.filter(d=>d.totalDebt>0);dts.sort((a,b)=>a.daysUntilDue-b.daysUntilDue);console.log('Filtered debtors:',dts.length);const cn=document.getElementById('debtorsList'),tda=dts.reduce((s,d)=>s+d.totalDebt,0);document.getElementById('debtorListCount').textContent=`${dts.length} مورد - مجموع: ${fmt(tda)} تومان`;if(dts.length===0){cn.innerHTML='<div class="empty-state"><p>🎉 بدهکاری وجود ندارد!</p></div>';return}cn.innerHTML='';dts.forEach(d=>{console.log('Processing debtor:',d.name,d.phone);const di=document.createElement('div');di.className='debt-item';let sc='',st='',dueDateTxt='';
-    if(d.nearestDue){
-        if(d.daysUntilDue<0){sc='overdue';st=`🔴 ${Math.abs(d.daysUntilDue)} روز گذشته!`}else if(d.daysUntilDue<=3){sc='upcoming';st=`🟡 ${d.daysUntilDue} روز دیگر`}else st=`🟢 ${d.daysUntilDue} روز دیگر`;if(sc)di.classList.add(sc);
-        try{
-             if(d.nearestDue.dueDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                 const parts = d.nearestDue.dueDate.split('-');
-                 if(parts.length===3) {
-                     const pd=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
-                     dueDateTxt=fmtDate(pd.year,pd.month,pd.day);
-                 } else { dueDateTxt='نامعتبر'; }
-             } else { dueDateTxt = d.nearestDue.dueDate; }
-        }catch(e){dueDateTxt='تاریخ نامعتبر'}
-    }
-    di.innerHTML=`<div class="customer-header"><div><div class="customer-name">${d.name}</div><div class="customer-phone">📞 ${d.phone}</div></div></div><div style="margin:10px 0;"><div style="font-size:18px;font-weight:bold;color:#dc2626;">بدهی: ${fmt(d.totalDebt)} تومان</div>${d.nearestDue?`<div style="font-size:14px;color:#64748b;margin-top:5px;">سررسید: ${dueDateTxt} ${st}</div>`:''}</div><div style="display:flex;gap:8px;"><button class="btn-small btn-call">📞 تماس</button><button class="btn-small btn-settle">📋 مشاهده کارتابل</button></div>`;di.querySelector('.btn-call').onclick=()=>window.location.href=`tel:${d.phone}`;di.querySelector('.btn-settle').onclick=()=>showCustomerDetail(d.phone);cn.appendChild(di)});console.log('renderDebtors completed')}catch(e){console.error('Error in renderDebtors:',e);toast('❌ خطا در بارگذاری لیست بدهکاران')}}
+    async function confirmSettle(){ if(!settleData||!settlePayment){toast('⚠️ لطفاً نوع پرداخت را انتخاب کنید');return} const pd = document.getElementById('settleDate').value; if(!pd) { toast('⚠️ لطفاً تاریخ تسویه را وارد کنید'); return; } try{ const st={date:pd,customerName:settleData.name,customerPhone:settleData.phone,workType:'[تسویه بدهی]',amount:settleData.amount.toString(),paymentStatus:settlePayment,dueDate:null,paidAmount:null,debtAmount:null,isSettlement:true}; await addWork(st);await updateStats();await showCustomerDetail(settleData.phone);toast('✅ بدهی تسویه شد');closeModal('settleDebtModal'); }catch(e){console.error(e);toast('❌ خطا در تسویه بدهی')} }
+    async function renderDebtors(){try{const ws=await getWorks();const dm=new Map();ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement).forEach(w=>{const ph=w.customerPhone;if(!dm.has(ph))dm.set(ph,{name:w.customerName,phone:ph,debts:[]});dm.get(ph).debts.push(w)});const sts=ws.filter(w=>w.isSettlement),sm=new Map();sts.forEach(s=>{const ph=s.customerPhone,am=parseFloat(s.amount.replace(/,/g,'')||0);sm.set(ph,(sm.get(ph)||0)+am)});let dts=Array.from(dm.values());const td=new Date();dts.forEach(d=>{let tdt=d.debts.reduce((s,x)=>{let da;if(x.paymentStatus==='چک'){da=parseFloat(x.amount.replace(/,/g,'')||0)}else{da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0)}return s+da},0);const st=sm.get(d.phone)||0;d.totalDebt=Math.max(0,tdt-st);d.nearestDue=d.debts.filter(x=>x.dueDate).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate))[0]; if(d.nearestDue){ let dd = new Date(d.nearestDue.dueDate); if (isNaN(dd.getTime())) { const parts = d.nearestDue.dueDate.split(/[/-]/); if(parts.length === 3) { try { const gy = toGregorian(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2])); dd = gy; } catch(e) { dd = new Date(); } } } if (!isNaN(dd.getTime())) { d.daysUntilDue = Math.ceil((dd - td)/(1000*60*60*24)); } else { d.daysUntilDue = 0; } } else { d.daysUntilDue = 999; } });dts=dts.filter(d=>d.totalDebt>0);dts.sort((a,b)=>a.daysUntilDue-b.daysUntilDue);const cn=document.getElementById('debtorsList'),tda=dts.reduce((s,d)=>s+d.totalDebt,0);document.getElementById('debtorListCount').textContent=`${dts.length} مورد - مجموع: ${fmt(tda)} تومان`;if(dts.length===0){cn.innerHTML='<div class="empty-state"><p>🎉 بدهکاری وجود ندارد!</p></div>';return}cn.innerHTML='';dts.forEach(d=>{const di=document.createElement('div');di.className='debt-item';let sc='',st='',dueDateTxt=''; if(d.nearestDue){ if(d.daysUntilDue<0){sc='overdue';st=`🔴 ${Math.abs(d.daysUntilDue)} روز گذشته!`}else if(d.daysUntilDue<=3){sc='upcoming';st=`🟡 ${d.daysUntilDue} روز دیگر`}else st=`🟢 ${d.daysUntilDue} روز دیگر`;if(sc)di.classList.add(sc); try{ if(d.nearestDue.dueDate.match(/^\d{4}-\d{2}-\d{2}$/)) { const parts = d.nearestDue.dueDate.split('-'); if(parts.length===3) { const pd=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2])); dueDateTxt=fmtDate(pd.year,pd.month,pd.day); } else { dueDateTxt='نامعتبر'; } } else { dueDateTxt = d.nearestDue.dueDate; } }catch(e){dueDateTxt='تاریخ نامعتبر'} } di.innerHTML=`<div class="customer-header"><div><div class="customer-name">${d.name}</div><div class="customer-phone">📞 ${d.phone}</div></div></div><div style="margin:10px 0;"><div style="font-size:18px;font-weight:bold;color:#dc2626;">بدهی: ${fmt(d.totalDebt)} تومان</div>${d.nearestDue?`<div style="font-size:14px;color:#64748b;margin-top:5px;">سررسید: ${dueDateTxt} ${st}</div>`:''}</div><div style="display:flex;gap:8px;"><button class="btn-small btn-call">📞 تماس</button><button class="btn-small btn-settle">📋 مشاهده کارتابل</button></div>`;di.querySelector('.btn-call').onclick=()=>window.location.href=`tel:${d.phone}`;di.querySelector('.btn-settle').onclick=()=>showCustomerDetail(d.phone);cn.appendChild(di)});}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست بدهکاران')}}
 
     let lastTriggeredId = null;
-
     function checkAlarms() {
-        const now = new Date();
-        const currentH = now.getHours();
-        const currentM = now.getMinutes();
-
+        const now = new Date(); const currentH = now.getHours(); const currentM = now.getMinutes();
         getWorks().then(ws => {
-            const td = new Date();
-            td.setHours(7, 0, 0, 0);
-            ws.filter(w => w.paymentStatus === 'چک' && w.dueDate).forEach(w => {
-                const dParts = w.dueDate.split('-');
-                if (dParts.length === 3) {
-                    const wDate = new Date(parseInt(dParts[0]), parseInt(dParts[1]) - 1, parseInt(dParts[2]));
-                    wDate.setHours(7, 0, 0, 0);
-                    
-                    if (wDate.getTime() === td.getTime() && currentH === 7 && currentM === 0) {
-                        notify(w);
-                    }
-                }
-            });
-
-            ws.filter(w => w.paymentStatus === 'چک' && w.reminderDate && w.reminderTime).forEach(w => {
-                const dParts = w.reminderDate.split('-');
-                const rYear = parseInt(dParts[0]);
-                const rMonth = parseInt(dParts[1]) - 1; 
-                const rDay = parseInt(dParts[2]);
-
-                const [rH, rM] = w.reminderTime.split(':').map(Number);
-
-                if (rYear === now.getFullYear() &&
-                    rMonth === now.getMonth() &&
-                    rDay === now.getDate() &&
-                    rH === currentH &&
-                    rM === currentM) {
-                    
-                    triggerFullAlarm(w);
-                }
-            });
-
+            const td = new Date(); td.setHours(7, 0, 0, 0);
+            ws.filter(w => w.paymentStatus === 'چک' && w.dueDate).forEach(w => { const dParts = w.dueDate.split('-'); if (dParts.length === 3) { const wDate = new Date(parseInt(dParts[0]), parseInt(dParts[1]) - 1, parseInt(dParts[2])); wDate.setHours(7, 0, 0, 0); if (wDate.getTime() === td.getTime() && currentH === 7 && currentM === 0) { notify(w); } } });
+            ws.filter(w => w.paymentStatus === 'چک' && w.reminderDate && w.reminderTime).forEach(w => { const dParts = w.reminderDate.split('-'); const rYear = parseInt(dParts[0]); const rMonth = parseInt(dParts[1]) - 1; const rDay = parseInt(dParts[2]); const [rH, rM] = w.reminderTime.split(':').map(Number); if (rYear === now.getFullYear() && rMonth === now.getMonth() && rDay === now.getDate() && rH === currentH && rM === currentM) { triggerFullAlarm(w); } });
         }).catch(e => console.error(e));
     }
-
-    function triggerFullAlarm(w) {
-        if (lastTriggeredId === w.id) return;
-        lastTriggeredId = w.id;
-
-        const modal = document.getElementById('alarmModal');
-        document.getElementById('alarmCustomerName').textContent = w.customerName;
-        document.getElementById('alarmAmount').textContent = fmt(w.amount) + ' تومان';
-        modal.classList.add('show');
-
-        startAlarmSound();
-        if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]);
-    }
-
-    function notify(w) {
-        if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification('🔔 یادآوری سررسید چک', {
-                body: `چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`,
-                vibrate: [200, 100, 200]
-            });
-            if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
-        }
-        toast(`⏰ یادآوری: چک ${w.customerName}`);
-    }
-
-    async function exportData(){try{const ws=await getWorks(),t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.getAll();r.onsuccess=()=>{const cs=r.result,d={version:3,exportDate:new Date().toISOString(),workTypes,works:ws.map(w=>{const{id,...rest}=w;return rest}),customers:cs},b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast(`✅ بکاپ ${ws.length} کار ذخیره شد`)}}catch(e){console.error(e);toast('❌ خطا در ذخیره بکاپ')}}
-
-    async function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async function(ev){try{const d=JSON.parse(ev.target.result);if(!d.works||!Array.isArray(d.works)){toast('❌ فایل بکاپ نامعتبر است');return}if(!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: داده‌های فعلی حذف خواهند شد!`))return;const t=db.transaction([WORKS,CUSTOMERS],'readwrite'),ws=t.objectStore(WORKS),cs=t.objectStore(CUSTOMERS);ws.clear();cs.clear();if(d.workTypes&&Array.isArray(d.workTypes)){workTypes=d.workTypes;saveTypes();updateTypeDropdown()}for(const w of d.works)await addWork(w);if(d.customers&&Array.isArray(d.customers))for(const c of d.customers)await saveCust(c.phone,c.name,c.note,c.phones);await updateStats();await setupAuto();toast(`✅ ${d.works.length} کار بازگردانی شد`)}catch(er){console.error(er);toast('❌ خطا در بازگردانی بکاپ')}};r.readAsText(f);e.target.value=''}
+    function triggerFullAlarm(w) { if (lastTriggeredId === w.id) return; lastTriggeredId = w.id; const modal = document.getElementById('alarmModal'); document.getElementById('alarmCustomerName').textContent = w.customerName; document.getElementById('alarmAmount').textContent = fmt(w.amount) + ' تومان'; modal.classList.add('show'); startAlarmSound(); if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]); }
+    function notify(w) { if ('Notification' in window && Notification.permission === 'granted') { new Notification('🔔 یادآوری سررسید چک', { body: `چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`, vibrate: [200, 100, 200] }); if (navigator.vibrate) navigator.vibrate([300, 100, 300]); } toast(`⏰ یادآوری: چک ${w.customerName}`); }
 
     function showPage(pg){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));const p=document.getElementById(`page-${pg}`);if(p)p.classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>{if(b.textContent.includes('ثبت')&&pg==='add-work')b.classList.add('active');else if(b.textContent.includes('مشتریان')&&pg==='customers')b.classList.add('active');else if(b.textContent.includes('بدهکاران')&&pg==='debtors')b.classList.add('active')});if(pg==='customers')renderCustomers();else if(pg==='debtors')renderDebtors()}
-
     function closeModal(id){document.getElementById(id).classList.remove('show')}
 
-    async function init(){try{console.log('🚀 Initializing...');await initDB();console.log('✅ DB ready');loadTypes();console.log('✅ Types loaded');await updateStats();console.log('✅ Stats updated');
-    console.log('✅ Date set to empty');
-    await setupAuto();console.log('✅ Auto setup');
-    
-    // Fill Time Selects
-    const hSel = document.getElementById('alarmHour');
-    const mSel = document.getElementById('alarmMinute');
+    async function init(){try{await initDB();loadTypes();await updateStats();await setupAuto();
+    const hSel = document.getElementById('alarmHour'); const mSel = document.getElementById('alarmMinute');
     for(let i=0; i<24; i++) { const opt = document.createElement('option'); const val = i.toString().padStart(2,'0'); opt.value = val; opt.textContent = val; hSel.appendChild(opt); }
     for(let i=0; i<60; i++) { const opt = document.createElement('option'); const val = i.toString().padStart(2,'0'); opt.value = val; opt.textContent = val; mSel.appendChild(opt); }
     hSel.value = '09'; mSel.value = '00';
-
     if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
-    setInterval(checkAlarms, 15000); 
+    setInterval(checkAlarms, 10000); // هر ۱۰ ثانیه چک کن
     
-    // Unlock Audio Context on first interaction
-    document.body.addEventListener('click', unlockAudioContext);
-    document.body.addEventListener('touchstart', unlockAudioContext);
-
-    // افزودن دکمه آماده‌باش به هدر
+    // اضافه کردن دکمه "حالت شب" به هدر برای فعال سازی آلارم واقعی
     const header = document.querySelector('.header');
     if(header) {
         const btn = document.createElement('button');
-        btn.innerHTML = '⚡ فعال‌سازی حالت آماده‌باش';
-        btn.style.cssText = "width:100%; padding:10px; background:#4f46e5; color:white; border:none; border-radius:10px; margin-top:10px; font-weight:bold; cursor:pointer;";
-        btn.onclick = requestWakeLock;
+        btn.innerHTML = '🌙 حالت شب (فعال‌سازی آلارم)';
+        btn.style.cssText = "width:100%; padding:12px; background:#4f46e5; color:white; border:none; border-radius:12px; margin-top:10px; font-weight:bold; cursor:pointer; font-size:14px; box-shadow: 0 4px 10px rgba(79, 70, 229, 0.3);";
+        btn.onclick = activateStandbyMode;
         header.appendChild(btn);
     }
+    }catch(e){console.error(e);toast('❌ خطا در راه‌اندازی')}}
 
-    console.log('✅ Alarms setup (Every 15s)');
-    console.log('✅✅✅ App ready!');
-    }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
-
-    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice, generateReport, addToPhoneCalendar, requestWakeLock}
+    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal,stopAlarm,generateInvoice,shareInvoice,downloadInvoice,generateReport,activateStandbyMode,deactivateStandbyMode,addToPhoneCalendar:()=>{}}
 })();
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
