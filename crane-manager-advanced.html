@@ -781,11 +781,11 @@ function generateInvoice(workId) {
 
             // متن‌های هدر
             ctx.fillStyle = '#ffffff';
-            ctx.font = 'bold 45px Tahoma, "Segoe UI", sans-serif';
+            ctx.font = 'bold 46px Tahoma, "Segoe UI", sans-serif';
             ctx.textAlign = 'center';
             ctx.fillText('فاکتور خدمات جرثقیل', width / 2, 80);
             
-            ctx.font = 'bold 34px Tahoma';
+            ctx.font = 'bold 38px Tahoma';
             ctx.fillText('حسین کُرد', width / 2, 130);
 
             // 3. باکس اطلاعات مشتری (یک خطی و حرفه‌ای)
@@ -806,7 +806,7 @@ function generateInvoice(workId) {
             const textY = boxTop + 50; // موقعیت عمودی متن‌ها
 
             // الف) نام مشتری (سمت راست)
-            ctx.font = 'bold 22px Tahoma'; // فونت درشت برای نام
+            ctx.font = '20px Tahoma'; // فونت درشت برای نام
             ctx.textAlign = 'right';
             ctx.fillText(`نام مشتری: ${w.customerName}`, width - 60, textY);
 
@@ -817,7 +817,7 @@ function generateInvoice(workId) {
 
             // ج) تاریخ (سمت چپ - تراز چپ)
             ctx.textAlign = 'left'; // نکته مهم: تغییر تراز به چپ
-            ctx.font = 'bold 20px Tahoma';
+            ctx.font = '20px Tahoma';
             // اینجا "تاریخ انجام کار" رو کردم "تاریخ"
             ctx.fillText(`تاریخ: ${w.date}`, 60, textY);
 
