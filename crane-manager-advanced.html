@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 9.0 - فول آپشن)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 7.2 - فاکتور حرفه‌ای)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -20,14 +20,13 @@
         .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 10px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .stat-box.debt { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
-        .stat-box.report-result { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
         .stat-box .label { font-size: 11px; opacity: 0.9; margin-bottom: 5px; white-space: nowrap; }
         .stat-box .value { font-size: 18px; font-weight: bold; }
         
         /* Navigation */
-        .navigation { display: flex; justify-content: space-between; gap: 5px; margin-top: 20px; margin-bottom: 15px; overflow-x: auto; }
-        .nav-btn { flex: 1; padding: 10px 2px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-family: inherit; color: #64748b; background: white; display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 60px; }
-        .nav-btn span { font-size: 18px; margin-bottom: 2px; } 
+        .navigation { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; margin-bottom: 15px; }
+        .nav-btn { flex: 1; padding: 12px 5px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-family: inherit; color: #64748b; background: white; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .nav-btn span { font-size: 20px; margin-bottom: 2px; } 
         .nav-btn:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-2px); }
         .nav-btn.active { background: #eff6ff; color: #2563eb; border-color: #2563eb; box-shadow: 0 4px 6px rgba(37,99,235,0.1); }
         
@@ -293,7 +292,6 @@
                 <button class="nav-btn active" onclick="APP.showPage('add-work')"><span>➕</span>ثبت کار</button>
                 <button class="nav-btn" onclick="APP.showPage('customers')"><span>👥</span>مشتریان</button>
                 <button class="nav-btn" onclick="APP.showPage('debtors')"><span>💰</span>بدهکاران</button>
-                <button class="nav-btn" onclick="APP.showPage('reports')"><span>📊</span>گزارش</button>
             </div>
 
             <div class="action-buttons">
@@ -411,35 +409,6 @@
             <div class="customer-list">
                 <div class="section-header"><span>💰 بدهکاران</span><span id="debtorListCount">0 مورد</span></div>
                 <div id="debtorsList"></div>
-            </div>
-        </div>
-
-        <div id="page-reports" class="page">
-            <div class="form-card">
-                <h3 style="text-align:center;color:#1e293b;margin-bottom:15px;">📊 گزارش‌گیری پیشرفته</h3>
-                <div class="form-group">
-                    <label>از تاریخ:</label>
-                    <input type="text" id="reportStartDate" class="date-input" readonly placeholder="انتخاب کنید..." onclick="APP.showCal('reportStartDate')">
-                    <input type="hidden" id="reportStartVal">
-                </div>
-                <div class="form-group">
-                    <label>تا تاریخ:</label>
-                    <input type="text" id="reportEndDate" class="date-input" readonly placeholder="انتخاب کنید..." onclick="APP.showCal('reportEndDate')">
-                    <input type="hidden" id="reportEndVal">
-                </div>
-                <button class="btn btn-primary" onclick="APP.generateReport()">🔎 محاسبه گزارش</button>
-                
-                <div id="reportResults" style="display:none; margin-top:20px;">
-                    <div class="stats">
-                        <div class="stat-box report-result"><div class="label">💰 درآمد کل بازه</div><div class="value" id="repTotal">0</div></div>
-                        <div class="stat-box"><div class="label">💵 نقد و کارت</div><div class="value" id="repCash">0</div></div>
-                        <div class="stat-box"><div class="label">📝 چک‌های دریافتی</div><div class="value" id="repCheck">0</div></div>
-                        <div class="stat-box debt"><div class="label">⏳ نسیه (مانده)</div><div class="value" id="repCredit">0</div></div>
-                    </div>
-                    <div style="margin-top:10px; text-align:center; color:#64748b; font-size:14px;">
-                        تعداد کل سرویس‌ها: <span id="repCount" style="font-weight:bold; color:#1e293b;">0</span>
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -689,102 +658,42 @@ const APP = (function() {
         return 0;
     }
 
-function startAlarmSound() {
-        if (!window.AudioContext && !window.webkitAudioContext) return;
-        try {
-            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
-            // تلاش برای بیدار کردن AudioContext اگر خواب رفته باشد (مخصوص موبایل)
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+    function startAlarmSound() {
+        if (window.AudioContext || window.webkitAudioContext) {
+            try {
+                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.type = 'square';
+                let t = audioCtx.currentTime;
+                osc.frequency.setValueAtTime(600, t);
+                osc.frequency.linearRampToValueAtTime(800, t + 0.5);
+                osc.frequency.linearRampToValueAtTime(600, t + 1);
+                
+                osc.start();
+                
+                window.alarmInterval = setInterval(() => {
+                    if(osc && audioCtx) {
+                        const now = audioCtx.currentTime;
+                        osc.frequency.setValueAtTime(600, now);
+                        osc.frequency.linearRampToValueAtTime(900, now + 0.4);
+                    }
+                }, 500);
 
-            osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            
-            osc.type = 'square'; // صدای زنگ دار و تیز
-            osc.frequency.setValueAtTime(800, audioCtx.currentTime); // فرکانس پایه
-            
-            osc.start();
-
-            // افکت آژیر پلیسی (بالا و پایین رفتن فرکانس)
-            window.alarmInterval = setInterval(() => {
-                if (osc && audioCtx) {
-                    const now = audioCtx.currentTime;
-                    // تغییر فرکانس بین 800 و 1200 هرتز
-                    osc.frequency.setValueAtTime(800, now);
-                    osc.frequency.linearRampToValueAtTime(1200, now + 0.2);
-                    osc.frequency.linearRampToValueAtTime(800, now + 0.4);
-                }
-            }, 500); // هر نیم ثانیه تکرار شود
-
-        } catch (e) { console.error('Audio Error:', e); }
+            } catch(e) { console.error('Audio error', e); }
+        }
     }
-
+    
     function stopAlarm() {
         const modal = document.getElementById('alarmModal');
-        if(modal) modal.classList.remove('show');
-        
-        if (osc) {
-            try { osc.stop(); osc.disconnect(); } catch (e) {}
+        modal.classList.remove('show');
+        if(osc) {
+            try{ osc.stop(); } catch(e){}
             osc = null;
         }
-        if (window.alarmInterval) {
-            clearInterval(window.alarmInterval);
-            window.alarmInterval = null;
-        }
-    }
-
-    // --- سیستم بررسی هوشمند آلارم (Smart Check System) ---
-    // متغیر برای جلوگیری از تکرار آلارم در یک دقیقه
-    let lastTriggeredTime = ""; 
-
-    function checkAlarms() {
-        const now = new Date();
-        // تبدیل تاریخ میلادی گوشی به شمسی برای مقایسه دقیق
-        const jNow = toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
-        
-        // ساخت فرمت‌های مقایسه
-        const currentJalaliDate = `${jNow.year}-${String(jNow.month).padStart(2, '0')}-${String(jNow.day).padStart(2, '0')}`; // مثلا 1403-09-05
-        const currentH = now.getHours();
-        const currentM = now.getMinutes();
-        
-        // ایجاد یک کلید زمانی برای جلوگیری از زنگ زدن تکراری در همان دقیقه
-        const timeKey = `${currentJalaliDate}-${currentH}:${currentM}`;
-        if (lastTriggeredTime === timeKey) return; // اگر در این دقیقه قبلا زنگ زده، دوباره نزن
-
-        console.log(`Checking Alarms... Time: ${currentH}:${currentM} | Date: ${currentJalaliDate}`);
-
-        getWorks().then(ws => {
-            // 1. بررسی چک‌های معمولی (سررسید ساعت 7 صبح)
-            ws.filter(w => w.paymentStatus === 'چک' && w.dueDate).forEach(w => {
-                // استانداردسازی تاریخ دیتابیس (تبدیل / به - و نرمال کردن اعداد)
-                let dbDate = w.dueDate.replace(/\//g, '-'); 
-                // اگر تاریخ‌ها یکی بود و ساعت 7:00 صبح بود
-                if (dbDate === currentJalaliDate && currentH === 7 && currentM === 0) {
-                    notify(w);
-                    lastTriggeredTime = timeKey;
-                }
-            });
-
-            // 2. بررسی یادآورهای تنظیم شده دقیق (سفارشی)
-            ws.filter(w => w.paymentStatus === 'چک' && w.reminderDate && w.reminderTime).forEach(w => {
-                let dbRemDate = w.reminderDate.replace(/\//g, '-');
-                
-                // پارس کردن ساعت یادآور
-                const [rH, rM] = w.reminderTime.split(':').map(Number);
-
-                // مقایسه دقیق: آیا تاریخ شمسی برابر است؟ آیا ساعت برابر است؟ آیا دقیقه برابر است؟
-                if (dbRemDate === currentJalaliDate && rH === currentH && rM === currentM) {
-                    console.log("ALARM MATCH FOUND!", w.customerName);
-                    triggerFullAlarm(w);
-                    lastTriggeredTime = timeKey;
-                }
-            });
-        }).catch(e => console.error("DB Error:", e));
+        if(window.alarmInterval) clearInterval(window.alarmInterval);
     }
 
     // --- Invoice Generation Logic (Updated Text) ---
@@ -928,53 +837,6 @@ function startAlarmSound() {
         }
     }
 
-    // --- Reporting Logic (FIXED) ---
-    async function generateReport() {
-        const startVal = document.getElementById('reportStartVal').value;
-        const endVal = document.getElementById('reportEndVal').value;
-        
-        if(!startVal || !endVal) { toast('⚠️ لطفاً بازه زمانی را انتخاب کنید'); return; }
-        
-        // Fix: Ensure we compare Apples to Apples (Jalali Int to Jalali Int)
-        // reportStartVal is now populated with pure Jalali Integer (e.g. 14040901) by selectDate
-        const sDate = parseInt(startVal);
-        const eDate = parseInt(endVal);
-        
-        if(sDate > eDate) { toast('⚠️ تاریخ شروع نباید بعد از پایان باشد'); return; }
-        
-        const ws = await getWorks();
-        
-        let total = 0, cash = 0, check = 0, credit = 0, count = 0;
-        
-        ws.forEach(w => {
-            const wDateVal = getDateValue(w.date); // Converts "1 Azar 1404" -> 14040901
-            if(wDateVal >= sDate && wDateVal <= eDate) {
-                count++;
-                const am = parseFloat(w.amount.replace(/,/g,'')||0);
-                if(!w.isSettlement) {
-                    if(w.paymentStatus === 'نقدی' || w.paymentStatus === 'کارت به کارت' || w.paymentStatus === 'کارتخوان') {
-                        total += am; cash += am;
-                    } else if (w.paymentStatus === 'چک') {
-                        total += am; check += am;
-                    } else if (w.paymentStatus === 'نسیه') {
-                        total += am;
-                        const paid = w.paidAmount ? parseFloat(w.paidAmount.replace(/,/g,'')||0) : 0;
-                        cash += paid;
-                        credit += (am - paid);
-                    }
-                }
-            }
-        });
-        
-        document.getElementById('repTotal').textContent = fmt(total);
-        document.getElementById('repCash').textContent = fmt(cash);
-        document.getElementById('repCheck').textContent = fmt(check);
-        document.getElementById('repCredit').textContent = fmt(credit);
-        document.getElementById('repCount').textContent = count;
-        
-        document.getElementById('reportResults').style.display = 'block';
-    }
-
     // --- Database Functions ---
     async function initDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onerror=()=>rej(r.error);r.onsuccess=()=>{db=r.result;res(db)};r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains(WORKS)){const s=d.createObjectStore(WORKS,{keyPath:'id',autoIncrement:true});s.createIndex('customerPhone','customerPhone',{unique:false});s.createIndex('date','date',{unique:false});s.createIndex('paymentStatus','paymentStatus',{unique:false})}if(!d.objectStoreNames.contains(CUSTOMERS)){const s=d.createObjectStore(CUSTOMERS,{keyPath:'phone'});s.createIndex('name','name',{unique:false})}}})}
     async function addWork(w){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readwrite'),s=t.objectStore(WORKS),r=s.add(w);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -1062,7 +924,7 @@ function startAlarmSound() {
         const f=document.getElementById(voiceField);
         if(!f)return;
         let c=t.trim();
-        if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount' || voiceField === 'settleDate' || voiceField.includes('report')) {
+        if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount' || voiceField === 'settleDate') {
             c = normalizePersianNumbers(c);
         }
         if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
@@ -1082,7 +944,7 @@ function startAlarmSound() {
 
     // --- Logic تقویم ---
     function showCal(target){
-        let el = document.getElementById(target.includes('reminder') || target.includes('report') ? target : (target==='dueDate'?'dueDateDisplay':target));
+        let el = document.getElementById(target.includes('reminder') ? target + 'Display' : (target==='dueDate'?'dueDateDisplay':target));
         let initialVal = el.value;
         let jy, jm, jd;
         if(initialVal && initialVal.split(' ').length === 3) {
@@ -1167,9 +1029,6 @@ function startAlarmSound() {
         const gd = String(gDateObj.getDate()).padStart(2, '0');
         const gDateIso = `${gy}-${gm}-${gd}`;
         
-        // FIXED: Jalali Integer for correct comparison in Reports
-        const jDateIso = `${window.dpCurY}${String(window.dpCurM).padStart(2,'0')}${String(d).padStart(2,'0')}`;
-
         if(window.dpTarget === 'date') {
             document.getElementById('date').value = pDateStr;
         } else if (window.dpTarget === 'dueDate') {
@@ -1180,12 +1039,6 @@ function startAlarmSound() {
         } else if (window.dpTarget === 'reminderDate') {
             document.getElementById('reminderDateDisplay').value = pDateStr;
             document.getElementById('reminderDate').value = gDateIso;
-        } else if (window.dpTarget === 'reportStartDate') {
-            document.getElementById('reportStartDate').value = pDateStr;
-            document.getElementById('reportStartVal').value = jDateIso; // Store Jalali Int
-        } else if (window.dpTarget === 'reportEndDate') {
-            document.getElementById('reportEndDate').value = pDateStr;
-            document.getElementById('reportEndVal').value = jDateIso; // Store Jalali Int
         }
         window.closeCal();
     }
@@ -1396,94 +1249,169 @@ function startAlarmSound() {
         const currentH = now.getHours();
         
         getWorks().then(ws=>{
-            // 1. Check Standard Due Dates (at 7:00 AM) - Robust Check
-            ws.filter(w=>w.paymentStatus==='چک' && w.dueDate).forEach(w=>{
-                const parts = w.dueDate.split('-');
-                if(parts.length === 3) {
-                    const dy = parseInt(parts[0]);
-                    const dm = parseInt(parts[1]) - 1;
-                    const dd = parseInt(parts[2]);
-                    // Compare Date Components (Timezone Safe)
-                    if(now.getFullYear() === dy && now.getMonth() === dm && now.getDate() === dd) {
-                        if(currentH === 7 && currentM === 0) notify(w);
-                    }
+            // 1. Check Standard Due Dates (at 7:00 AM)
+            const td=new Date(); td.setHours(7,0,0,0);
+            ws.filter(w=>w.paymentStatus==='چک'&&w.dueDate).forEach(w=>{
+                const dd=new Date(w.dueDate); dd.setHours(7,0,0,0);
+                if(dd.getTime()===td.getTime() && currentH === 7 && currentM === 0){
+                    notify(w);
                 }
             });
 
             // 2. Check Custom Reminder Dates (Precise)
             ws.filter(w=>w.paymentStatus==='چک' && w.reminderDate && w.reminderTime).forEach(w=>{
-                 const parts = w.reminderDate.split('-');
-                 if(parts.length === 3) {
-                    const ry = parseInt(parts[0]);
-                    const rm = parseInt(parts[1]) - 1;
-                    const rd = parseInt(parts[2]);
-                    const [rH, rM] = w.reminderTime.split(':').map(Number);
-                    // Compare Date & Time Components (Timezone Safe)
-                    if(now.getFullYear() === ry && now.getMonth() === rm && now.getDate() === rd &&
-                       now.getHours() === rH && now.getMinutes() === rM) {
-                           triggerFullAlarm(w);
-                    }
-                 }
+                const remDate = new Date(w.reminderDate);
+                const [rH, rM] = w.reminderTime.split(':').map(Number);
+                
+                if(remDate.getFullYear() === now.getFullYear() && 
+                   remDate.getMonth() === now.getMonth() && 
+                   remDate.getDate() === now.getDate() &&
+                   rH === currentH && 
+                   rM === currentM) {
+                       triggerFullAlarm(w);
+                   }
             });
+
         }).catch(e=>console.error(e));
     }
     
     let lastTriggeredId = null; 
 
-        function triggerFullAlarm(w) {
+    function triggerFullAlarm(w) {
+        if(lastTriggeredId === w.id) return;
+        lastTriggeredId = w.id;
+        
         const modal = document.getElementById('alarmModal');
-        // پر کردن اطلاعات مودال
         document.getElementById('alarmCustomerName').textContent = w.customerName;
         document.getElementById('alarmAmount').textContent = fmt(w.amount) + ' تومان';
-        
-        // نمایش مودال
         modal.classList.add('show');
         
-        // پخش صدا و ویبره
         startAlarmSound();
-        
-        // ویبره طولانی و ممتد (برای جلب توجه)
-        if (navigator.vibrate) {
-            // الگوی: 1ثانیه لرزش، 0.5ثانیه مکث، تکرار...
-            navigator.vibrate([1000, 500, 1000, 500, 1000, 500, 2000]); 
-        }
-        
-        // ارسال نوتیفیکیشن همزمان (برای روشن شدن صفحه گوشی)
-        notify(w, true);
+        if(navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]);
     }
 
-    function notify(w, isFullAlarm = false) {
-        if ('Notification' in window && Notification.permission === 'granted') {
-            const title = isFullAlarm ? '🚨 هشدار فوری چک!' : '🔔 یادآوری سررسید چک';
-            const body = `چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان. موعدش رسیده!`;
-            
-            // تنظیمات خاص برای بیدار کردن گوشی
-            const options = {
-                body: body,
-                icon: 'https://cdn-icons-png.flaticon.com/512/2942/2942878.png', // آیکون زنگ (اختیاری)
-                vibrate: [500, 200, 500],
-                requireInteraction: true, // تا کاربر کلیک نکند، نوتیفیکیشن نمی‌رود (مهم برای کروم)
-                tag: 'crane-alarm-' + w.id // جلوگیری از تکرار بیهوده
+    function notify(w) {
+        if('Notification'in window&&Notification.permission==='granted') {
+             new Notification('🔔 یادآوری سررسید چک',{body:`چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`, vibrate: [200, 100, 200]});
+             if(navigator.vibrate) navigator.vibrate([300, 100, 300]);
+        }
+        toast(`⏰ یادآوری: چک ${w.customerName}`);
+    }
+
+    // --- REWRITTEN EXPORT FUNCTION (Safe & Complete) ---
+    async function exportData() {
+        try {
+            // 1. Fetch works properly (Promise based)
+            const ws = await getWorks();
+
+            // 2. Fetch customers properly (Transaction based but promisified logic here for simplicity)
+            // We use a Promise wrapper to ensure we get ALL customers before proceeding.
+            const cs = await new Promise((resolve, reject) => {
+                const t = db.transaction([CUSTOMERS], 'readonly');
+                const s = t.objectStore(CUSTOMERS);
+                const r = s.getAll();
+                r.onsuccess = () => resolve(r.result);
+                r.onerror = () => reject(r.error);
+            });
+
+            // 3. Construct Data
+            const d = {
+                version: 3,
+                exportDate: new Date().toISOString(),
+                workTypes,
+                // Remove IDs to allow clean re-import with autoIncrement
+                works: ws.map(w => { const { id, ...rest } = w; return rest }), 
+                customers: cs
             };
 
-            const notif = new Notification(title, options);
-            
-            notif.onclick = function() {
-                window.focus(); // تلاش برای باز کردن پنجره مرورگر
-                if(isFullAlarm) {
-                     document.getElementById('alarmModal').classList.add('show');
+            // 4. Download
+            const b = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+            const u = URL.createObjectURL(b);
+            const a = document.createElement('a');
+            a.href = u;
+            a.download = `backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(u);
+            toast(`✅ بکاپ کامل شد: ${ws.length} کار و ${cs.length} مشتری`);
+
+        } catch (e) {
+            console.error(e);
+            toast('❌ خطا در ذخیره بکاپ');
+        }
+    }
+
+    // --- REWRITTEN IMPORT FUNCTION (Safe Single Transaction) ---
+    async function importData(e) {
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        
+        r.onload = async function(ev) {
+            try {
+                const d = JSON.parse(ev.target.result);
+                
+                // Validation
+                if (!d.works || !Array.isArray(d.works)) {
+                    toast('❌ فایل بکاپ نامعتبر است');
+                    return;
                 }
-                this.close();
-            };
-        } else {
-            // اگر دسترسی نوتیفیکیشن نبود، فقط تست (Toast) نشان بده
-            toast(`⏰ هشدار چک: ${w.customerName}`);
-        }
+
+                if (!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: تمام اطلاعات فعلی حذف و جایگزین خواهند شد!`)) return;
+
+                // --- SINGLE TRANSACTION FOR ATOMICITY ---
+                const t = db.transaction([WORKS, CUSTOMERS], 'readwrite');
+                const workStore = t.objectStore(WORKS);
+                const custStore = t.objectStore(CUSTOMERS);
+
+                // 1. Clear existing data
+                workStore.clear();
+                custStore.clear();
+
+                // 2. Import Work Types if exist
+                if (d.workTypes && Array.isArray(d.workTypes)) {
+                    workTypes = d.workTypes;
+                    saveTypes();
+                }
+
+                // 3. Import Customers
+                if (d.customers && Array.isArray(d.customers)) {
+                    d.customers.forEach(c => custStore.put(c));
+                }
+
+                // 4. Import Works (Strip ID just in case, let DB assign new ones)
+                d.works.forEach(w => {
+                    const { id, ...cleanWork } = w; // Remove ID collision risk
+                    workStore.add(cleanWork);
+                });
+
+                // 5. Completion Handler
+                t.oncomplete = async () => {
+                    console.log('Import Transaction Completed Successfully');
+                    await updateStats();
+                    await setupAuto();
+                    
+                    // Refresh current view logic
+                    if(document.getElementById('page-customers').classList.contains('active')) renderCustomers();
+                    if(document.getElementById('page-debtors').classList.contains('active')) renderDebtors();
+                    
+                    toast(`✅ بازگردانی موفق: ${d.works.length} کار`);
+                };
+
+                t.onerror = (err) => {
+                    console.error('Transaction Error:', err);
+                    toast('❌ خطا در نوشتن داده‌ها روی دیتابیس');
+                };
+
+            } catch (er) {
+                console.error(er);
+                toast('❌ خطا در خواندن فایل بکاپ');
+            }
+        };
+        r.readAsText(f);
+        e.target.value = ''; // Reset input
     }
-
-    async function exportData(){try{const ws=await getWorks(),t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.getAll();r.onsuccess=()=>{const cs=r.result,d={version:3,exportDate:new Date().toISOString(),workTypes,works:ws.map(w=>{const{id,...rest}=w;return rest}),customers:cs},b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast(`✅ بکاپ ${ws.length} کار ذخیره شد`)}}catch(e){console.error(e);toast('❌ خطا در ذخیره بکاپ')}}
-
-    async function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async function(ev){try{const d=JSON.parse(ev.target.result);if(!d.works||!Array.isArray(d.works)){toast('❌ فایل بکاپ نامعتبر است');return}if(!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: داده‌های فعلی حذف خواهند شد!`))return;const t=db.transaction([WORKS,CUSTOMERS],'readwrite'),ws=t.objectStore(WORKS),cs=t.objectStore(CUSTOMERS);ws.clear();cs.clear();if(d.workTypes&&Array.isArray(d.workTypes)){workTypes=d.workTypes;saveTypes();updateTypeDropdown()}for(const w of d.works)await addWork(w);if(d.customers&&Array.isArray(d.customers))for(const c of d.customers)await saveCust(c.phone,c.name,c.note,c.phones);await updateStats();await setupAuto();toast(`✅ ${d.works.length} کار بازگردانی شد`)}catch(er){console.error(er);toast('❌ خطا در بازگردانی بکاپ')}};r.readAsText(f);e.target.value=''}
 
     function showPage(pg){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));const p=document.getElementById(`page-${pg}`);if(p)p.classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>{if(b.textContent.includes('ثبت')&&pg==='add-work')b.classList.add('active');else if(b.textContent.includes('مشتریان')&&pg==='customers')b.classList.add('active');else if(b.textContent.includes('بدهکاران')&&pg==='debtors')b.classList.add('active')});if(pg==='customers')renderCustomers();else if(pg==='debtors')renderDebtors()}
 
@@ -1507,7 +1435,7 @@ function startAlarmSound() {
     console.log('✅✅✅ App ready!');
     }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
-    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice, generateReport}
+    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice}
 })();
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
