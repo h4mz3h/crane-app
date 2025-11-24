@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 6.0 - با یادآور پیشرفته)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 6.5 - یادآور پیشرفته)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -61,6 +61,7 @@
             display: flex;
             align-items: center; 
             color: #334155;
+            width: 100%; /* Ensure full width */
         }
         
         /* Fix for Customer Note Textarea */
@@ -119,12 +120,53 @@
         .due-date-section.show, .partial-payment.show { display: block; animation: slideDown 0.3s ease; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
+        /* --- Reminder Box Styling (Updated) --- */
         .reminder-box {
             background: white;
             border: 2px dashed #f87171;
             border-radius: 10px;
-            padding: 12px;
+            padding: 10px;
             margin-top: 15px;
+        }
+        .reminder-inputs-row {
+            display: flex;
+            gap: 8px;
+            height: 50px; /* Force height to match other inputs */
+            align-items: center;
+        }
+        .date-part {
+            flex: 3; /* 60% approx */
+        }
+        .time-part {
+            flex: 2; /* 40% approx */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            height: 100%;
+            direction: ltr; /* Ensure time is Left-to-Right */
+            padding: 0 5px;
+        }
+        .time-select {
+            border: none;
+            background: transparent;
+            font-size: 18px;
+            font-weight: bold;
+            color: #334155;
+            appearance: none;
+            outline: none;
+            cursor: pointer;
+            text-align: center;
+            padding: 0 2px;
+            font-family: inherit;
+        }
+        .time-separator {
+            font-weight: bold;
+            margin: 0 2px;
+            color: #334155;
+            padding-bottom: 3px;
         }
 
         .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -328,9 +370,13 @@
                             
                             <div class="reminder-box">
                                 <label style="color: #b91c1c; font-size: 13px; margin-bottom: 8px;">⏰ تنظیم هشدار (یادآوری)</label>
-                                <div style="display: flex; gap: 8px;">
-                                    <input type="text" id="reminderDateDisplay" class="date-input styled-input" placeholder="تاریخ هشدار" readonly onclick="APP.showCal('reminderDate')">
-                                    <input type="time" id="reminderTime" class="styled-input" style="flex: 0.7;">
+                                <div class="reminder-inputs-row">
+                                    <input type="text" id="reminderDateDisplay" class="date-input styled-input date-part" placeholder="تاریخ هشدار" readonly onclick="APP.showCal('reminderDate')">
+                                    <div class="time-part">
+                                        <select id="alarmHour" class="time-select"></select>
+                                        <span class="time-separator">:</span>
+                                        <select id="alarmMinute" class="time-select"></select>
+                                    </div>
                                 </div>
                                 <input type="hidden" id="reminderDate">
                                 <p style="font-size: 11px; color: #7f1d1d; margin-top: 5px;">⚠️ هشدار در تاریخ و ساعت بالا با صدا پخش می‌شود.</p>
@@ -414,7 +460,7 @@
         <h2 style="font-size: 28px; margin-bottom: 10px;">یادآوری چک!</h2>
         <h3 id="alarmCustomerName" style="font-size: 24px; margin-bottom: 20px;"></h3>
         <p id="alarmAmount" style="font-size: 32px; font-weight: bold; margin-bottom: 10px;"></p>
-        <p style="opacity: 0.9;">همین الان چک کنید!</p>
+        <p style="opacity: 0.9; font-size: 18px;">موعد پاس شدن چک این مشتری فرا رسیده است!</p>
         <button class="alarm-btn" onclick="APP.stopAlarm()">باشه، متوجه شدم</button>
     </div>
 
@@ -611,21 +657,13 @@ const APP = (function() {
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
                 osc.type = 'square';
-                // Siren effect
                 let t = audioCtx.currentTime;
                 osc.frequency.setValueAtTime(600, t);
                 osc.frequency.linearRampToValueAtTime(800, t + 0.5);
                 osc.frequency.linearRampToValueAtTime(600, t + 1);
                 
-                // Repeat the effect every 1 second? 
-                // Simple version: just a loop of pulses manually or utilizing Oscillator node logic is complex.
-                // Let's do a simple repeating beep via setInterval in main thread calling a short beep.
-                // But for continuous alarm, better to use oscillator loop if possible, or just re-trigger.
-                // Actually, let's keep it simple: Continuous Square Wave alternating pitch
-                
                 osc.start();
                 
-                // Manual Siren Interval
                 window.alarmInterval = setInterval(() => {
                     if(osc && audioCtx) {
                         const now = audioCtx.currentTime;
@@ -856,17 +894,39 @@ const APP = (function() {
 
     async function setupAuto(){const ni=document.getElementById('customerName'),pi=document.getElementById('phone'),sg=document.getElementById('customerSuggestions');if(!ni||!sg)return;const ws=await getWorks(),cm=new Map();for(const w of ws){if(!cm.has(w.customerPhone)){const cd=await getCust(w.customerPhone);cm.set(w.customerPhone,{name:w.customerName,phone:w.customerPhone,phones:cd?.phones||[w.customerPhone]})}}allCustomers=Array.from(cm.values());ni.addEventListener('input',function(){const q=this.value.trim();if(q.length<2){sg.classList.add('hidden');sg.innerHTML='';return}const m=allCustomers.filter(c=>c.name.includes(q)).slice(0,10);if(m.length>0){sg.innerHTML='';m.forEach(c=>{const it=document.createElement('div');it.className='autocomplete-item';it.innerHTML=`<strong>${c.name}</strong><br><span style="font-size:13px;color:#64748b;">📞 ${c.phone}</span>`;it.onclick=()=>{ni.value=c.name;pi.value=c.phone;sg.classList.add('hidden');sg.innerHTML=''};sg.appendChild(it)});sg.classList.remove('hidden')}else{sg.classList.add('hidden');sg.innerHTML=''}});document.addEventListener('click',e=>{if(!ni.contains(e.target)&&!sg.contains(e.target)){sg.classList.add('hidden');sg.innerHTML=''}})}
 
-    function selectPayment(v,e){document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected');document.getElementById('paymentStatus').value=v;document.getElementById('dueDateSection').classList.remove('show');document.getElementById('partialPaymentSection').classList.remove('show');document.getElementById('dueDate').value='';document.getElementById('dueDateDisplay').value='';document.getElementById('paidAmount').value='';document.getElementById('remainingAmount').value='';document.getElementById('reminderDateDisplay').value='';document.getElementById('reminderDate').value='';document.getElementById('reminderTime').value='';if(v==='چک')document.getElementById('dueDateSection').classList.add('show');else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show')}
+    function selectPayment(v,e){
+        document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
+        e.target.classList.add('selected');
+        document.getElementById('paymentStatus').value=v;
+        document.getElementById('dueDateSection').classList.remove('show');
+        document.getElementById('partialPaymentSection').classList.remove('show');
+        document.getElementById('dueDate').value='';
+        document.getElementById('dueDateDisplay').value='';
+        document.getElementById('paidAmount').value='';
+        document.getElementById('remainingAmount').value='';
+        
+        // Reset Alarm fields
+        document.getElementById('reminderDateDisplay').value='';
+        document.getElementById('reminderDate').value='';
+        document.getElementById('alarmHour').value='09';
+        document.getElementById('alarmMinute').value='00';
+        
+        if(v==='چک')document.getElementById('dueDateSection').classList.add('show');
+        else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show');
+    }
 
     async function submitWork(e){e.preventDefault();const ps=document.getElementById('paymentStatus').value;if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}const ta=document.getElementById('amount').value.replace(/,/g,'');let ada=ta,pa=0;if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}
     
-    // Check Alarm Data
+    // Check Alarm Data and Construct Time String
     let remDate = null, remTime = null;
     if(ps==='چک') {
         remDate = document.getElementById('reminderDate').value;
-        remTime = document.getElementById('reminderTime').value;
-        if(remDate && !remTime) { toast('⚠️ لطفاً ساعت هشدار را انتخاب کنید'); return; }
-        if(!remDate && remTime) { toast('⚠️ لطفاً تاریخ هشدار را انتخاب کنید'); return; }
+        const h = document.getElementById('alarmHour').value;
+        const m = document.getElementById('alarmMinute').value;
+        
+        if(remDate) {
+             remTime = `${h}:${m}`;
+        }
     }
 
     const w={
@@ -968,7 +1028,9 @@ const APP = (function() {
                  document.getElementById('reminderDateDisplay').value=fmtDate(p.year,p.month,p.day);
             }
             document.getElementById('reminderDate').value = w.reminderDate;
-            document.getElementById('reminderTime').value = w.reminderTime;
+            const [h, m] = w.reminderTime.split(':');
+            document.getElementById('alarmHour').value = h;
+            document.getElementById('alarmMinute').value = m;
         }
     }else if(w.paymentStatus==='نسیه'&&w.paidAmount){document.getElementById('partialPaymentSection').classList.add('show');document.getElementById('paidAmount').value=w.paidAmount;calcRemaining()}document.getElementById('submitBtn').textContent='✏️ ویرایش';window.scrollTo({top:0,behavior:'smooth'});toast('💡 در حال ویرایش کار...')}catch(e){console.error(e);toast('❌ خطا در بارگذاری اطلاعات کار')}}
 
@@ -1040,7 +1102,6 @@ const APP = (function() {
             const td=new Date(); td.setHours(7,0,0,0);
             ws.filter(w=>w.paymentStatus==='چک'&&w.dueDate).forEach(w=>{
                 const dd=new Date(w.dueDate); dd.setHours(7,0,0,0);
-                // Only trigger if it's exactly 7 AM and not triggered yet (simple check logic)
                 if(dd.getTime()===td.getTime() && currentH === 7 && currentM === 0){
                     notify(w);
                 }
@@ -1051,7 +1112,6 @@ const APP = (function() {
                 const remDate = new Date(w.reminderDate);
                 const [rH, rM] = w.reminderTime.split(':').map(Number);
                 
-                // Compare Year, Month, Day, Hour, Minute
                 if(remDate.getFullYear() === now.getFullYear() && 
                    remDate.getMonth() === now.getMonth() && 
                    remDate.getDate() === now.getDate() &&
@@ -1064,23 +1124,18 @@ const APP = (function() {
         }).catch(e=>console.error(e));
     }
     
-    // Track triggered alarms to avoid loop in same minute
     let lastTriggeredId = null; 
 
     function triggerFullAlarm(w) {
-        if(lastTriggeredId === w.id) return; // Already triggered this minute
+        if(lastTriggeredId === w.id) return;
         lastTriggeredId = w.id;
         
-        // Show Modal
         const modal = document.getElementById('alarmModal');
         document.getElementById('alarmCustomerName').textContent = w.customerName;
         document.getElementById('alarmAmount').textContent = fmt(w.amount) + ' تومان';
         modal.classList.add('show');
         
-        // Play Sound Loop
         startAlarmSound();
-        
-        // Vibration
         if(navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]);
     }
 
@@ -1102,9 +1157,17 @@ const APP = (function() {
 
     async function init(){try{console.log('🚀 Initializing...');await initDB();console.log('✅ DB ready');loadTypes();console.log('✅ Types loaded');await updateStats();console.log('✅ Stats updated');
     console.log('✅ Date set to empty');
-    await setupAuto();console.log('✅ Auto setup');if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
+    await setupAuto();console.log('✅ Auto setup');
     
-    // Check alarms every 30 seconds for precision
+    // Fill Time Selects
+    const hSel = document.getElementById('alarmHour');
+    const mSel = document.getElementById('alarmMinute');
+    for(let i=0; i<24; i++) { const opt = document.createElement('option'); const val = i.toString().padStart(2,'0'); opt.value = val; opt.textContent = val; hSel.appendChild(opt); }
+    for(let i=0; i<60; i++) { const opt = document.createElement('option'); const val = i.toString().padStart(2,'0'); opt.value = val; opt.textContent = val; mSel.appendChild(opt); }
+    // Defaults
+    hSel.value = '09'; mSel.value = '00';
+
+    if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
     setInterval(checkAlarms, 30000); 
     console.log('✅ Alarms setup (Every 30s)');
     console.log('✅✅✅ App ready!');
