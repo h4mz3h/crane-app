@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 8.5 - گزارش‌گیری دقیق)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 9.0 - فول آپشن)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -693,6 +693,10 @@ const APP = (function() {
         if (window.AudioContext || window.webkitAudioContext) {
             try {
                 if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                // Resume context if suspended (common on mobile)
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
                 osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
                 osc.connect(gain);
@@ -1336,29 +1340,35 @@ const APP = (function() {
         const currentH = now.getHours();
         
         getWorks().then(ws=>{
-            // 1. Check Standard Due Dates (at 7:00 AM)
-            const td=new Date(); td.setHours(7,0,0,0);
-            ws.filter(w=>w.paymentStatus==='چک'&&w.dueDate).forEach(w=>{
-                const dd=new Date(w.dueDate); dd.setHours(7,0,0,0);
-                if(dd.getTime()===td.getTime() && currentH === 7 && currentM === 0){
-                    notify(w);
+            // 1. Check Standard Due Dates (at 7:00 AM) - Robust Check
+            ws.filter(w=>w.paymentStatus==='چک' && w.dueDate).forEach(w=>{
+                const parts = w.dueDate.split('-');
+                if(parts.length === 3) {
+                    const dy = parseInt(parts[0]);
+                    const dm = parseInt(parts[1]) - 1;
+                    const dd = parseInt(parts[2]);
+                    // Compare Date Components (Timezone Safe)
+                    if(now.getFullYear() === dy && now.getMonth() === dm && now.getDate() === dd) {
+                        if(currentH === 7 && currentM === 0) notify(w);
+                    }
                 }
             });
 
             // 2. Check Custom Reminder Dates (Precise)
             ws.filter(w=>w.paymentStatus==='چک' && w.reminderDate && w.reminderTime).forEach(w=>{
-                const remDate = new Date(w.reminderDate);
-                const [rH, rM] = w.reminderTime.split(':').map(Number);
-                
-                if(remDate.getFullYear() === now.getFullYear() && 
-                   remDate.getMonth() === now.getMonth() && 
-                   remDate.getDate() === now.getDate() &&
-                   rH === currentH && 
-                   rM === currentM) {
-                       triggerFullAlarm(w);
-                   }
+                 const parts = w.reminderDate.split('-');
+                 if(parts.length === 3) {
+                    const ry = parseInt(parts[0]);
+                    const rm = parseInt(parts[1]) - 1;
+                    const rd = parseInt(parts[2]);
+                    const [rH, rM] = w.reminderTime.split(':').map(Number);
+                    // Compare Date & Time Components (Timezone Safe)
+                    if(now.getFullYear() === ry && now.getMonth() === rm && now.getDate() === rd &&
+                       now.getHours() === rH && now.getMinutes() === rM) {
+                           triggerFullAlarm(w);
+                    }
+                 }
             });
-
         }).catch(e=>console.error(e));
     }
     
