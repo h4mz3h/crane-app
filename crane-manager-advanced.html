@@ -808,18 +808,18 @@ function generateInvoice(workId) {
             // الف) نام مشتری (سمت راست)
             ctx.font = 'bold 22px Tahoma'; // فونت درشت برای نام
             ctx.textAlign = 'right';
-            ctx.fillText(`👤 نام مشتری: ${w.customerName}`, width - 60, textY);
+            ctx.fillText(`نام مشتری: ${w.customerName}`, width - 60, textY);
 
             // ب) شماره تماس (وسط - کمی متمایل به راست)
             ctx.font = '20px Tahoma'; // فونت معمولی برای شماره
             // محاسبه موقعیت تقریبی وسط
-            ctx.fillText(`📞 تماس: ${w.customerPhone}`, width - 350, textY);
+            ctx.fillText(`تماس: ${w.customerPhone}`, width - 350, textY);
 
             // ج) تاریخ (سمت چپ - تراز چپ)
             ctx.textAlign = 'left'; // نکته مهم: تغییر تراز به چپ
             ctx.font = 'bold 20px Tahoma';
             // اینجا "تاریخ انجام کار" رو کردم "تاریخ"
-            ctx.fillText(`📅 تاریخ: ${w.date}`, 60, textY);
+            ctx.fillText(`تاریخ: ${w.date}`, 60, textY);
 
 
             // 4. باکس شرح خدمات
