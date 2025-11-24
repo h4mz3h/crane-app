@@ -419,19 +419,19 @@
                 <h3 style="text-align:center;color:#1e293b;margin-bottom:15px;">📊 گزارش‌گیری پیشرفته</h3>
                 <div class="form-group">
                     <label>از تاریخ:</label>
-                    <input type="text" id="reportStartDate" class="date-input" readonly placeholder="انتخاب کنید..." onclick="APP.showCal('reportStartDate')">
+                    <input type="text" id="reportStartDate" class="date-input" style="height: 50px;" readonly placeholder="انتخاب کنید..." onclick="APP.showCal('reportStartDate')">
                     <input type="hidden" id="reportStartVal">
                 </div>
                 <div class="form-group">
                     <label>تا تاریخ:</label>
-                    <input type="text" id="reportEndDate" class="date-input" readonly placeholder="انتخاب کنید..." onclick="APP.showCal('reportEndDate')">
+                    <input type="text" id="reportEndDate" class="date-input" style="height: 50px;" readonly placeholder="انتخاب کنید..." onclick="APP.showCal('reportEndDate')">
                     <input type="hidden" id="reportEndVal">
                 </div>
                 <button class="btn btn-primary" onclick="APP.generateReport()">🔎 محاسبه گزارش</button>
                 
                 <div id="reportResults" style="display:none; margin-top:20px;"></div>
-                </div>
             </div>
+        </div>
         </div>
 
         <div id="page-customer-detail" class="page">
