@@ -953,33 +953,59 @@ function generateInvoice(workId) {
         
         const ws = await getWorks();
         
-        let total = 0, cash = 0, check = 0, credit = 0, count = 0;
+        let totalRevenue = 0; // درآمد حاصل از کارکرد
+        let totalCashCollected = 0; // نقدینگی جمع شده (چه سرِ کار، چه تسویه)
+        let totalCheckCollected = 0; // چک‌های گرفته شده
+        let serviceCount = 0; // تعداد فقط سرویس‌ها
         
         ws.forEach(w => {
             const wDateVal = getDateValue(w.date); 
             if(wDateVal >= sDate && wDateVal <= eDate) {
-                count++;
                 const am = parseFloat(w.amount.replace(/,/g,'')||0);
-                if(!w.isSettlement) {
+                
+                if (w.isSettlement) {
+                    // --- اگر رکورد "تسویه بدهی" باشد ---
+                    // این رکورد جزء درآمد کارکرد نیست، فقط پول ورودی است
+                    // تعداد سرویس را هم زیاد نمی‌کند
+                    
+                    if (w.paymentStatus === 'چک') {
+                        totalCheckCollected += am;
+                    } else {
+                        // نقدی، کارت به کارت، کارتخوان
+                        totalCashCollected += am;
+                    }
+                } else {
+                    // --- اگر رکورد "انجام کار" باشد ---
+                    serviceCount++; // فقط اینجا تعداد زیاد می‌شود
+                    totalRevenue += am; // درآمد کارکرد اضافه می‌شود
+
                     if(w.paymentStatus === 'نقدی' || w.paymentStatus === 'کارت به کارت' || w.paymentStatus === 'کارتخوان') {
-                        total += am; cash += am;
+                        totalCashCollected += am;
                     } else if (w.paymentStatus === 'چک') {
-                        total += am; check += am;
+                        totalCheckCollected += am;
                     } else if (w.paymentStatus === 'نسیه') {
-                        total += am;
+                        // در حالت نسیه، اگر بیعانه گرفته باشیم به نقدینگی اضافه می‌شود
                         const paid = w.paidAmount ? parseFloat(w.paidAmount.replace(/,/g,'')||0) : 0;
-                        cash += paid;
-                        credit += (am - paid);
+                        totalCashCollected += paid;
+                        // مابقی بدهی است که فعلاً جایی اضافه نمی‌کنیم، فرمول پایین محاسبه می‌کند
                     }
                 }
             }
         });
         
-        document.getElementById('repTotal').textContent = fmt(total);
-        document.getElementById('repCash').textContent = fmt(cash);
-        document.getElementById('repCheck').textContent = fmt(check);
-        document.getElementById('repCredit').textContent = fmt(credit);
-        document.getElementById('repCount').textContent = count;
+        // محاسبه مانده نسیه در این بازه:
+        // (کل پولی که باید میگرفتیم بابت کارها) منهای (کل پول و چکی که گرفتیم بابت کارها و تسویه‌ها)
+        let creditRemained = totalRevenue - (totalCashCollected + totalCheckCollected);
+        
+        // اگر عدد منفی شد (یعنی تسویه بدهی‌های قدیمی بیشتر از کارکرد جدید بوده) صفر نشان بده
+        // یا اگر بخواهی دقیق باشی، منفی یعنی پول بیشتری وارد شده. اما معمولا در گزارش نسیه صفر میگذارند.
+        // اینجا همون فرمول ریاضی رو میذاریم که اگر صفر شد یعنی حساب پاکه
+        
+        document.getElementById('repTotal').textContent = fmt(totalRevenue);
+        document.getElementById('repCash').textContent = fmt(totalCashCollected);
+        document.getElementById('repCheck').textContent = fmt(totalCheckCollected);
+        document.getElementById('repCredit').textContent = fmt(creditRemained); // اینجا الان باید 0 بشه طبق مثال تو
+        document.getElementById('repCount').textContent = serviceCount; // اینجا الان باید 3 بشه
         
         document.getElementById('reportResults').style.display = 'block';
     }
