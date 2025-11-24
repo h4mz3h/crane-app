@@ -953,10 +953,10 @@ function generateInvoice(workId) {
         
         const ws = await getWorks();
         
-        let totalRevenue = 0; // درآمد کارکرد
-        let totalCashCollected = 0; // نقدینگی (نقد + کارت)
-        let totalCheckCollected = 0; // چک‌ها
-        let serviceCount = 0; // تعداد سرویس
+        let totalRevenue = 0; // درآمد حاصل از کارکرد
+        let totalCashCollected = 0; // نقدینگی جمع شده (چه سرِ کار، چه تسویه)
+        let totalCheckCollected = 0; // چک‌های گرفته شده
+        let serviceCount = 0; // تعداد فقط سرویس‌ها
         
         ws.forEach(w => {
             const wDateVal = getDateValue(w.date); 
@@ -964,62 +964,48 @@ function generateInvoice(workId) {
                 const am = parseFloat(w.amount.replace(/,/g,'')||0);
                 
                 if (w.isSettlement) {
-                    // تسویه حساب‌ها (فقط پول ورودی)
+                    // --- اگر رکورد "تسویه بدهی" باشد ---
+                    // این رکورد جزء درآمد کارکرد نیست، فقط پول ورودی است
+                    // تعداد سرویس را هم زیاد نمی‌کند
+                    
                     if (w.paymentStatus === 'چک') {
                         totalCheckCollected += am;
                     } else {
+                        // نقدی، کارت به کارت، کارتخوان
                         totalCashCollected += am;
                     }
                 } else {
-                    // کارکردها
-                    serviceCount++;
-                    totalRevenue += am;
+                    // --- اگر رکورد "انجام کار" باشد ---
+                    serviceCount++; // فقط اینجا تعداد زیاد می‌شود
+                    totalRevenue += am; // درآمد کارکرد اضافه می‌شود
 
                     if(w.paymentStatus === 'نقدی' || w.paymentStatus === 'کارت به کارت' || w.paymentStatus === 'کارتخوان') {
                         totalCashCollected += am;
                     } else if (w.paymentStatus === 'چک') {
                         totalCheckCollected += am;
                     } else if (w.paymentStatus === 'نسیه') {
+                        // در حالت نسیه، اگر بیعانه گرفته باشیم به نقدینگی اضافه می‌شود
                         const paid = w.paidAmount ? parseFloat(w.paidAmount.replace(/,/g,'')||0) : 0;
                         totalCashCollected += paid;
+                        // مابقی بدهی است که فعلاً جایی اضافه نمی‌کنیم، فرمول پایین محاسبه می‌کند
                     }
                 }
             }
         });
         
-        // محاسبه تراز
-        let balance = totalRevenue - (totalCashCollected + totalCheckCollected);
+        // محاسبه مانده نسیه در این بازه:
+        // (کل پولی که باید میگرفتیم بابت کارها) منهای (کل پول و چکی که گرفتیم بابت کارها و تسویه‌ها)
+        let creditRemained = totalRevenue - (totalCashCollected + totalCheckCollected);
         
-        // نمایش داده‌ها
+        // اگر عدد منفی شد (یعنی تسویه بدهی‌های قدیمی بیشتر از کارکرد جدید بوده) صفر نشان بده
+        // یا اگر بخواهی دقیق باشی، منفی یعنی پول بیشتری وارد شده. اما معمولا در گزارش نسیه صفر میگذارند.
+        // اینجا همون فرمول ریاضی رو میذاریم که اگر صفر شد یعنی حساب پاکه
+        
         document.getElementById('repTotal').textContent = fmt(totalRevenue);
         document.getElementById('repCash').textContent = fmt(totalCashCollected);
         document.getElementById('repCheck').textContent = fmt(totalCheckCollected);
-        document.getElementById('repCount').textContent = serviceCount;
-        
-        // --- بخش هوشمند سازی باکس نسیه ---
-        const debtBox = document.querySelector('.stat-box.debt'); // پیدا کردن باکس قرمز
-        const debtLabel = debtBox.querySelector('.label');
-        const debtValue = document.getElementById('repCredit');
-        
-        // حذف استایل‌های قبلی (برای اینکه رنگش درست عوض بشه)
-        debtBox.style.background = ''; 
-        
-        if (balance > 0) {
-            // حالت بدهکاری (عادی) - قرمز
-            debtLabel.textContent = '⏳ نسیه (مانده)';
-            debtValue.textContent = fmt(balance);
-            debtBox.style.background = 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'; // قرمز
-        } else if (balance < 0) {
-            // حالت وصول اضافه (خفن!) - سبز
-            debtLabel.textContent = '✅ وصول مطالبات قبل';
-            debtValue.textContent = fmt(Math.abs(balance)); // عدد رو مثبت نشون میدیم
-            debtBox.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)'; // سبز
-        } else {
-            // حالت صفر (تسویه) - طوسی
-            debtLabel.textContent = '⚖️ تراز حساب';
-            debtValue.textContent = 'تسویه کامل';
-            debtBox.style.background = 'linear-gradient(135deg, #64748b 0%, #475569 100%)'; // طوسی
-        }
+        document.getElementById('repCredit').textContent = fmt(creditRemained); // اینجا الان باید 0 بشه طبق مثال تو
+        document.getElementById('repCount').textContent = serviceCount; // اینجا الان باید 3 بشه
         
         document.getElementById('reportResults').style.display = 'block';
     }
