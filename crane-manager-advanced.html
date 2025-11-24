@@ -5,26 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 10.0 - حالت شب)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 10.5 - دارک مود واقعی)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; transition: background 0.3s; }
         .container { max-width: 600px; margin: 0 auto; }
         
         /* Header Styling */
-        .header { background: white; padding: 20px 15px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 20px; text-align: center; position: relative; }
+        .header { background: white; padding: 20px 15px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 20px; text-align: center; position: relative; transition: background 0.3s; }
         .header h1 { color: #2563eb; font-size: 18px; margin-bottom: 5px; line-height: 1.4; font-weight: 800; }
         .header p { color: #64748b; font-size: 13px; margin-bottom: 15px; }
         
         /* Night Mode Button */
-        .night-mode-btn { position: absolute; top: 15px; left: 15px; background: #1e293b; color: #fbbf24; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 10; }
+        .night-mode-btn { position: absolute; top: 15px; left: 15px; background: #1e293b; color: #fbbf24; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 10; transition: all 0.3s; }
         
-        /* Night Overlay */
-        #nightOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000000; z-index: 10000; display: none; flex-direction: column; justify-content: center; align-items: center; color: #4ade80; }
-        #nightOverlay.active { display: flex; }
-        .night-text { font-size: 20px; font-weight: bold; animation: breathe 3s infinite; margin-bottom: 20px; }
-        .night-exit-btn { padding: 10px 30px; border: 2px solid #4ade80; background: transparent; color: #4ade80; border-radius: 50px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        @keyframes breathe { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        /* DARK MODE STYLES */
+        body.dark-mode { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
+        body.dark-mode .header, body.dark-mode .form-card, body.dark-mode .customer-list, body.dark-mode .modal-content, body.dark-mode .datepicker-content { background: #1e293b; color: #f8fafc; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        body.dark-mode .header h1 { color: #60a5fa; }
+        body.dark-mode .header p { color: #94a3b8; }
+        body.dark-mode .form-group label { color: #cbd5e1; }
+        body.dark-mode input, body.dark-mode select, body.dark-mode textarea, body.dark-mode .custom-select-trigger, body.dark-mode .styled-input { background: #334155; border-color: #475569; color: white; }
+        body.dark-mode .nav-btn { background: #334155; color: #cbd5e1; border-color: #475569; }
+        body.dark-mode .nav-btn.active { background: #1e40af; color: white; border-color: #1e40af; }
+        body.dark-mode .customer-item { border-bottom-color: #334155; }
+        body.dark-mode .customer-item:hover { background: #334155; }
+        body.dark-mode .customer-name { color: #f8fafc; }
+        body.dark-mode .customer-stats { background: #334155; }
+        body.dark-mode .payment-option { background: #334155; border-color: #475569; color: #cbd5e1; }
+        body.dark-mode .payment-option:hover { background: #475569; }
+        body.dark-mode .payment-option.selected { background: #1d4ed8; color: white; border-color: #1d4ed8; }
+        body.dark-mode .section-header { background: #334155; }
+        body.dark-mode .debt-item { background: #1e293b; border-bottom-color: #334155; }
+        body.dark-mode .modal-header { color: #f8fafc; }
+        body.dark-mode .work-history-item { background: #334155; border-color: #475569; }
+        body.dark-mode .work-date { color: #f8fafc; background: #475569; }
+        body.dark-mode .datepicker-days button { background: #334155; color: #f8fafc; }
+        body.dark-mode .datepicker-days button:hover { background: #475569; }
+        body.dark-mode .night-mode-btn { background: #fbbf24; color: #1e293b; }
+        body.dark-mode .reminder-box { background: #334155; border-color: #f87171; }
+        body.dark-mode .time-part { background: #1e293b; border-color: #475569; }
+        body.dark-mode .time-select, body.dark-mode .time-separator { color: white; }
 
         /* Stats Grid */
         .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
@@ -51,7 +72,7 @@
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .form-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .form-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 20px; transition: background 0.3s; }
         .form-group { margin-bottom: 15px; position: relative; }
         .form-group label { display: block; margin-bottom: 8px; color: #334155; font-weight: 700; font-size: 13px; }
         
@@ -287,11 +308,6 @@
     </style>
 </head>
 <body>
-    <div id="nightOverlay">
-        <div class="night-text">🌙 سیستم بیدار است...</div>
-        <button class="night-exit-btn" onclick="APP.toggleNightMode()">خروج از حالت شب</button>
-    </div>
-
     <div class="container">
         <div class="header">
             <button class="night-mode-btn" onclick="APP.toggleNightMode()">🌙</button>
@@ -711,11 +727,31 @@ const APP = (function() {
     // --- Night Mode & Wake Lock Functions ---
     
     async function toggleNightMode() {
-        const overlay = document.getElementById('nightOverlay');
+        const body = document.body;
+        const isDark = body.classList.toggle('dark-mode');
         
-        if (overlay.classList.contains('active')) {
+        if (isDark) {
+            // Enter Night Mode (Wake Lock Active)
+            
+            // Start Silent Audio loop to keep CPU awake
+            const silentMp3 = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTS1UAAAAIAAAARGF2b2Z0AP/7UAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+            if(!nightModeAudio) nightModeAudio = new Audio(silentMp3);
+            nightModeAudio.loop = true;
+            nightModeAudio.play().catch(e => console.log('Audio play failed (interaction needed):', e));
+
+            // Request Wake Lock
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock active');
+                }
+            } catch (err) {
+                console.error(`${err.name}, ${err.message}`);
+            }
+            toast('🌙 حالت شب فعال شد (صفحه روشن می‌ماند)');
+            
+        } else {
             // Exit Night Mode
-            overlay.classList.remove('active');
             
             // Stop Silent Audio
             if(nightModeAudio) {
@@ -729,27 +765,7 @@ const APP = (function() {
                 wakeLock = null;
                 console.log('Wake Lock released');
             }
-            
-        } else {
-            // Enter Night Mode
-            overlay.classList.add('active');
-            
-            // Start Silent Audio loop to keep CPU awake
-            // A tiny base64 encoded silent mp3
-            const silentMp3 = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTS1UAAAAIAAAARGF2b2Z0AP/7UAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-            nightModeAudio = new Audio(silentMp3);
-            nightModeAudio.loop = true;
-            nightModeAudio.play().catch(e => console.log('Audio play failed (interaction needed):', e));
-
-            // Request Wake Lock
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake Lock active');
-                }
-            } catch (err) {
-                console.error(`${err.name}, ${err.message}`);
-            }
+            toast('☀️ حالت روز');
         }
     }
 
