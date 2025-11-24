@@ -5,48 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 10.5 - دارک مود واقعی)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 8.5 - گزارش‌گیری دقیق)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; transition: background 0.3s; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
         .container { max-width: 600px; margin: 0 auto; }
         
         /* Header Styling */
-        .header { background: white; padding: 20px 15px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 20px; text-align: center; position: relative; transition: background 0.3s; }
+        .header { background: white; padding: 20px 15px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); margin-bottom: 20px; text-align: center; }
         .header h1 { color: #2563eb; font-size: 18px; margin-bottom: 5px; line-height: 1.4; font-weight: 800; }
         .header p { color: #64748b; font-size: 13px; margin-bottom: 15px; }
         
-        /* Night Mode Button */
-        .night-mode-btn { position: absolute; top: 15px; left: 15px; background: #1e293b; color: #fbbf24; border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 10px rgba(0,0,0,0.2); z-index: 10; transition: all 0.3s; }
-        
-        /* DARK MODE STYLES */
-        body.dark-mode { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); }
-        body.dark-mode .header, body.dark-mode .form-card, body.dark-mode .customer-list, body.dark-mode .modal-content, body.dark-mode .datepicker-content { background: #1e293b; color: #f8fafc; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-        body.dark-mode .header h1 { color: #60a5fa; }
-        body.dark-mode .header p { color: #94a3b8; }
-        body.dark-mode .form-group label { color: #cbd5e1; }
-        body.dark-mode input, body.dark-mode select, body.dark-mode textarea, body.dark-mode .custom-select-trigger, body.dark-mode .styled-input { background: #334155; border-color: #475569; color: white; }
-        body.dark-mode .nav-btn { background: #334155; color: #cbd5e1; border-color: #475569; }
-        body.dark-mode .nav-btn.active { background: #1e40af; color: white; border-color: #1e40af; }
-        body.dark-mode .customer-item { border-bottom-color: #334155; }
-        body.dark-mode .customer-item:hover { background: #334155; }
-        body.dark-mode .customer-name { color: #f8fafc; }
-        body.dark-mode .customer-stats { background: #334155; }
-        body.dark-mode .payment-option { background: #334155; border-color: #475569; color: #cbd5e1; }
-        body.dark-mode .payment-option:hover { background: #475569; }
-        body.dark-mode .payment-option.selected { background: #1d4ed8; color: white; border-color: #1d4ed8; }
-        body.dark-mode .section-header { background: #334155; }
-        body.dark-mode .debt-item { background: #1e293b; border-bottom-color: #334155; }
-        body.dark-mode .modal-header { color: #f8fafc; }
-        body.dark-mode .work-history-item { background: #334155; border-color: #475569; }
-        body.dark-mode .work-date { color: #f8fafc; background: #475569; }
-        body.dark-mode .datepicker-days button { background: #334155; color: #f8fafc; }
-        body.dark-mode .datepicker-days button:hover { background: #475569; }
-        body.dark-mode .night-mode-btn { background: #fbbf24; color: #1e293b; }
-        body.dark-mode .reminder-box { background: #334155; border-color: #f87171; }
-        body.dark-mode .time-part { background: #1e293b; border-color: #475569; }
-        body.dark-mode .time-select, body.dark-mode .time-separator { color: white; }
-
         /* Stats Grid */
         .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 10px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -72,7 +41,7 @@
         .page.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        .form-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 20px; transition: background 0.3s; }
+        .form-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; position: relative; }
         .form-group label { display: block; margin-bottom: 8px; color: #334155; font-weight: 700; font-size: 13px; }
         
@@ -310,7 +279,6 @@
 <body>
     <div class="container">
         <div class="header">
-            <button class="night-mode-btn" onclick="APP.toggleNightMode()">🌙</button>
             <h1>مدیریت مشتریان - جرثقیل حسین کُرد</h1>
             <p>ثبت و پیگیری مشتریان و بدهی‌ها</p>
             
@@ -625,7 +593,7 @@
         </div>
     </div>
 
-    <script>
+<script>
 const APP = (function() {
     const DB_NAME='CraneManagerProDB', DB_VERSION=3, WORKS='works', CUSTOMERS='customers';
     let db, editWorkId=null, deleteWorkId=null, deleteCustomerPhone=null, currentCustomerPhone=null, settleData=null, settlePayment=null;
@@ -634,9 +602,8 @@ const APP = (function() {
     const pMonths=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
     let audioCtx = null, osc = null, gainNode = null;
     let currentInvoiceBlob = null;
-    let alarmIntervalId = null; 
-    let wakeLock = null; // To keep screen on
-    let nightModeAudio = null; // Silent audio player
+    let alarmIntervalId = null; // برای مدیریت تکرار صدا
+    let isAudioUnlock = false;  // برای مدیریت اجازه پخش صدا در موبایل
 
     // --- توابع دقیق تقویم جلالی (الگوریتم خیام) ---
     function toJalaali(gy, gm, gd) {
@@ -723,185 +690,81 @@ const APP = (function() {
         }
         return 0;
     }
-    
-    // --- Night Mode & Wake Lock Functions ---
-    
-    async function toggleNightMode() {
-        const body = document.body;
-        const isDark = body.classList.toggle('dark-mode');
-        
-        if (isDark) {
-            // Enter Night Mode (Wake Lock Active)
-            
-            // Start Silent Audio loop to keep CPU awake
-            const silentMp3 = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTS1UAAAAIAAAARGF2b2Z0AP/7UAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-            if(!nightModeAudio) nightModeAudio = new Audio(silentMp3);
-            nightModeAudio.loop = true;
-            nightModeAudio.play().catch(e => console.log('Audio play failed (interaction needed):', e));
 
-            // Request Wake Lock
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake Lock active');
-                }
-            } catch (err) {
-                console.error(`${err.name}, ${err.message}`);
-            }
-            toast('🌙 حالت شب فعال شد (صفحه روشن می‌ماند)');
-            
-        } else {
-            // Exit Night Mode
-            
-            // Stop Silent Audio
-            if(nightModeAudio) {
-                nightModeAudio.pause();
-                nightModeAudio = null;
-            }
-            
-            // Release Wake Lock
-            if (wakeLock !== null) {
-                await wakeLock.release();
-                wakeLock = null;
-                console.log('Wake Lock released');
-            }
-            toast('☀️ حالت روز');
+    // --- سیستم صوتی جدید و بهینه شده ---
+    function unlockAudioContext() {
+        if (isAudioUnlock) return;
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) {
+            const tempCtx = new Ctx();
+            const buffer = tempCtx.createBuffer(1, 1, 22050);
+            const source = tempCtx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(tempCtx.destination);
+            if (source.start) source.start(0);
+            else if (source.noteOn) source.noteOn(0);
+            setTimeout(() => {
+                 if(tempCtx.state === 'running') isAudioUnlock = true;
+            }, 0);
         }
+        // حذف لیسنر بعد از اولین کلیک
+        document.body.removeEventListener('click', unlockAudioContext);
+        document.body.removeEventListener('touchstart', unlockAudioContext);
     }
 
-    // --- Alarm Sound Functions (V2 Updated) ---
     function startAlarmSound() {
-        if (!window.AudioContext && !window.webkitAudioContext) return;
         try {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            // قطع صدای قبلی اگر وجود دارد
+            if (osc) { osc.stop(); osc.disconnect(); }
+            if (alarmIntervalId) clearInterval(alarmIntervalId);
+
+            // ایجاد صدای آژیر مانند
+            function playBeep() {
+                osc = audioCtx.createOscillator();
+                gainNode = audioCtx.createGain();
+                
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
+                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.5); // صدای کاهشی (آژیر)
+
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.6);
             }
 
-            osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            
-            osc.type = 'square'; 
-            osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
-            
-            osc.start();
+            playBeep();
+            // تکرار صدا هر 1 ثانیه
+            alarmIntervalId = setInterval(playBeep, 1000);
 
-            window.alarmInterval = setInterval(() => {
-                if (osc && audioCtx) {
-                    const now = audioCtx.currentTime;
-                    osc.frequency.setValueAtTime(800, now);
-                    osc.frequency.linearRampToValueAtTime(1200, now + 0.2);
-                    osc.frequency.linearRampToValueAtTime(800, now + 0.4);
-                }
-            }, 500); 
-
-        } catch (e) { console.error('Audio Error:', e); }
+        } catch (e) {
+            console.error('Audio Error:', e);
+        }
     }
-
+    
     function stopAlarm() {
         const modal = document.getElementById('alarmModal');
-        if(modal) modal.classList.remove('show');
+        modal.classList.remove('show');
         
+        if (alarmIntervalId) clearInterval(alarmIntervalId);
         if (osc) {
-            try { osc.stop(); osc.disconnect(); } catch (e) {}
+            try { osc.stop(); osc.disconnect(); } catch(e){}
             osc = null;
         }
-        if (window.alarmInterval) {
-            clearInterval(window.alarmInterval);
-            window.alarmInterval = null;
-        }
+        // قطع ویبره
+        if(navigator.vibrate) navigator.vibrate(0);
     }
 
-    // --- Smart Check System ---
-    let lastTriggeredTime = ""; 
-
-    function checkAlarms() {
-        const now = new Date();
-        const jNow = toJalaali(now.getFullYear(), now.getMonth() + 1, now.getDate());
-        
-        const currentJalaliDate = `${jNow.year}-${String(jNow.month).padStart(2, '0')}-${String(jNow.day).padStart(2, '0')}`; 
-        const currentH = now.getHours();
-        const currentM = now.getMinutes();
-        
-        const timeKey = `${currentJalaliDate}-${currentH}:${currentM}`;
-        if (lastTriggeredTime === timeKey) return; 
-
-        console.log(`Checking Alarms... Time: ${currentH}:${currentM} | Date: ${currentJalaliDate}`);
-
-        getWorks().then(ws => {
-            ws.filter(w => w.paymentStatus === 'چک' && w.dueDate).forEach(w => {
-                let dbDate = w.dueDate.replace(/\//g, '-'); 
-                if (dbDate === currentJalaliDate && currentH === 7 && currentM === 0) {
-                    notify(w);
-                    lastTriggeredTime = timeKey;
-                }
-            });
-
-            ws.filter(w => w.paymentStatus === 'چک' && w.reminderDate && w.reminderTime).forEach(w => {
-                let dbRemDate = w.reminderDate.replace(/\//g, '-');
-                const [rH, rM] = w.reminderTime.split(':').map(Number);
-
-                if (dbRemDate === currentJalaliDate && rH === currentH && rM === currentM) {
-                    console.log("ALARM MATCH FOUND!", w.customerName);
-                    triggerFullAlarm(w);
-                    lastTriggeredTime = timeKey;
-                }
-            });
-        }).catch(e => console.error("DB Error:", e));
-    }
-
-    function triggerFullAlarm(w) {
-        const modal = document.getElementById('alarmModal');
-        document.getElementById('alarmCustomerName').textContent = w.customerName;
-        document.getElementById('alarmAmount').textContent = fmt(w.amount) + ' تومان';
-        
-        modal.classList.add('show');
-        
-        startAlarmSound();
-        
-        if (navigator.vibrate) {
-            navigator.vibrate([1000, 500, 1000, 500, 1000, 500, 2000]); 
-        }
-        
-        notify(w, true);
-    }
-
-    function notify(w, isFullAlarm = false) {
-        if ('Notification' in window && Notification.permission === 'granted') {
-            const title = isFullAlarm ? '🚨 هشدار فوری چک!' : '🔔 یادآوری سررسید چک';
-            const body = `چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان. موعدش رسیده!`;
-            
-            const options = {
-                body: body,
-                icon: 'https://cdn-icons-png.flaticon.com/512/2942/2942878.png', 
-                vibrate: [500, 200, 500],
-                requireInteraction: true, 
-                tag: 'crane-alarm-' + w.id 
-            };
-
-            const notif = new Notification(title, options);
-            
-            notif.onclick = function() {
-                window.focus(); 
-                if(isFullAlarm) {
-                     document.getElementById('alarmModal').classList.add('show');
-                }
-                this.close();
-            };
-        } else {
-            toast(`⏰ هشدار چک: ${w.customerName}`);
-        }
-    }
-
-    // --- Invoice Generation Logic (Updated Text) ---
+    // --- Invoice Generation Logic ---
     function generateInvoice(workId) {
         getWork(workId).then(w => {
             if (!w) return;
-            
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const width = 800;
@@ -909,15 +772,12 @@ const APP = (function() {
             canvas.width = width;
             canvas.height = height;
 
-            // Background
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, width, height);
 
-            // Header Background
             ctx.fillStyle = '#2563eb';
             ctx.fillRect(0, 0, width, 150);
 
-            // Header Text
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 40px Tahoma, "Segoe UI", sans-serif';
             ctx.textAlign = 'center';
@@ -925,7 +785,6 @@ const APP = (function() {
             ctx.font = 'bold 25px Tahoma';
             ctx.fillText('حسین کُرد', width / 2, 120);
 
-            // Info Section
             ctx.fillStyle = '#1e293b';
             ctx.textAlign = 'right';
             ctx.font = 'bold 24px Tahoma';
@@ -936,7 +795,6 @@ const APP = (function() {
             const rightX = width - 50;
             const leftX = 50;
 
-            // Customer Info Box
             ctx.strokeStyle = '#e2e8f0';
             ctx.lineWidth = 2;
             ctx.strokeRect(40, 180, width - 80, 160);
@@ -945,7 +803,6 @@ const APP = (function() {
             ctx.fillText(`شماره تماس: ${w.customerPhone}`, rightX - 20, startY + lineHeight);
             ctx.fillText(`تاریخ انجام کار: ${w.date}`, rightX - 20, startY + lineHeight * 2);
 
-            // Work Details Box
             const detailsY = 380;
             ctx.strokeRect(40, detailsY, width - 80, 300);
             ctx.fillStyle = '#f8fafc';
@@ -957,7 +814,6 @@ const APP = (function() {
             ctx.textAlign = 'left';
             ctx.fillText('مبلغ', leftX + 30, detailsY + 40);
 
-            // Row Data
             ctx.font = '24px Tahoma';
             ctx.textAlign = 'right';
             ctx.fillText(w.workType, rightX - 30, detailsY + 110);
@@ -967,7 +823,6 @@ const APP = (function() {
             ctx.fillStyle = '#059669';
             ctx.fillText(fmt(w.amount) + ' تومان', leftX + 30, detailsY + 110);
 
-            // Payment Info
             let payStatusText = `وضعیت: ${w.paymentStatus}`;
             if (w.paymentStatus === 'نسیه') {
                 const remaining = w.debtAmount ? fmt(w.debtAmount) : '0';
@@ -979,14 +834,12 @@ const APP = (function() {
             ctx.font = '20px Tahoma';
             ctx.fillText(payStatusText, width / 2, detailsY + 250);
 
-            // Total Box
             ctx.fillStyle = '#eff6ff';
             ctx.fillRect(40, 700, width - 80, 100);
             ctx.fillStyle = '#1e40af';
             ctx.font = 'bold 35px Tahoma';
             ctx.fillText(`مبلغ قابل پرداخت: ${fmt(w.amount)} تومان`, width / 2, 765);
 
-            // Footer (Updated Professional Text)
             ctx.fillStyle = '#64748b';
             ctx.font = 'bold 20px Tahoma';
             ctx.fillText('از حسن اعتماد و انتخاب شما سپاسگزاریم', width / 2, 900);
@@ -995,11 +848,9 @@ const APP = (function() {
             ctx.fillStyle = '#94a3b8';
             ctx.fillText('تعهد ما، دقت و ایمنی در انجام پروژه‌های شماست', width / 2, 940);
 
-            // Output
             const dataUrl = canvas.toDataURL('image/png');
             document.getElementById('invoiceImage').src = dataUrl;
             
-            // Store blob for sharing
             canvas.toBlob(blob => {
                 currentInvoiceBlob = blob;
             });
@@ -1038,7 +889,7 @@ const APP = (function() {
         }
     }
 
-    // --- Reporting Logic (FIXED) ---
+    // --- Reporting Logic ---
     async function generateReport() {
         const startVal = document.getElementById('reportStartVal').value;
         const endVal = document.getElementById('reportEndVal').value;
@@ -1275,7 +1126,6 @@ const APP = (function() {
         const gd = String(gDateObj.getDate()).padStart(2, '0');
         const gDateIso = `${gy}-${gm}-${gd}`;
         
-        // FIXED: Jalali Integer for correct comparison in Reports
         const jDateIso = `${window.dpCurY}${String(window.dpCurM).padStart(2,'0')}${String(d).padStart(2,'0')}`;
 
         if(window.dpTarget === 'date') {
@@ -1290,10 +1140,10 @@ const APP = (function() {
             document.getElementById('reminderDate').value = gDateIso;
         } else if (window.dpTarget === 'reportStartDate') {
             document.getElementById('reportStartDate').value = pDateStr;
-            document.getElementById('reportStartVal').value = jDateIso; // Store Jalali Int
+            document.getElementById('reportStartVal').value = jDateIso; 
         } else if (window.dpTarget === 'reportEndDate') {
             document.getElementById('reportEndDate').value = pDateStr;
-            document.getElementById('reportEndVal').value = jDateIso; // Store Jalali Int
+            document.getElementById('reportEndVal').value = jDateIso; 
         }
         window.closeCal();
     }
@@ -1323,7 +1173,6 @@ const APP = (function() {
 
     async function submitWork(e){e.preventDefault();const ps=document.getElementById('paymentStatus').value;if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}const ta=document.getElementById('amount').value.replace(/,/g,'');let ada=ta,pa=0;if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}
     
-    // Check Alarm Data and Construct Time String
     let remDate = null, remTime = null;
     if(ps==='چک') {
         remDate = document.getElementById('reminderDate').value;
@@ -1371,11 +1220,15 @@ const APP = (function() {
     document.getElementById('totalRevenue').textContent=fmt(tr);
     const dbs=ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement),sts=ws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('totalDebt').textContent=fmt(td);const dp=new Set();for(const w of dbs){const ph=w.customerPhone,cdb=dbs.filter(x=>x.customerPhone===ph),cst=sts.filter(x=>x.customerPhone===ph);let ctd=cdb.reduce((s,x)=>{const da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0);return s+da},0);const cts=cst.reduce((s,x)=>s+parseFloat(x.amount.replace(/,/g,'')||0),0),rd=ctd-cts;if(rd>0)dp.add(ph)}document.getElementById('debtorCount').textContent=fmt(dp.size)}catch(e){console.error(e)}}
 
-    async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w);
-    if(!c.lastWorkDate || getDateValue(w.date) > getDateValue(c.lastWorkDate)){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date}
-    const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));
-    cs.sort((a,b) => getDateValue(b.lastWorkDate) - getDateValue(a.lastWorkDate));
-    const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;color:#2563eb;font-size:16px;margin-left:5px;">📞</span> ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
+    async function renderCustomers(){try{
+        let sq=document.getElementById('customerSearch')?.value.toLowerCase()||'';
+        sq = normalizePersianNumbers(sq); // اصلاح: تبدیل اعداد فارسی به انگلیسی برای جستجو
+
+        const ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w);
+        if(!c.lastWorkDate || getDateValue(w.date) > getDateValue(c.lastWorkDate)){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date}
+        const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));
+        cs.sort((a,b) => getDateValue(b.lastWorkDate) - getDateValue(a.lastWorkDate));
+        const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;color:#2563eb;font-size:16px;margin-left:5px;">📞</span> ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
 
     async function showCustomerDetail(ph){try{console.log('showCustomerDetail called with phone:',ph);currentCustomerPhone=ph;const ws=await getWorks();console.log('Total works:',ws.length);
     const cws=ws.filter(w=>w.customerPhone===ph).sort((a,b)=> {
@@ -1498,57 +1351,72 @@ const APP = (function() {
     }
     di.innerHTML=`<div class="customer-header"><div><div class="customer-name">${d.name}</div><div class="customer-phone">📞 ${d.phone}</div></div></div><div style="margin:10px 0;"><div style="font-size:18px;font-weight:bold;color:#dc2626;">بدهی: ${fmt(d.totalDebt)} تومان</div>${d.nearestDue?`<div style="font-size:14px;color:#64748b;margin-top:5px;">سررسید: ${dueDateTxt} ${st}</div>`:''}</div><div style="display:flex;gap:8px;"><button class="btn-small btn-call">📞 تماس</button><button class="btn-small btn-settle">📋 مشاهده کارتابل</button></div>`;di.querySelector('.btn-call').onclick=()=>window.location.href=`tel:${d.phone}`;di.querySelector('.btn-settle').onclick=()=>showCustomerDetail(d.phone);cn.appendChild(di)});console.log('renderDebtors completed')}catch(e){console.error('Error in renderDebtors:',e);toast('❌ خطا در بارگذاری لیست بدهکاران')}}
 
-    function checkAlarms(){
+    let lastTriggeredId = null;
+
+    function checkAlarms() {
         const now = new Date();
-        const currentM = now.getMinutes();
         const currentH = now.getHours();
-        
-        getWorks().then(ws=>{
-            // 1. Check Standard Due Dates (at 7:00 AM)
-            const td=new Date(); td.setHours(7,0,0,0);
-            ws.filter(w=>w.paymentStatus==='چک'&&w.dueDate).forEach(w=>{
-                const dd=new Date(w.dueDate); dd.setHours(7,0,0,0);
-                if(dd.getTime()===td.getTime() && currentH === 7 && currentM === 0){
-                    notify(w);
+        const currentM = now.getMinutes();
+
+        getWorks().then(ws => {
+            // 1. چک کردن سررسیدهای معمولی (چک‌های روز - ساعت 7 صبح)
+            const td = new Date();
+            td.setHours(7, 0, 0, 0);
+            ws.filter(w => w.paymentStatus === 'چک' && w.dueDate).forEach(w => {
+                const dParts = w.dueDate.split('-');
+                if (dParts.length === 3) {
+                    const wDate = new Date(parseInt(dParts[0]), parseInt(dParts[1]) - 1, parseInt(dParts[2]));
+                    wDate.setHours(7, 0, 0, 0);
+                    
+                    if (wDate.getTime() === td.getTime() && currentH === 7 && currentM === 0) {
+                        notify(w);
+                    }
                 }
             });
 
-            // 2. Check Custom Reminder Dates (Precise)
-            ws.filter(w=>w.paymentStatus==='چک' && w.reminderDate && w.reminderTime).forEach(w=>{
-                const remDate = new Date(w.reminderDate);
+            // 2. چک کردن یادآوری‌های دقیق (آلارم قرمز رنگ)
+            ws.filter(w => w.paymentStatus === 'چک' && w.reminderDate && w.reminderTime).forEach(w => {
+                const dParts = w.reminderDate.split('-');
+                const rYear = parseInt(dParts[0]);
+                const rMonth = parseInt(dParts[1]) - 1; 
+                const rDay = parseInt(dParts[2]);
+
                 const [rH, rM] = w.reminderTime.split(':').map(Number);
-                
-                if(remDate.getFullYear() === now.getFullYear() && 
-                   remDate.getMonth() === now.getMonth() && 
-                   remDate.getDate() === now.getDate() &&
-                   rH === currentH && 
-                   rM === currentM) {
-                       triggerFullAlarm(w);
-                   }
+
+                if (rYear === now.getFullYear() &&
+                    rMonth === now.getMonth() &&
+                    rDay === now.getDate() &&
+                    rH === currentH &&
+                    rM === currentM) {
+                    
+                    triggerFullAlarm(w);
+                }
             });
 
-        }).catch(e=>console.error(e));
+        }).catch(e => console.error(e));
     }
-    
-    let lastTriggeredId = null; 
 
     function triggerFullAlarm(w) {
-        if(lastTriggeredId === w.id) return;
+        if (lastTriggeredId === w.id) return;
         lastTriggeredId = w.id;
-        
+
         const modal = document.getElementById('alarmModal');
         document.getElementById('alarmCustomerName').textContent = w.customerName;
         document.getElementById('alarmAmount').textContent = fmt(w.amount) + ' تومان';
         modal.classList.add('show');
-        
+
+        // پخش صدا و ویبره
         startAlarmSound();
-        if(navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]);
+        if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]);
     }
 
     function notify(w) {
-        if('Notification'in window&&Notification.permission==='granted') {
-             new Notification('🔔 یادآوری سررسید چک',{body:`چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`, vibrate: [200, 100, 200]});
-             if(navigator.vibrate) navigator.vibrate([300, 100, 300]);
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('🔔 یادآوری سررسید چک', {
+                body: `چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`,
+                vibrate: [200, 100, 200]
+            });
+            if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
         }
         toast(`⏰ یادآوری: چک ${w.customerName}`);
     }
@@ -1574,15 +1442,20 @@ const APP = (function() {
     hSel.value = '09'; mSel.value = '00';
 
     if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
-    setInterval(checkAlarms, 30000); 
-    console.log('✅ Alarms setup (Every 30s)');
+    setInterval(checkAlarms, 15000); // Check every 15 seconds for precision
+    
+    // Unlock Audio Context on first interaction
+    document.body.addEventListener('click', unlockAudioContext);
+    document.body.addEventListener('touchstart', unlockAudioContext);
+
+    console.log('✅ Alarms setup (Every 15s)');
     console.log('✅✅✅ App ready!');
     }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
-    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice, generateReport, toggleNightMode}
+    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice, generateReport}
 })();
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
-    </script>
+</script>
 </body>
 </html>
