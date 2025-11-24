@@ -593,15 +593,17 @@
         </div>
     </div>
 
-    <script>
+<script>
 const APP = (function() {
     const DB_NAME='CraneManagerProDB', DB_VERSION=3, WORKS='works', CUSTOMERS='customers';
     let db, editWorkId=null, deleteWorkId=null, deleteCustomerPhone=null, currentCustomerPhone=null, settleData=null, settlePayment=null;
     let workTypes=['تانکر آب','سوله','حمل مصالح','نصب تیرآهن','بلند کردن بار','کانکس','سایر'];
     let recognition=null, voiceField=null, allCustomers=[];
     const pMonths=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
-    let audioCtx = null, osc = null;
-    let currentInvoiceBlob = null; 
+    let audioCtx = null, osc = null, gainNode = null;
+    let currentInvoiceBlob = null;
+    let alarmIntervalId = null; // برای مدیریت تکرار صدا
+    let isAudioUnlock = false;  // برای مدیریت اجازه پخش صدا در موبایل
 
     // --- توابع دقیق تقویم جلالی (الگوریتم خیام) ---
     function toJalaali(gy, gm, gd) {
@@ -689,49 +691,80 @@ const APP = (function() {
         return 0;
     }
 
-    function startAlarmSound() {
-        if (window.AudioContext || window.webkitAudioContext) {
-            try {
-                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                osc = audioCtx.createOscillator();
-                const gain = audioCtx.createGain();
-                osc.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.type = 'square';
-                let t = audioCtx.currentTime;
-                osc.frequency.setValueAtTime(600, t);
-                osc.frequency.linearRampToValueAtTime(800, t + 0.5);
-                osc.frequency.linearRampToValueAtTime(600, t + 1);
-                
-                osc.start();
-                
-                window.alarmInterval = setInterval(() => {
-                    if(osc && audioCtx) {
-                        const now = audioCtx.currentTime;
-                        osc.frequency.setValueAtTime(600, now);
-                        osc.frequency.linearRampToValueAtTime(900, now + 0.4);
-                    }
-                }, 500);
+    // --- سیستم صوتی جدید و بهینه شده ---
+    function unlockAudioContext() {
+        if (isAudioUnlock) return;
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (Ctx) {
+            const tempCtx = new Ctx();
+            const buffer = tempCtx.createBuffer(1, 1, 22050);
+            const source = tempCtx.createBufferSource();
+            source.buffer = buffer;
+            source.connect(tempCtx.destination);
+            if (source.start) source.start(0);
+            else if (source.noteOn) source.noteOn(0);
+            setTimeout(() => {
+                 if(tempCtx.state === 'running') isAudioUnlock = true;
+            }, 0);
+        }
+        // حذف لیسنر بعد از اولین کلیک
+        document.body.removeEventListener('click', unlockAudioContext);
+        document.body.removeEventListener('touchstart', unlockAudioContext);
+    }
 
-            } catch(e) { console.error('Audio error', e); }
+    function startAlarmSound() {
+        try {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+
+            // قطع صدای قبلی اگر وجود دارد
+            if (osc) { osc.stop(); osc.disconnect(); }
+            if (alarmIntervalId) clearInterval(alarmIntervalId);
+
+            // ایجاد صدای آژیر مانند
+            function playBeep() {
+                osc = audioCtx.createOscillator();
+                gainNode = audioCtx.createGain();
+                
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime); 
+                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.5); // صدای کاهشی (آژیر)
+
+                gainNode.gain.setValueAtTime(0.5, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.6);
+            }
+
+            playBeep();
+            // تکرار صدا هر 1 ثانیه
+            alarmIntervalId = setInterval(playBeep, 1000);
+
+        } catch (e) {
+            console.error('Audio Error:', e);
         }
     }
     
     function stopAlarm() {
         const modal = document.getElementById('alarmModal');
         modal.classList.remove('show');
-        if(osc) {
-            try{ osc.stop(); } catch(e){}
+        
+        if (alarmIntervalId) clearInterval(alarmIntervalId);
+        if (osc) {
+            try { osc.stop(); osc.disconnect(); } catch(e){}
             osc = null;
         }
-        if(window.alarmInterval) clearInterval(window.alarmInterval);
+        // قطع ویبره
+        if(navigator.vibrate) navigator.vibrate(0);
     }
 
-    // --- Invoice Generation Logic (Updated Text) ---
+    // --- Invoice Generation Logic ---
     function generateInvoice(workId) {
         getWork(workId).then(w => {
             if (!w) return;
-            
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const width = 800;
@@ -739,15 +772,12 @@ const APP = (function() {
             canvas.width = width;
             canvas.height = height;
 
-            // Background
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, width, height);
 
-            // Header Background
             ctx.fillStyle = '#2563eb';
             ctx.fillRect(0, 0, width, 150);
 
-            // Header Text
             ctx.fillStyle = '#ffffff';
             ctx.font = 'bold 40px Tahoma, "Segoe UI", sans-serif';
             ctx.textAlign = 'center';
@@ -755,7 +785,6 @@ const APP = (function() {
             ctx.font = 'bold 25px Tahoma';
             ctx.fillText('حسین کُرد', width / 2, 120);
 
-            // Info Section
             ctx.fillStyle = '#1e293b';
             ctx.textAlign = 'right';
             ctx.font = 'bold 24px Tahoma';
@@ -766,7 +795,6 @@ const APP = (function() {
             const rightX = width - 50;
             const leftX = 50;
 
-            // Customer Info Box
             ctx.strokeStyle = '#e2e8f0';
             ctx.lineWidth = 2;
             ctx.strokeRect(40, 180, width - 80, 160);
@@ -775,7 +803,6 @@ const APP = (function() {
             ctx.fillText(`شماره تماس: ${w.customerPhone}`, rightX - 20, startY + lineHeight);
             ctx.fillText(`تاریخ انجام کار: ${w.date}`, rightX - 20, startY + lineHeight * 2);
 
-            // Work Details Box
             const detailsY = 380;
             ctx.strokeRect(40, detailsY, width - 80, 300);
             ctx.fillStyle = '#f8fafc';
@@ -787,7 +814,6 @@ const APP = (function() {
             ctx.textAlign = 'left';
             ctx.fillText('مبلغ', leftX + 30, detailsY + 40);
 
-            // Row Data
             ctx.font = '24px Tahoma';
             ctx.textAlign = 'right';
             ctx.fillText(w.workType, rightX - 30, detailsY + 110);
@@ -797,7 +823,6 @@ const APP = (function() {
             ctx.fillStyle = '#059669';
             ctx.fillText(fmt(w.amount) + ' تومان', leftX + 30, detailsY + 110);
 
-            // Payment Info
             let payStatusText = `وضعیت: ${w.paymentStatus}`;
             if (w.paymentStatus === 'نسیه') {
                 const remaining = w.debtAmount ? fmt(w.debtAmount) : '0';
@@ -809,14 +834,12 @@ const APP = (function() {
             ctx.font = '20px Tahoma';
             ctx.fillText(payStatusText, width / 2, detailsY + 250);
 
-            // Total Box
             ctx.fillStyle = '#eff6ff';
             ctx.fillRect(40, 700, width - 80, 100);
             ctx.fillStyle = '#1e40af';
             ctx.font = 'bold 35px Tahoma';
             ctx.fillText(`مبلغ قابل پرداخت: ${fmt(w.amount)} تومان`, width / 2, 765);
 
-            // Footer (Updated Professional Text)
             ctx.fillStyle = '#64748b';
             ctx.font = 'bold 20px Tahoma';
             ctx.fillText('از حسن اعتماد و انتخاب شما سپاسگزاریم', width / 2, 900);
@@ -825,11 +848,9 @@ const APP = (function() {
             ctx.fillStyle = '#94a3b8';
             ctx.fillText('تعهد ما، دقت و ایمنی در انجام پروژه‌های شماست', width / 2, 940);
 
-            // Output
             const dataUrl = canvas.toDataURL('image/png');
             document.getElementById('invoiceImage').src = dataUrl;
             
-            // Store blob for sharing
             canvas.toBlob(blob => {
                 currentInvoiceBlob = blob;
             });
@@ -868,15 +889,13 @@ const APP = (function() {
         }
     }
 
-    // --- Reporting Logic (FIXED) ---
+    // --- Reporting Logic ---
     async function generateReport() {
         const startVal = document.getElementById('reportStartVal').value;
         const endVal = document.getElementById('reportEndVal').value;
         
         if(!startVal || !endVal) { toast('⚠️ لطفاً بازه زمانی را انتخاب کنید'); return; }
         
-        // Fix: Ensure we compare Apples to Apples (Jalali Int to Jalali Int)
-        // reportStartVal is now populated with pure Jalali Integer (e.g. 14040901) by selectDate
         const sDate = parseInt(startVal);
         const eDate = parseInt(endVal);
         
@@ -887,7 +906,7 @@ const APP = (function() {
         let total = 0, cash = 0, check = 0, credit = 0, count = 0;
         
         ws.forEach(w => {
-            const wDateVal = getDateValue(w.date); // Converts "1 Azar 1404" -> 14040901
+            const wDateVal = getDateValue(w.date); 
             if(wDateVal >= sDate && wDateVal <= eDate) {
                 count++;
                 const am = parseFloat(w.amount.replace(/,/g,'')||0);
@@ -1107,7 +1126,6 @@ const APP = (function() {
         const gd = String(gDateObj.getDate()).padStart(2, '0');
         const gDateIso = `${gy}-${gm}-${gd}`;
         
-        // FIXED: Jalali Integer for correct comparison in Reports
         const jDateIso = `${window.dpCurY}${String(window.dpCurM).padStart(2,'0')}${String(d).padStart(2,'0')}`;
 
         if(window.dpTarget === 'date') {
@@ -1122,10 +1140,10 @@ const APP = (function() {
             document.getElementById('reminderDate').value = gDateIso;
         } else if (window.dpTarget === 'reportStartDate') {
             document.getElementById('reportStartDate').value = pDateStr;
-            document.getElementById('reportStartVal').value = jDateIso; // Store Jalali Int
+            document.getElementById('reportStartVal').value = jDateIso; 
         } else if (window.dpTarget === 'reportEndDate') {
             document.getElementById('reportEndDate').value = pDateStr;
-            document.getElementById('reportEndVal').value = jDateIso; // Store Jalali Int
+            document.getElementById('reportEndVal').value = jDateIso; 
         }
         window.closeCal();
     }
@@ -1155,7 +1173,6 @@ const APP = (function() {
 
     async function submitWork(e){e.preventDefault();const ps=document.getElementById('paymentStatus').value;if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}const ta=document.getElementById('amount').value.replace(/,/g,'');let ada=ta,pa=0;if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}
     
-    // Check Alarm Data and Construct Time String
     let remDate = null, remTime = null;
     if(ps==='چک') {
         remDate = document.getElementById('reminderDate').value;
@@ -1330,41 +1347,6 @@ const APP = (function() {
     }
     di.innerHTML=`<div class="customer-header"><div><div class="customer-name">${d.name}</div><div class="customer-phone">📞 ${d.phone}</div></div></div><div style="margin:10px 0;"><div style="font-size:18px;font-weight:bold;color:#dc2626;">بدهی: ${fmt(d.totalDebt)} تومان</div>${d.nearestDue?`<div style="font-size:14px;color:#64748b;margin-top:5px;">سررسید: ${dueDateTxt} ${st}</div>`:''}</div><div style="display:flex;gap:8px;"><button class="btn-small btn-call">📞 تماس</button><button class="btn-small btn-settle">📋 مشاهده کارتابل</button></div>`;di.querySelector('.btn-call').onclick=()=>window.location.href=`tel:${d.phone}`;di.querySelector('.btn-settle').onclick=()=>showCustomerDetail(d.phone);cn.appendChild(di)});console.log('renderDebtors completed')}catch(e){console.error('Error in renderDebtors:',e);toast('❌ خطا در بارگذاری لیست بدهکاران')}}
 
-    function checkAlarms(){
-        const now = new Date();
-        const currentM = now.getMinutes();
-        const currentH = now.getHours();
-        
-        getWorks().then(ws=>{
-            // 1. Check Standard Due Dates (at 7:00 AM)
-            const td=new Date(); td.setHours(7,0,0,0);
-            ws.filter(w=>w.paymentStatus==='چک'&&w.dueDate).forEach(w=>{
-                const dd=new Date(w.dueDate); dd.setHours(7,0,0,0);
-                if(dd.getTime()===td.getTime() && currentH === 7 && currentM === 0){
-                    notify(w);
-                }
-            });
-
-            // 2. Check Custom Reminder Dates (Precise)
-            ws.filter(w=>w.paymentStatus==='چک' && w.reminderDate && w.reminderTime).forEach(w=>{
-                const remDate = new Date(w.reminderDate);
-                const [rH, rM] = w.reminderTime.split(':').map(Number);
-                
-                if(remDate.getFullYear() === now.getFullYear() && 
-                   remDate.getMonth() === now.getMonth() && 
-                   remDate.getDate() === now.getDate() &&
-                   rH === currentH && 
-                   rM === currentM) {
-                       triggerFullAlarm(w);
-                   }
-            });
-
-        }).catch(e=>console.error(e));
-    }
-    
-    let lastTriggeredId = null; 
-
-// متغیر جهت جلوگیری از تکرار هشدار در یک لحظه
     let lastTriggeredId = null;
 
     function checkAlarms() {
@@ -1377,10 +1359,8 @@ const APP = (function() {
             const td = new Date();
             td.setHours(7, 0, 0, 0);
             ws.filter(w => w.paymentStatus === 'چک' && w.dueDate).forEach(w => {
-                // پارس کردن دستی برای جلوگیری از خطای اختلاف زمانی
                 const dParts = w.dueDate.split('-');
                 if (dParts.length === 3) {
-                    // ماه در جاوااسکریپت از 0 شروع می‌شود پس 1 واحد کم می‌کنیم
                     const wDate = new Date(parseInt(dParts[0]), parseInt(dParts[1]) - 1, parseInt(dParts[2]));
                     wDate.setHours(7, 0, 0, 0);
                     
@@ -1392,15 +1372,13 @@ const APP = (function() {
 
             // 2. چک کردن یادآوری‌های دقیق (آلارم قرمز رنگ)
             ws.filter(w => w.paymentStatus === 'چک' && w.reminderDate && w.reminderTime).forEach(w => {
-                // روش اصلاح شده: تفکیک دستی تاریخ برای اطمینان از یکی بودن روز
                 const dParts = w.reminderDate.split('-');
                 const rYear = parseInt(dParts[0]);
-                const rMonth = parseInt(dParts[1]) - 1; // ماه - 1
+                const rMonth = parseInt(dParts[1]) - 1; 
                 const rDay = parseInt(dParts[2]);
 
                 const [rH, rM] = w.reminderTime.split(':').map(Number);
 
-                // مقایسه دقیق اجزای زمان با زمان فعلی گوشی
                 if (rYear === now.getFullYear() &&
                     rMonth === now.getMonth() &&
                     rDay === now.getDate() &&
@@ -1415,7 +1393,6 @@ const APP = (function() {
     }
 
     function triggerFullAlarm(w) {
-        // اگر این آلارم همین الان پخش شده، دوباره پخشش نکن (برای جلوگیری از لوپ)
         if (lastTriggeredId === w.id) return;
         lastTriggeredId = w.id;
 
@@ -1424,13 +1401,12 @@ const APP = (function() {
         document.getElementById('alarmAmount').textContent = fmt(w.amount) + ' تومان';
         modal.classList.add('show');
 
-        // تلاش برای پخش صدا و ویبره
+        // پخش صدا و ویبره
         startAlarmSound();
         if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]);
     }
 
     function notify(w) {
-        // اگر مرورگر اجازه نوتیفیکیشن داده باشد
         if ('Notification' in window && Notification.permission === 'granted') {
             new Notification('🔔 یادآوری سررسید چک', {
                 body: `چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`,
@@ -1438,7 +1414,6 @@ const APP = (function() {
             });
             if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
         }
-        // نمایش پیام تست (Toast) در پایین صفحه
         toast(`⏰ یادآوری: چک ${w.customerName}`);
     }
 
@@ -1463,8 +1438,13 @@ const APP = (function() {
     hSel.value = '09'; mSel.value = '00';
 
     if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
-    setInterval(checkAlarms, 30000); 
-    console.log('✅ Alarms setup (Every 30s)');
+    setInterval(checkAlarms, 15000); // Check every 15 seconds for precision
+    
+    // Unlock Audio Context on first interaction
+    document.body.addEventListener('click', unlockAudioContext);
+    document.body.addEventListener('touchstart', unlockAudioContext);
+
+    console.log('✅ Alarms setup (Every 15s)');
     console.log('✅✅✅ App ready!');
     }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
@@ -1472,6 +1452,6 @@ const APP = (function() {
 })();
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
-    </script>
+</script>
 </body>
 </html>
