@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 6.3)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 6.4)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -47,7 +47,7 @@
         /* --- Aligned Inputs and Buttons --- */
         .input-wrapper { display: flex; gap: 8px; align-items: stretch; height: 50px; } 
         
-        .form-group input, .form-group select, .custom-select-trigger, .styled-input { 
+        .form-group input, .form-group select, .custom-select-trigger { 
             flex: 1; 
             padding: 0 15px; 
             border: 2px solid #e2e8f0; 
@@ -62,15 +62,16 @@
             color: #334155;
         }
         
-        /* FIX FOR INVISIBLE TEXT IN DATE INPUTS */
+        /* FIX: Force Black Text for Date Inputs to prevent white-on-white issue */
         .date-input { 
             cursor: pointer; 
             color: #000000 !important; 
             background-color: #f8fafc !important;
-            -webkit-text-fill-color: #000000 !important; /* For iOS/Safari */
-            opacity: 1 !important; /* For disabled/readonly states */
+            -webkit-text-fill-color: #000000 !important;
+            opacity: 1 !important;
         }
 
+        /* Fix for Customer Note Textarea */
         .customer-notes textarea, .form-group textarea {
             flex: 1;
             width: 100%;
@@ -89,7 +90,7 @@
             overflow: hidden;
         }
 
-        .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .customer-notes textarea:focus, .styled-input:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus, .customer-notes textarea:focus { outline: none; border-color: #2563eb; background: white; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
         
         .button-group { display: flex; gap: 8px; width: 45px; justify-content: flex-end; flex-shrink: 0; } 
         
@@ -128,6 +129,7 @@
         .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
         
+        /* Work Type Drawer */
         .custom-select-trigger { cursor: pointer; display: flex; justify-content: space-between; align-items: center; height: 50px; width: 100%; padding: 0 15px; border: 2px solid #e2e8f0; border-radius: 12px; background: #f8fafc; font-size: 16px; color: #334155; box-sizing: border-box; }
         .custom-select-trigger::after { content: '▼'; font-size: 12px; color: #94a3b8; margin-right: 10px; }
         .work-type-modal-list { margin-top: 15px; max-height: 300px; overflow-y: auto; }
@@ -141,6 +143,7 @@
         .add-new-type-input { flex: 1; border: 1px solid #cbd5e1; border-radius: 8px; padding: 8px; font-family: inherit; }
         .add-new-type-btn { background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 8px; font-weight: bold; cursor: pointer; }
 
+        /* Customer List */
         .customer-list { background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
         .customer-item { padding: 15px; border-bottom: 1px solid #f1f5f9; transition: background 0.2s; display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
         .customer-item:hover { background: #f8fafc; }
@@ -429,7 +432,7 @@
             <div class="modal-header">💰 تسویه بدهی</div>
             <div style="background: #dbeafe; padding: 15px; border-radius: 8px; margin: 15px 0; text-align: center;">
                 <div style="font-weight: bold; color: #1e40af; margin-bottom: 10px;" id="settleCustomerName"></div>
-                <div style="font-size: 24px; font-weight: bold; color: #dc2626; margin: 10px 0;"><span id="settleDebtAmount">0</span> تومان</div>
+                <div style="font-size: 24px; font-weight: bold; color: #dc2626; margin: 10px 0;"><span id="settleDebtAmount"></span> تومان</div>
                 <div style="color: #1e40af; font-size: 14px;">مبلغ بدهی</div>
             </div>
             
@@ -519,11 +522,14 @@ function toGregorian(jy, jm, jd) {
 function jalaliMonthLength(jy, jm) {
     if (jm <= 6) return 31;
     if (jm <= 11) return 30;
+    // Simple leap check
     var rm = [1, 5, 9, 13, 17, 22, 26, 30];
     var z = jy % 33;
     if (rm.includes(z)) return 30; 
     return 29;
 }
+
+function isValidDate(d) { return d instanceof Date && !isNaN(d); }
 
 // --- Main App Logic ---
 const APP = (function() {
@@ -533,13 +539,16 @@ const APP = (function() {
     let recognition=null, voiceField=null, allCustomers=[];
     const pMonths=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
 
+    // Helper: Parse various date formats into {jy, jm, jd}
     function parseDate(val) {
         if(!val) return null;
+        // ISO
         if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
             const p = val.split('-');
             const j = toJalaali(parseInt(p[0]), parseInt(p[1]), parseInt(p[2]));
             return j;
         }
+        // Persian String
         const p = val.split(/[\s/-]/);
         if (p.length >= 3) {
             let d = parseInt(p[0]);
@@ -553,18 +562,22 @@ const APP = (function() {
         return null;
     }
 
+    // Helper: Date to Comparable Value
     function getDateValue(val) {
         const p = parseDate(val);
         if (p) return (p.jy * 10000) + (p.jm * 100) + p.jd;
         return 0;
     }
 
+    // Helper: Days until (FIXED to handle ISO directly for accurate calc)
     function getDaysUntil(val) {
         if (!val) return null;
         let targetDate;
+        // If already ISO (YYYY-MM-DD) from new updates
         if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
             targetDate = new Date(val);
         } else {
+            // Try to parse persian date
             const p = parseDate(val);
             if (p) targetDate = toGregorian(p.jy, p.jm, p.jd);
         }
@@ -577,29 +590,73 @@ const APP = (function() {
         return Math.ceil((targetDate - now) / (1000 * 60 * 60 * 24));
     }
 
+    // Helper: Format for Display
     function fmtDate(val) {
         const p = parseDate(val);
         if(!p) return val;
         return `${p.jd} ${pMonths[p.jm-1]} ${p.jy}`;
     }
 
+    // --- Calendar Logic (Direct Implementation) ---
     function showCal(targetId) {
         try {
             const input = document.getElementById(targetId);
             const currentVal = input.value;
             let jy, jm, jd;
+            
             const p = parseDate(currentVal);
-            if (p) { jy = p.jy; jm = p.jm; jd = p.jd; } else { const now = new Date(); const j = toJalaali(now.getFullYear(), now.getMonth()+1, now.getDate()); jy = j.jy; jm = j.jm; jd = j.jd; }
+            if (p) {
+                jy = p.jy; jm = p.jm; jd = p.jd;
+            } else {
+                const now = new Date();
+                const j = toJalaali(now.getFullYear(), now.getMonth()+1, now.getDate());
+                jy = j.jy; jm = j.jm; jd = j.jd;
+            }
+
             window.dpState = { jy, jm, selectedD: jd, targetId };
+            
+            // Create Modal Elements
             const m = document.createElement('div');
             m.className = 'datepicker-modal';
-            m.innerHTML = `<div class="datepicker-content"><div class="datepicker-header"><button type="button" id="dpPrev">‹</button><span id="dpTitle"></span><button type="button" id="dpNext">›</button></div><div class="datepicker-weekdays"><span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span style="color:#ef4444">ج</span></div><div class="datepicker-days" id="dpDays"></div><button type="button" class="btn-close" id="dpClose">بستن</button></div>`;
+            m.innerHTML = `
+                <div class="datepicker-content">
+                    <div class="datepicker-header">
+                        <button type="button" id="dpPrev">‹</button>
+                        <span id="dpTitle"></span>
+                        <button type="button" id="dpNext">›</button>
+                    </div>
+                    <div class="datepicker-weekdays">
+                        <span>ش</span><span>ی</span><span>د</span><span>س</span><span>چ</span><span>پ</span><span style="color:#ef4444">ج</span>
+                    </div>
+                    <div class="datepicker-days" id="dpDays"></div>
+                    <button type="button" class="btn-close" id="dpClose">بستن</button>
+                </div>`;
+            
             document.body.appendChild(m);
-            m.querySelector('#dpPrev').onclick = () => { window.dpState.jm--; if(window.dpState.jm < 1) { window.dpState.jm = 12; window.dpState.jy--; } renderCal(m); };
-            m.querySelector('#dpNext').onclick = () => { window.dpState.jm++; if(window.dpState.jm > 12) { window.dpState.jm = 1; window.dpState.jy++; } renderCal(m); };
-            m.querySelector('#dpClose').onclick = () => { m.classList.remove('show'); setTimeout(() => m.remove(), 300); };
-            renderCal(m); setTimeout(() => m.classList.add('show'), 10);
-        } catch(e) { console.error("Cal Error", e); }
+            
+            // Bind Events
+            m.querySelector('#dpPrev').onclick = () => { 
+                window.dpState.jm--; 
+                if(window.dpState.jm < 1) { window.dpState.jm = 12; window.dpState.jy--; }
+                renderCal(m); 
+            };
+            m.querySelector('#dpNext').onclick = () => { 
+                window.dpState.jm++; 
+                if(window.dpState.jm > 12) { window.dpState.jm = 1; window.dpState.jy++; }
+                renderCal(m); 
+            };
+            m.querySelector('#dpClose').onclick = () => {
+                m.classList.remove('show');
+                setTimeout(() => m.remove(), 300);
+            };
+
+            renderCal(m);
+            setTimeout(() => m.classList.add('show'), 10);
+
+        } catch(e) {
+            console.error("Cal Error", e);
+            toast('❌ خطا در نمایش تقویم');
+        }
     }
 
     function renderCal(modalEl) {
@@ -607,23 +664,39 @@ const APP = (function() {
         modalEl.querySelector('#dpTitle').textContent = `${pMonths[s.jm-1]} ${s.jy}`;
         const daysDiv = modalEl.querySelector('#dpDays');
         daysDiv.innerHTML = '';
+
         const len = jalaliMonthLength(s.jy, s.jm);
         const gStart = toGregorian(s.jy, s.jm, 1);
-        let startDay = gStart.getDay() + 1; if (startDay === 7) startDay = 0; 
+        let startDay = gStart.getDay() + 1; // 0=Sun..6=Sat -> we want 0=Sat..6=Fri
+        if (startDay === 7) startDay = 0; 
+
         for(let i=0; i<startDay; i++) daysDiv.appendChild(document.createElement('div'));
+
         const todayJ = toJalaali(new Date().getFullYear(), new Date().getMonth()+1, new Date().getDate());
+
         for(let i=1; i<=len; i++) {
             const btn = document.createElement('button');
             btn.textContent = i;
             if (s.jy === todayJ.jy && s.jm === todayJ.jm && i === todayJ.jd) btn.classList.add('today');
-            if (i === s.selectedD) btn.classList.add('selected');
+            if (i === s.selectedD) btn.classList.add('selected'); // Highlight if matches input
+            
             btn.onclick = () => {
                 const finalG = toGregorian(s.jy, s.jm, i);
                 const iso = `${finalG.getFullYear()}-${String(finalG.getMonth()+1).padStart(2,'0')}-${String(finalG.getDate()).padStart(2,'0')}`;
                 const persian = `${i} ${pMonths[s.jm-1]} ${s.jy}`;
+                
                 const inp = document.getElementById(s.targetId);
-                if(s.targetId === 'dueDateDisplay') { inp.value = persian; document.getElementById('dueDate').value = iso; } else { inp.value = persian; }
-                modalEl.classList.remove('show'); setTimeout(() => modalEl.remove(), 300);
+                const hidden = document.getElementById(s.targetId === 'dueDateDisplay' ? 'dueDate' : (s.targetId === 'settleDate' ? 'settleDate' : '')); // fallback logic
+                
+                if(s.targetId === 'dueDateDisplay') {
+                    inp.value = persian;
+                    document.getElementById('dueDate').value = iso;
+                } else {
+                    inp.value = persian; 
+                }
+                
+                modalEl.classList.remove('show');
+                setTimeout(() => modalEl.remove(), 300);
             };
             daysDiv.appendChild(btn);
         }
@@ -632,6 +705,7 @@ const APP = (function() {
     function fmt(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
     function playAlarmSound(){if(window.AudioContext||window.webkitAudioContext){try{const c=new(window.AudioContext||window.webkitAudioContext),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='square';o.frequency.setValueAtTime(440,c.currentTime);o.frequency.setValueAtTime(880,c.currentTime+0.5);o.start();o.stop(c.currentTime+1)}catch(e){}}}
 
+    // DB
     async function initDB(){return new Promise((res,rej)=>{const r=indexedDB.open(DB_NAME,DB_VERSION);r.onerror=()=>rej(r.error);r.onsuccess=()=>{db=r.result;res(db)};r.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains(WORKS)){const s=d.createObjectStore(WORKS,{keyPath:'id',autoIncrement:true});s.createIndex('customerPhone','customerPhone',{unique:false})}if(!d.objectStoreNames.contains(CUSTOMERS)){const s=d.createObjectStore(CUSTOMERS,{keyPath:'phone'})}}})}
     async function addWork(w){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readwrite'),s=t.objectStore(WORKS),r=s.add(w);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
     async function getWorks(){return new Promise((res,rej)=>{const t=db.transaction([WORKS],'readonly'),s=t.objectStore(WORKS),r=s.getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
