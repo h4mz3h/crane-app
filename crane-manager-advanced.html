@@ -1147,9 +1147,120 @@ const APP = (function() {
         toast(`⏰ یادآوری: چک ${w.customerName}`);
     }
 
-    async function exportData(){try{const ws=await getWorks(),t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.getAll();r.onsuccess=()=>{const cs=r.result,d={version:3,exportDate:new Date().toISOString(),workTypes,works:ws.map(w=>{const{id,...rest}=w;return rest}),customers:cs},b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast(`✅ بکاپ ${ws.length} کار ذخیره شد`)}}catch(e){console.error(e);toast('❌ خطا در ذخیره بکاپ')}}
+    // --- REWRITTEN EXPORT FUNCTION (Safe & Complete) ---
+    async function exportData() {
+        try {
+            // 1. Fetch works properly (Promise based)
+            const ws = await getWorks();
 
-    async function importData(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=async function(ev){try{const d=JSON.parse(ev.target.result);if(!d.works||!Array.isArray(d.works)){toast('❌ فایل بکاپ نامعتبر است');return}if(!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: داده‌های فعلی حذف خواهند شد!`))return;const t=db.transaction([WORKS,CUSTOMERS],'readwrite'),ws=t.objectStore(WORKS),cs=t.objectStore(CUSTOMERS);ws.clear();cs.clear();if(d.workTypes&&Array.isArray(d.workTypes)){workTypes=d.workTypes;saveTypes();updateTypeDropdown()}for(const w of d.works)await addWork(w);if(d.customers&&Array.isArray(d.customers))for(const c of d.customers)await saveCust(c.phone,c.name,c.note,c.phones);await updateStats();await setupAuto();toast(`✅ ${d.works.length} کار بازگردانی شد`)}catch(er){console.error(er);toast('❌ خطا در بازگردانی بکاپ')}};r.readAsText(f);e.target.value=''}
+            // 2. Fetch customers properly (Transaction based but promisified logic here for simplicity)
+            // We use a Promise wrapper to ensure we get ALL customers before proceeding.
+            const cs = await new Promise((resolve, reject) => {
+                const t = db.transaction([CUSTOMERS], 'readonly');
+                const s = t.objectStore(CUSTOMERS);
+                const r = s.getAll();
+                r.onsuccess = () => resolve(r.result);
+                r.onerror = () => reject(r.error);
+            });
+
+            // 3. Construct Data
+            const d = {
+                version: 3,
+                exportDate: new Date().toISOString(),
+                workTypes,
+                // Remove IDs to allow clean re-import with autoIncrement
+                works: ws.map(w => { const { id, ...rest } = w; return rest }), 
+                customers: cs
+            };
+
+            // 4. Download
+            const b = new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' });
+            const u = URL.createObjectURL(b);
+            const a = document.createElement('a');
+            a.href = u;
+            a.download = `backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(u);
+            toast(`✅ بکاپ کامل شد: ${ws.length} کار و ${cs.length} مشتری`);
+
+        } catch (e) {
+            console.error(e);
+            toast('❌ خطا در ذخیره بکاپ');
+        }
+    }
+
+    // --- REWRITTEN IMPORT FUNCTION (Safe Single Transaction) ---
+    async function importData(e) {
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        
+        r.onload = async function(ev) {
+            try {
+                const d = JSON.parse(ev.target.result);
+                
+                // Validation
+                if (!d.works || !Array.isArray(d.works)) {
+                    toast('❌ فایل بکاپ نامعتبر است');
+                    return;
+                }
+
+                if (!confirm(`آیا می‌خواهید ${d.works.length} کار را بازگردانی کنید؟\n\n⚠️ توجه: تمام اطلاعات فعلی حذف و جایگزین خواهند شد!`)) return;
+
+                // --- SINGLE TRANSACTION FOR ATOMICITY ---
+                const t = db.transaction([WORKS, CUSTOMERS], 'readwrite');
+                const workStore = t.objectStore(WORKS);
+                const custStore = t.objectStore(CUSTOMERS);
+
+                // 1. Clear existing data
+                workStore.clear();
+                custStore.clear();
+
+                // 2. Import Work Types if exist
+                if (d.workTypes && Array.isArray(d.workTypes)) {
+                    workTypes = d.workTypes;
+                    saveTypes();
+                }
+
+                // 3. Import Customers
+                if (d.customers && Array.isArray(d.customers)) {
+                    d.customers.forEach(c => custStore.put(c));
+                }
+
+                // 4. Import Works (Strip ID just in case, let DB assign new ones)
+                d.works.forEach(w => {
+                    const { id, ...cleanWork } = w; // Remove ID collision risk
+                    workStore.add(cleanWork);
+                });
+
+                // 5. Completion Handler
+                t.oncomplete = async () => {
+                    console.log('Import Transaction Completed Successfully');
+                    await updateStats();
+                    await setupAuto();
+                    
+                    // Refresh current view logic
+                    if(document.getElementById('page-customers').classList.contains('active')) renderCustomers();
+                    if(document.getElementById('page-debtors').classList.contains('active')) renderDebtors();
+                    
+                    toast(`✅ بازگردانی موفق: ${d.works.length} کار`);
+                };
+
+                t.onerror = (err) => {
+                    console.error('Transaction Error:', err);
+                    toast('❌ خطا در نوشتن داده‌ها روی دیتابیس');
+                };
+
+            } catch (er) {
+                console.error(er);
+                toast('❌ خطا در خواندن فایل بکاپ');
+            }
+        };
+        r.readAsText(f);
+        e.target.value = ''; // Reset input
+    }
 
     function showPage(pg){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));const p=document.getElementById(`page-${pg}`);if(p)p.classList.add('active');document.querySelectorAll('.nav-btn').forEach(b=>{if(b.textContent.includes('ثبت')&&pg==='add-work')b.classList.add('active');else if(b.textContent.includes('مشتریان')&&pg==='customers')b.classList.add('active');else if(b.textContent.includes('بدهکاران')&&pg==='debtors')b.classList.add('active')});if(pg==='customers')renderCustomers();else if(pg==='debtors')renderDebtors()}
 
@@ -1177,6 +1288,6 @@ const APP = (function() {
 })();
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
-    </script>
+</script>
 </body>
 </html>
