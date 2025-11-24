@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 5.7 - با تقویم خیام)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 6.0 - با یادآور پیشرفته)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -119,6 +119,14 @@
         .due-date-section.show, .partial-payment.show { display: block; animation: slideDown 0.3s ease; }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         
+        .reminder-box {
+            background: white;
+            border: 2px dashed #f87171;
+            border-radius: 10px;
+            padding: 12px;
+            margin-top: 15px;
+        }
+
         .btn { width: 100%; padding: 16px; border: none; border-radius: 14px; font-size: 16px; font-weight: bold; cursor: pointer; transition: all 0.3s; font-family: inherit; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .btn-primary { background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
         .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(37, 99, 235, 0.4); }
@@ -213,6 +221,19 @@
         .btn-settle { background: #2563eb; color: white; }
         .btn-delete { background: #ef4444; color: white; }
         .btn-edit { background: #f59e0b; color: white; }
+
+        /* Alarm Modal Style */
+        .alarm-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #ef4444; color: white; z-index: 9999;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            padding: 30px; text-align: center;
+        }
+        .alarm-modal.show { display: flex; animation: pulseRed 1s infinite; }
+        @keyframes pulseRed { 0% { background: #ef4444; } 50% { background: #dc2626; } 100% { background: #ef4444; } }
+        .alarm-icon { font-size: 80px; margin-bottom: 20px; animation: ring 0.5s infinite; }
+        @keyframes ring { 0% { transform: rotate(0); } 25% { transform: rotate(15deg); } 75% { transform: rotate(-15deg); } 100% { transform: rotate(0); } }
+        .alarm-btn { background: white; color: #dc2626; padding: 15px 40px; border-radius: 50px; font-size: 20px; font-weight: bold; border: none; cursor: pointer; margin-top: 30px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
@@ -304,7 +325,16 @@
                                 <input type="text" id="dueDateDisplay" class="date-input" readonly onclick="APP.showCal('dueDate')">
                             </div>
                             <input type="hidden" id="dueDate">
-                            <p style="font-size: 12px; color: #dc2626; margin-top: 8px;">⏰ هشدار در ساعت ۷ صبح روز سررسید</p>
+                            
+                            <div class="reminder-box">
+                                <label style="color: #b91c1c; font-size: 13px; margin-bottom: 8px;">⏰ تنظیم هشدار (یادآوری)</label>
+                                <div style="display: flex; gap: 8px;">
+                                    <input type="text" id="reminderDateDisplay" class="date-input styled-input" placeholder="تاریخ هشدار" readonly onclick="APP.showCal('reminderDate')">
+                                    <input type="time" id="reminderTime" class="styled-input" style="flex: 0.7;">
+                                </div>
+                                <input type="hidden" id="reminderDate">
+                                <p style="font-size: 11px; color: #7f1d1d; margin-top: 5px;">⚠️ هشدار در تاریخ و ساعت بالا با صدا پخش می‌شود.</p>
+                            </div>
                         </div>
                         <div id="partialPaymentSection" class="partial-payment">
                             <label style="color: #92400e; font-weight: bold; margin-bottom: 8px; display: block;">💵 مبلغ پرداخت شده</label>
@@ -378,6 +408,15 @@
     </div>
 
     <div class="toast" id="toast"></div>
+    
+    <div id="alarmModal" class="alarm-modal">
+        <div class="alarm-icon">⏰</div>
+        <h2 style="font-size: 28px; margin-bottom: 10px;">یادآوری چک!</h2>
+        <h3 id="alarmCustomerName" style="font-size: 24px; margin-bottom: 20px;"></h3>
+        <p id="alarmAmount" style="font-size: 32px; font-weight: bold; margin-bottom: 10px;"></p>
+        <p style="opacity: 0.9;">همین الان چک کنید!</p>
+        <button class="alarm-btn" onclick="APP.stopAlarm()">باشه، متوجه شدم</button>
+    </div>
 
     <div class="modal" id="workTypeModal">
         <div class="modal-content">
@@ -475,6 +514,7 @@ const APP = (function() {
     let workTypes=['تانکر آب','سوله','حمل مصالح','نصب تیرآهن','بلند کردن بار','کانکس','سایر'];
     let recognition=null, voiceField=null, allCustomers=[];
     const pMonths=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+    let audioCtx = null, osc = null;
 
     // --- توابع دقیق تقویم جلالی (الگوریتم خیام) ---
     function toJalaali(gy, gm, gd) {
@@ -545,20 +585,15 @@ const APP = (function() {
     function fmtDate(y,m,d){return `${d} ${pMonths[m-1]} ${y}`}
     function fmt(n){return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g,',')}
     
-    // --- Helper to convert ANY date string (Persian or ISO) to a Comparable Number ---
     function getDateValue(dateStr) {
         if(!dateStr) return 0;
-        
-        // Case 1: ISO String (YYYY-MM-DD) - From new updates
         if(dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
             return parseInt(dateStr.replace(/-/g, ''));
         }
-
-        // Case 2: Persian String (5 Azar 1403) - From old entries or voice
         const parts = dateStr.split(' ');
         if(parts.length >= 3) {
             const d = parseInt(parts[0]);
-            const m = pMonths.indexOf(parts[1]); // 0-11
+            const m = pMonths.indexOf(parts[1]); 
             const y = parseInt(parts[2]);
             if(!isNaN(d) && m !== -1 && !isNaN(y)) {
                 return (y * 10000) + ((m + 1) * 100) + d;
@@ -567,21 +602,50 @@ const APP = (function() {
         return 0;
     }
 
-    function playAlarmSound() {
+    function startAlarmSound() {
         if (window.AudioContext || window.webkitAudioContext) {
             try {
-                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
+                if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
                 osc.connect(gain);
-                gain.connect(ctx.destination);
+                gain.connect(audioCtx.destination);
                 osc.type = 'square';
-                osc.frequency.setValueAtTime(440, ctx.currentTime);
-                osc.frequency.setValueAtTime(880, ctx.currentTime + 0.5);
+                // Siren effect
+                let t = audioCtx.currentTime;
+                osc.frequency.setValueAtTime(600, t);
+                osc.frequency.linearRampToValueAtTime(800, t + 0.5);
+                osc.frequency.linearRampToValueAtTime(600, t + 1);
+                
+                // Repeat the effect every 1 second? 
+                // Simple version: just a loop of pulses manually or utilizing Oscillator node logic is complex.
+                // Let's do a simple repeating beep via setInterval in main thread calling a short beep.
+                // But for continuous alarm, better to use oscillator loop if possible, or just re-trigger.
+                // Actually, let's keep it simple: Continuous Square Wave alternating pitch
+                
                 osc.start();
-                osc.stop(ctx.currentTime + 1);
+                
+                // Manual Siren Interval
+                window.alarmInterval = setInterval(() => {
+                    if(osc && audioCtx) {
+                        const now = audioCtx.currentTime;
+                        osc.frequency.setValueAtTime(600, now);
+                        osc.frequency.linearRampToValueAtTime(900, now + 0.4);
+                    }
+                }, 500);
+
             } catch(e) { console.error('Audio error', e); }
         }
+    }
+    
+    function stopAlarm() {
+        const modal = document.getElementById('alarmModal');
+        modal.classList.remove('show');
+        if(osc) {
+            try{ osc.stop(); } catch(e){}
+            osc = null;
+        }
+        if(window.alarmInterval) clearInterval(window.alarmInterval);
     }
 
     // --- Database Functions ---
@@ -631,7 +695,7 @@ const APP = (function() {
         workTypes.push(nt);
         saveTypes();
         inp.value = '';
-        openWorkTypeModal(); // Re-render list
+        openWorkTypeModal(); 
         toast('✅ اضافه شد');
     }
 
@@ -645,7 +709,6 @@ const APP = (function() {
         }
     }
 
-    // --- Voice Logic with Number Converter ---
     if('webkitSpeechRecognition' in window||'SpeechRecognition' in window){const S=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new S();recognition.lang='fa-IR';recognition.continuous=false;recognition.interimResults=false;recognition.onresult=e=>{const t=e.results[0][0].transcript;handleVoice(t)};recognition.onerror=()=>{toast('❌ خطا در تشخیص صدا');stopVoice()};recognition.onend=()=>stopVoice()}
     function startVoice(f){if(!recognition){toast('⚠️ مرورگر شما از ورودی صوتی پشتیبانی نمی‌کند');return}voiceField=f;try{recognition.start();toast('🎤 در حال گوش دادن...')}catch(e){stopVoice()}}
     function stopVoice(){if(recognition)try{recognition.stop()}catch(e){}document.querySelectorAll('.voice-btn').forEach(b=>{b.classList.remove('listening')})}
@@ -660,8 +723,6 @@ const APP = (function() {
             'ششم': '6', 'هفتم': '7', 'هشتم': '8', 'نهم': '9', 'دهم': '10',
             '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9', '۰': '0'
         };
-        
-        // Replace strict matches first
         for (let word in map) {
             let regex = new RegExp(word, 'g');
             text = text.replace(regex, map[word]);
@@ -674,20 +735,15 @@ const APP = (function() {
         const f=document.getElementById(voiceField);
         if(!f)return;
         let c=t.trim();
-        
-        // Apply number normalization for Date, Phone, Amount
         if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount' || voiceField === 'settleDate') {
             c = normalizePersianNumbers(c);
         }
-
         if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
-        
         if(voiceField==='amount'||voiceField==='paidAmount'){
             c=c.replace(/تومان|ریال|میلیون|هزار/g,'').trim().replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
             if(t.includes('میلیون')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000000).toString()}
             else if(t.includes('هزار')){const n=parseFloat(c.replace(/[^0-9.]/g,''));if(!isNaN(n))c=(n*1000).toString()}
         }
-        
         f.value=c;
         if(voiceField==='amount'||voiceField==='paidAmount'){formatAmount(f);calcRemaining()}
         toast(`✅ "${c}" ثبت شد`);
@@ -697,9 +753,9 @@ const APP = (function() {
     function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
     function calcRemaining(){const t=parseFloat(document.getElementById('amount').value.replace(/,/g,'')||0),p=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0),r=t-p;document.getElementById('remainingAmount').value=r>=0?fmt(r):'0'}
 
-    // --- Logic جدید تقویم ---
+    // --- Logic تقویم ---
     function showCal(target){
-        let el = document.getElementById(target==='dueDate'?'dueDateDisplay':target);
+        let el = document.getElementById(target.includes('reminder') ? target + 'Display' : (target==='dueDate'?'dueDateDisplay':target));
         let initialVal = el.value;
         let jy, jm, jd;
         if(initialVal && initialVal.split(' ').length === 3) {
@@ -779,7 +835,6 @@ const APP = (function() {
     function selectDate(d) {
         const pDateStr = fmtDate(window.dpCurY, window.dpCurM, d);
         const gDateObj = toGregorian(window.dpCurY, window.dpCurM, d);
-        // FIX: Manually construct YYYY-MM-DD to avoid timezone shift
         const gy = gDateObj.getFullYear();
         const gm = String(gDateObj.getMonth() + 1).padStart(2, '0');
         const gd = String(gDateObj.getDate()).padStart(2, '0');
@@ -792,15 +847,43 @@ const APP = (function() {
             document.getElementById('dueDate').value = gDateIso;
         } else if (window.dpTarget === 'settleDate') {
             document.getElementById('settleDate').value = pDateStr;
+        } else if (window.dpTarget === 'reminderDate') {
+            document.getElementById('reminderDateDisplay').value = pDateStr;
+            document.getElementById('reminderDate').value = gDateIso;
         }
         window.closeCal();
     }
 
     async function setupAuto(){const ni=document.getElementById('customerName'),pi=document.getElementById('phone'),sg=document.getElementById('customerSuggestions');if(!ni||!sg)return;const ws=await getWorks(),cm=new Map();for(const w of ws){if(!cm.has(w.customerPhone)){const cd=await getCust(w.customerPhone);cm.set(w.customerPhone,{name:w.customerName,phone:w.customerPhone,phones:cd?.phones||[w.customerPhone]})}}allCustomers=Array.from(cm.values());ni.addEventListener('input',function(){const q=this.value.trim();if(q.length<2){sg.classList.add('hidden');sg.innerHTML='';return}const m=allCustomers.filter(c=>c.name.includes(q)).slice(0,10);if(m.length>0){sg.innerHTML='';m.forEach(c=>{const it=document.createElement('div');it.className='autocomplete-item';it.innerHTML=`<strong>${c.name}</strong><br><span style="font-size:13px;color:#64748b;">📞 ${c.phone}</span>`;it.onclick=()=>{ni.value=c.name;pi.value=c.phone;sg.classList.add('hidden');sg.innerHTML=''};sg.appendChild(it)});sg.classList.remove('hidden')}else{sg.classList.add('hidden');sg.innerHTML=''}});document.addEventListener('click',e=>{if(!ni.contains(e.target)&&!sg.contains(e.target)){sg.classList.add('hidden');sg.innerHTML=''}})}
 
-    function selectPayment(v,e){document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected');document.getElementById('paymentStatus').value=v;document.getElementById('dueDateSection').classList.remove('show');document.getElementById('partialPaymentSection').classList.remove('show');document.getElementById('dueDate').value='';document.getElementById('dueDateDisplay').value='';document.getElementById('paidAmount').value='';document.getElementById('remainingAmount').value='';if(v==='چک')document.getElementById('dueDateSection').classList.add('show');else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show')}
+    function selectPayment(v,e){document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));e.target.classList.add('selected');document.getElementById('paymentStatus').value=v;document.getElementById('dueDateSection').classList.remove('show');document.getElementById('partialPaymentSection').classList.remove('show');document.getElementById('dueDate').value='';document.getElementById('dueDateDisplay').value='';document.getElementById('paidAmount').value='';document.getElementById('remainingAmount').value='';document.getElementById('reminderDateDisplay').value='';document.getElementById('reminderDate').value='';document.getElementById('reminderTime').value='';if(v==='چک')document.getElementById('dueDateSection').classList.add('show');else if(v==='نسیه')document.getElementById('partialPaymentSection').classList.add('show')}
 
-    async function submitWork(e){e.preventDefault();const ps=document.getElementById('paymentStatus').value;if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}const ta=document.getElementById('amount').value.replace(/,/g,'');let ada=ta,pa=0;if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}const w={date:document.getElementById('date').value,customerName:document.getElementById('customerName').value,customerPhone:document.getElementById('phone').value,workType:document.getElementById('workType').value,amount:ta,paymentStatus:ps,dueDate:ps==='چک'?document.getElementById('dueDate').value:null,paidAmount:ps==='نسیه'?pa.toString():null,debtAmount:(ps==='نسیه'||ps==='چک')?ada.toString():null,isSettlement:false};try{const sb=document.getElementById('submitBtn');sb.disabled=true;sb.textContent='⏳ در حال ثبت...';if(editWorkId!==null){await updateWork(editWorkId,w);editWorkId=null;toast('✅ کار ویرایش شد');sb.textContent='✅ ثبت'}else{await addWork(w);toast('✅ کار جدید ثبت شد')}const cd=await getCust(w.customerPhone);await saveCust(w.customerPhone,w.customerName,cd?.note||'',cd?.phones);await updateStats();await setupAuto();
+    async function submitWork(e){e.preventDefault();const ps=document.getElementById('paymentStatus').value;if(!ps){toast('⚠️ لطفاً وضعیت پرداخت را انتخاب کنید');return}const ta=document.getElementById('amount').value.replace(/,/g,'');let ada=ta,pa=0;if(ps==='نسیه'){pa=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0);ada=parseFloat(ta)-pa;if(ada<0){toast('⚠️ مبلغ پرداخت شده نمی‌تواند بیشتر از مبلغ کل باشد');return}}
+    
+    // Check Alarm Data
+    let remDate = null, remTime = null;
+    if(ps==='چک') {
+        remDate = document.getElementById('reminderDate').value;
+        remTime = document.getElementById('reminderTime').value;
+        if(remDate && !remTime) { toast('⚠️ لطفاً ساعت هشدار را انتخاب کنید'); return; }
+        if(!remDate && remTime) { toast('⚠️ لطفاً تاریخ هشدار را انتخاب کنید'); return; }
+    }
+
+    const w={
+        date:document.getElementById('date').value,
+        customerName:document.getElementById('customerName').value,
+        customerPhone:document.getElementById('phone').value,
+        workType:document.getElementById('workType').value,
+        amount:ta,
+        paymentStatus:ps,
+        dueDate:ps==='چک'?document.getElementById('dueDate').value:null,
+        reminderDate: remDate,
+        reminderTime: remTime,
+        paidAmount:ps==='نسیه'?pa.toString():null,
+        debtAmount:(ps==='نسیه'||ps==='چک')?ada.toString():null,
+        isSettlement:false
+    };
+    try{const sb=document.getElementById('submitBtn');sb.disabled=true;sb.textContent='⏳ در حال ثبت...';if(editWorkId!==null){await updateWork(editWorkId,w);editWorkId=null;toast('✅ کار ویرایش شد');sb.textContent='✅ ثبت'}else{await addWork(w);toast('✅ کار جدید ثبت شد')}const cd=await getCust(w.customerPhone);await saveCust(w.customerPhone,w.customerName,cd?.note||'',cd?.phones);await updateStats();await setupAuto();
     document.getElementById('workForm').reset();
     document.querySelectorAll('#page-add-work .payment-option').forEach(o=>o.classList.remove('selected'));
     document.getElementById('dueDateSection').classList.remove('show');
@@ -823,25 +906,18 @@ const APP = (function() {
     const dbs=ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement),sts=ws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('totalDebt').textContent=fmt(td);const dp=new Set();for(const w of dbs){const ph=w.customerPhone,cdb=dbs.filter(x=>x.customerPhone===ph),cst=sts.filter(x=>x.customerPhone===ph);let ctd=cdb.reduce((s,x)=>{const da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0);return s+da},0);const cts=cst.reduce((s,x)=>s+parseFloat(x.amount.replace(/,/g,'')||0),0),rd=ctd-cts;if(rd>0)dp.add(ph)}document.getElementById('debtorCount').textContent=fmt(dp.size)}catch(e){console.error(e)}}
 
     async function renderCustomers(){try{const sq=document.getElementById('customerSearch')?.value.toLowerCase()||'',ws=await getWorks(),cm=new Map();ws.forEach(w=>{const ph=w.customerPhone;if(!cm.has(ph))cm.set(ph,{name:w.customerName,phone:ph,works:[],totalPaid:0,totalDebt:0,note:'',lastWorkDate:'',lastWorkDateDisplay:''});const c=cm.get(ph);c.works.push(w);
-    // Sort logic requires date comparison, we set lastWorkDate here as string for now
     if(!c.lastWorkDate || getDateValue(w.date) > getDateValue(c.lastWorkDate)){c.lastWorkDate=w.date;c.lastWorkDateDisplay=w.date}
     const am=parseFloat(w.amount.replace(/,/g,'')||0);if(w.isSettlement){c.totalPaid+=am;c.totalDebt-=am}else if(w.paymentStatus==='نسیه'||w.paymentStatus==='چک'){const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):am;c.totalDebt+=da}else c.totalPaid+=am});cm.forEach(c=>c.totalDebt=Math.max(0,c.totalDebt));let cs=Array.from(cm.values());for(const c of cs){const cd=await getCust(c.phone);if(cd?.note)c.note=cd.note;if(cd?.phones){c.allPhones=cd.phones;c.phoneCount=cd.phones.length}}if(sq)cs=cs.filter(c=>c.name.toLowerCase().includes(sq)||c.phone.includes(sq));
-    
-    // UPDATED SORTING LOGIC: Sort customers by latest work date (descending)
     cs.sort((a,b) => getDateValue(b.lastWorkDate) - getDateValue(a.lastWorkDate));
-    
     const cn=document.getElementById('customersList');document.getElementById('customerListCount').textContent=`${cs.length} مورد`;if(cs.length===0){cn.innerHTML='<div class="empty-state"><p>🔍 مشتری‌ای یافت نشد</p></div>';return}cn.innerHTML='';cs.forEach(c=>{const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;color:#2563eb;font-size:16px;margin-left:5px;">📞</span> ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${c.works.length} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,c.works.length,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)})}catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
 
     async function showCustomerDetail(ph){try{console.log('showCustomerDetail called with phone:',ph);currentCustomerPhone=ph;const ws=await getWorks();console.log('Total works:',ws.length);
-    
-    // UPDATED SORTING LOGIC: Sort work history by date (descending)
     const cws=ws.filter(w=>w.customerPhone===ph).sort((a,b)=> {
         const da = getDateValue(a.date);
         const db = getDateValue(b.date);
-        if (da !== db) return db - da; // Sort by Date
-        return (b.id||0)-(a.id||0); // Fallback to ID
+        if (da !== db) return db - da; 
+        return (b.id||0)-(a.id||0); 
     });
-    
     console.log('Customer works:',cws.length);if(cws.length===0){console.log('No works found for customer');return}const cd=await getCust(ph);console.log('Customer data:',cd);document.getElementById('detailCustomerName').textContent=cws[0].customerName;document.getElementById('detailCustomerPhone').textContent=`📞 ${ph}`;document.getElementById('customerNote').value=cd?.note||'';const tp=cws.reduce((s,w)=>{const am=parseFloat(w.amount.replace(/,/g,'')||0);if(!['نسیه','چک'].includes(w.paymentStatus))return s+am;else if(w.paymentStatus==='نسیه'&&w.paidAmount)return s+parseFloat(w.paidAmount.replace(/,/g,'')||0);return s},0);const dbs=cws.filter(w=>['نسیه','چک'].includes(w.paymentStatus)&&!w.isSettlement),sts=cws.filter(w=>w.isSettlement);let td=dbs.reduce((s,w)=>{const da=w.debtAmount?parseFloat(w.debtAmount.replace(/,/g,'')||0):parseFloat(w.amount.replace(/,/g,'')||0);return s+da},0);const ts=sts.reduce((s,w)=>s+parseFloat(w.amount.replace(/,/g,'')||0),0);td=Math.max(0,td-ts);document.getElementById('detailWorkCount').textContent=cws.length;document.getElementById('detailTotalPaid').textContent=fmt(tp);document.getElementById('detailCurrentDebt').textContent=fmt(td);const sb=document.getElementById('settleDebtBtn');if(td>0){sb.classList.remove('hidden');settleData={phone:ph,amount:td,name:cws[0].customerName}}else sb.classList.add('hidden');const phs=cd?.phones||[ph],pc=document.getElementById('phoneNumbersList');pc.innerHTML='';phs.forEach((p,i)=>{const pi=document.createElement('div');pi.className='phone-item';pi.innerHTML=`<span>📞 ${p}${i===0?' (اصلی)':''}</span>`;if(phs.length>1&&i>0){const del=document.createElement('button');del.className='btn-small btn-delete';del.textContent='🗑️';del.onclick=()=>deletePhone(ph,p);pi.appendChild(del)}pc.appendChild(pi)});const lw=cws[0];document.getElementById('detailLastWork').textContent=`${lw.date} - ${lw.workType}`;const nd=document.getElementById('customerNoteDisplay'),nt=document.getElementById('customerNoteText');if(cd?.note){nt.textContent=cd.note;nd.classList.remove('hidden')}else nd.classList.add('hidden');const hc=document.getElementById('workHistory');hc.innerHTML='';
     cws.forEach(w=>{const wi=document.createElement('div');wi.className='work-history-item';if(w.isSettlement)wi.classList.add('settlement');let bg='',dueDateTxt='';
     if(w.dueDate){
@@ -850,30 +926,50 @@ const APP = (function() {
             if(parts.length === 3) {
                 const pd = toJalaali(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
                 dueDateTxt = fmtDate(pd.year, pd.month, pd.day);
-            } else {
-                dueDateTxt = w.dueDate;
-            }
+            } else { dueDateTxt = w.dueDate; }
         }catch(e){dueDateTxt=w.dueDate}
     }
-    if(w.isSettlement)bg=`<span class="payment-badge settlement">💰 تسویه بدهی - ${w.paymentStatus}</span>`;else if(w.paymentStatus==='نسیه'){const da=w.debtAmount?fmt(w.debtAmount):fmt(w.amount),pi=w.paidAmount?` - پرداخت شده: ${fmt(w.paidAmount)}`:'';bg=`<span class="payment-badge debt">نسیه: ${da} تومان${pi}</span>`}else if(w.paymentStatus==='چک')bg=`<span class="payment-badge check">چک${dueDateTxt?' - سررسید: '+dueDateTxt:''}</span>`;else bg=`<span class="payment-badge paid">✅ ${w.paymentStatus}</span>`;wi.innerHTML=`<div class="work-history-header"><div class="work-date">📅 ${w.date}</div><div class="work-amount">${fmt(w.amount)} تومان</div></div><div class="work-details"><div>🔧 ${w.workType}</div><div>${bg}</div></div><div style="display:flex;gap:8px;margin-top:10px;"><button class="btn-small btn-edit" onclick="APP.editWork(${w.id})">✏️ ویرایش</button><button class="btn-small btn-delete" onclick="APP.showDelWorkModal(${w.id})">🗑️ حذف</button></div>`;hc.appendChild(wi)});console.log('Showing customer detail page');showPage('customer-detail')}catch(e){console.error('Error in showCustomerDetail:',e);toast('❌ خطا در بارگذاری اطلاعات مشتری')}}
+    // Alarm Display Info
+    let reminderInfo = '';
+    if(w.reminderDate && w.reminderTime) {
+         try{
+            const parts = w.reminderDate.split('-');
+            const pd = toJalaali(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
+            reminderInfo = `<div style="margin-top:4px; font-size:11px; color:#ef4444; font-weight:bold;">⏰ یادآوری: ${fmtDate(pd.year, pd.month, pd.day)} ساعت ${w.reminderTime}</div>`;
+         } catch(e){}
+    }
+
+    if(w.isSettlement)bg=`<span class="payment-badge settlement">💰 تسویه بدهی - ${w.paymentStatus}</span>`;else if(w.paymentStatus==='نسیه'){const da=w.debtAmount?fmt(w.debtAmount):fmt(w.amount),pi=w.paidAmount?` - پرداخت شده: ${fmt(w.paidAmount)}`:'';bg=`<span class="payment-badge debt">نسیه: ${da} تومان${pi}</span>`}else if(w.paymentStatus==='چک')bg=`<span class="payment-badge check">چک${dueDateTxt?' - سررسید: '+dueDateTxt:''}</span>`;else bg=`<span class="payment-badge paid">✅ ${w.paymentStatus}</span>`;
+    
+    wi.innerHTML=`<div class="work-history-header"><div class="work-date">📅 ${w.date}</div><div class="work-amount">${fmt(w.amount)} تومان</div></div><div class="work-details"><div>🔧 ${w.workType}</div><div>${bg}</div>${reminderInfo}</div><div style="display:flex;gap:8px;margin-top:10px;"><button class="btn-small btn-edit" onclick="APP.editWork(${w.id})">✏️ ویرایش</button><button class="btn-small btn-delete" onclick="APP.showDelWorkModal(${w.id})">🗑️ حذف</button></div>`;hc.appendChild(wi)});console.log('Showing customer detail page');showPage('customer-detail')}catch(e){console.error('Error in showCustomerDetail:',e);toast('❌ خطا در بارگذاری اطلاعات مشتری')}}
 
     async function saveNote(){if(!currentCustomerPhone)return;try{const nt=document.getElementById('customerNote').value,ws=await getWorks(),cw=ws.find(w=>w.customerPhone===currentCustomerPhone);if(cw){const cd=await getCust(currentCustomerPhone);await saveCust(currentCustomerPhone,cw.customerName,nt,cd?.phones);toast('✅ یادداشت ذخیره شد');await showCustomerDetail(currentCustomerPhone);await renderCustomers()}}catch(e){console.error(e);toast('❌ خطا در ذخیره یادداشت')}}
 
     async function editWork(id){try{editWorkId=id;const w=await getWork(id);if(!w)return;showPage('add-work');document.getElementById('date').value=w.date;document.getElementById('customerName').value=w.customerName;document.getElementById('phone').value=w.customerPhone;
-    // Update for new select style
     document.getElementById('workType').value=w.workType;
     document.getElementById('workTypeDisplay').textContent=w.workType;
     document.getElementById('workTypeDisplay').style.color='#1e293b';
     
     document.getElementById('amount').value=w.amount;document.querySelectorAll('#page-add-work .payment-option').forEach(o=>{if(o.textContent.includes(w.paymentStatus))o.classList.add('selected');else o.classList.remove('selected')});document.getElementById('paymentStatus').value=w.paymentStatus;
-    if(w.paymentStatus==='چک'&&w.dueDate){
+    if(w.paymentStatus==='چک'){
         document.getElementById('dueDateSection').classList.add('show');
-        const parts = w.dueDate.split('-');
-        if(parts.length===3) {
-             const p=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
-             document.getElementById('dueDateDisplay').value=fmtDate(p.year,p.month,p.day);
+        if(w.dueDate) {
+            const parts = w.dueDate.split('-');
+            if(parts.length===3) {
+                 const p=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
+                 document.getElementById('dueDateDisplay').value=fmtDate(p.year,p.month,p.day);
+            }
+            document.getElementById('dueDate').value=w.dueDate
         }
-        document.getElementById('dueDate').value=w.dueDate
+        if(w.reminderDate && w.reminderTime) {
+            const parts = w.reminderDate.split('-');
+            if(parts.length===3) {
+                 const p=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
+                 document.getElementById('reminderDateDisplay').value=fmtDate(p.year,p.month,p.day);
+            }
+            document.getElementById('reminderDate').value = w.reminderDate;
+            document.getElementById('reminderTime').value = w.reminderTime;
+        }
     }else if(w.paymentStatus==='نسیه'&&w.paidAmount){document.getElementById('partialPaymentSection').classList.add('show');document.getElementById('paidAmount').value=w.paidAmount;calcRemaining()}document.getElementById('submitBtn').textContent='✏️ ویرایش';window.scrollTo({top:0,behavior:'smooth'});toast('💡 در حال ویرایش کار...')}catch(e){console.error(e);toast('❌ خطا در بارگذاری اطلاعات کار')}}
 
     function showDelWorkModal(id){deleteWorkId=id;document.getElementById('deleteModal').classList.add('show')}
@@ -892,10 +988,7 @@ const APP = (function() {
         document.getElementById('settleCustomerName').textContent=settleData.name;
         document.getElementById('settleDebtAmount').textContent=fmt(settleData.amount);
         document.querySelectorAll('#settleDebtModal .payment-option').forEach(o=>o.classList.remove('selected'));
-        
-        // --- Empty Default Value ---
         document.getElementById('settleDate').value = '';
-        
         document.getElementById('settleDebtModal').classList.add('show');
     }
 
@@ -903,11 +996,8 @@ const APP = (function() {
     
     async function confirmSettle(){
         if(!settleData||!settlePayment){toast('⚠️ لطفاً نوع پرداخت را انتخاب کنید');return}
-        
-        // --- Get Date from Input ---
         const pd = document.getElementById('settleDate').value;
         if(!pd) { toast('⚠️ لطفاً تاریخ تسویه را وارد کنید'); return; }
-
         try{
             const st={date:pd,customerName:settleData.name,customerPhone:settleData.phone,workType:'[تسویه بدهی]',amount:settleData.amount.toString(),paymentStatus:settlePayment,dueDate:null,paidAmount:null,debtAmount:null,isSettlement:true};
             await addWork(st);await updateStats();await showCustomerDetail(settleData.phone);toast('✅ بدهی تسویه شد');closeModal('settleDebtModal');
@@ -915,58 +1005,92 @@ const APP = (function() {
     }
 
     async function renderDebtors(){try{console.log('renderDebtors called');const ws=await getWorks();console.log('Total works:',ws.length);const dm=new Map();ws.filter(w=>(w.paymentStatus==='نسیه'||w.paymentStatus==='چک')&&!w.isSettlement).forEach(w=>{const ph=w.customerPhone;if(!dm.has(ph))dm.set(ph,{name:w.customerName,phone:ph,debts:[]});dm.get(ph).debts.push(w)});console.log('Debtors map:',dm.size);const sts=ws.filter(w=>w.isSettlement),sm=new Map();sts.forEach(s=>{const ph=s.customerPhone,am=parseFloat(s.amount.replace(/,/g,'')||0);sm.set(ph,(sm.get(ph)||0)+am)});let dts=Array.from(dm.values());const td=new Date();dts.forEach(d=>{let tdt=d.debts.reduce((s,x)=>{let da;if(x.paymentStatus==='چک'){da=parseFloat(x.amount.replace(/,/g,'')||0)}else{da=x.debtAmount?parseFloat(x.debtAmount.replace(/,/g,'')||0):parseFloat(x.amount.replace(/,/g,'')||0)}return s+da},0);const st=sm.get(d.phone)||0;d.totalDebt=Math.max(0,tdt-st);d.nearestDue=d.debts.filter(x=>x.dueDate).sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate))[0];
-    
-    // FIXED NaN ERROR: Robust parsing for legacy Persian dates in DB
     if(d.nearestDue){
         let dd = new Date(d.nearestDue.dueDate);
-        // If standard parse fails, assume it's Persian string stored in DB
         if (isNaN(dd.getTime())) {
-             const parts = d.nearestDue.dueDate.split(/[/-]/); // Split by / or -
+             const parts = d.nearestDue.dueDate.split(/[/-]/); 
              if(parts.length === 3) {
-                 // assume Jalaali: YYYY, MM, DD
-                 try {
-                     const gy = toGregorian(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2]));
-                     dd = gy;
-                 } catch(e) { dd = new Date(); } // Fallback to today to prevent crash
+                 try { const gy = toGregorian(parseInt(parts[0]), parseInt(parts[1]), parseInt(parts[2])); dd = gy; } catch(e) { dd = new Date(); } 
              }
         }
-        
-        if (!isNaN(dd.getTime())) {
-             d.daysUntilDue = Math.ceil((dd - td)/(1000*60*60*24));
-        } else {
-             d.daysUntilDue = 0;
-        }
-    } else {
-        d.daysUntilDue = 999;
-    }
-    
+        if (!isNaN(dd.getTime())) { d.daysUntilDue = Math.ceil((dd - td)/(1000*60*60*24)); } else { d.daysUntilDue = 0; }
+    } else { d.daysUntilDue = 999; }
     });dts=dts.filter(d=>d.totalDebt>0);dts.sort((a,b)=>a.daysUntilDue-b.daysUntilDue);console.log('Filtered debtors:',dts.length);const cn=document.getElementById('debtorsList'),tda=dts.reduce((s,d)=>s+d.totalDebt,0);document.getElementById('debtorListCount').textContent=`${dts.length} مورد - مجموع: ${fmt(tda)} تومان`;if(dts.length===0){cn.innerHTML='<div class="empty-state"><p>🎉 بدهکاری وجود ندارد!</p></div>';return}cn.innerHTML='';dts.forEach(d=>{console.log('Processing debtor:',d.name,d.phone);const di=document.createElement('div');di.className='debt-item';let sc='',st='',dueDateTxt='';
     if(d.nearestDue){
         if(d.daysUntilDue<0){sc='overdue';st=`🔴 ${Math.abs(d.daysUntilDue)} روز گذشته!`}else if(d.daysUntilDue<=3){sc='upcoming';st=`🟡 ${d.daysUntilDue} روز دیگر`}else st=`🟢 ${d.daysUntilDue} روز دیگر`;if(sc)di.classList.add(sc);
         try{
-             // Only split if it matches YYYY-MM-DD format roughly
              if(d.nearestDue.dueDate.match(/^\d{4}-\d{2}-\d{2}$/)) {
                  const parts = d.nearestDue.dueDate.split('-');
                  if(parts.length===3) {
                      const pd=toJalaali(parseInt(parts[0]),parseInt(parts[1]),parseInt(parts[2]));
                      dueDateTxt=fmtDate(pd.year,pd.month,pd.day);
                  } else { dueDateTxt='نامعتبر'; }
-             } else {
-                 // It's probably already Persian text stored in DB
-                 dueDateTxt = d.nearestDue.dueDate; 
-             }
+             } else { dueDateTxt = d.nearestDue.dueDate; }
         }catch(e){dueDateTxt='تاریخ نامعتبر'}
     }
     di.innerHTML=`<div class="customer-header"><div><div class="customer-name">${d.name}</div><div class="customer-phone">📞 ${d.phone}</div></div></div><div style="margin:10px 0;"><div style="font-size:18px;font-weight:bold;color:#dc2626;">بدهی: ${fmt(d.totalDebt)} تومان</div>${d.nearestDue?`<div style="font-size:14px;color:#64748b;margin-top:5px;">سررسید: ${dueDateTxt} ${st}</div>`:''}</div><div style="display:flex;gap:8px;"><button class="btn-small btn-call">📞 تماس</button><button class="btn-small btn-settle">📋 مشاهده کارتابل</button></div>`;di.querySelector('.btn-call').onclick=()=>window.location.href=`tel:${d.phone}`;di.querySelector('.btn-settle').onclick=()=>showCustomerDetail(d.phone);cn.appendChild(di)});console.log('renderDebtors completed')}catch(e){console.error('Error in renderDebtors:',e);toast('❌ خطا در بارگذاری لیست بدهکاران')}}
 
-    function checkAlarms(){getWorks().then(ws=>{const td=new Date();td.setHours(7,0,0,0);ws.filter(w=>w.paymentStatus==='چک'&&w.dueDate).forEach(w=>{const dd=new Date(w.dueDate);dd.setHours(7,0,0,0);if(dd.getTime()===td.getTime()){
+    function checkAlarms(){
+        const now = new Date();
+        const currentM = now.getMinutes();
+        const currentH = now.getHours();
+        
+        getWorks().then(ws=>{
+            // 1. Check Standard Due Dates (at 7:00 AM)
+            const td=new Date(); td.setHours(7,0,0,0);
+            ws.filter(w=>w.paymentStatus==='چک'&&w.dueDate).forEach(w=>{
+                const dd=new Date(w.dueDate); dd.setHours(7,0,0,0);
+                // Only trigger if it's exactly 7 AM and not triggered yet (simple check logic)
+                if(dd.getTime()===td.getTime() && currentH === 7 && currentM === 0){
+                    notify(w);
+                }
+            });
+
+            // 2. Check Custom Reminder Dates (Precise)
+            ws.filter(w=>w.paymentStatus==='چک' && w.reminderDate && w.reminderTime).forEach(w=>{
+                const remDate = new Date(w.reminderDate);
+                const [rH, rM] = w.reminderTime.split(':').map(Number);
+                
+                // Compare Year, Month, Day, Hour, Minute
+                if(remDate.getFullYear() === now.getFullYear() && 
+                   remDate.getMonth() === now.getMonth() && 
+                   remDate.getDate() === now.getDate() &&
+                   rH === currentH && 
+                   rM === currentM) {
+                       triggerFullAlarm(w);
+                   }
+            });
+
+        }).catch(e=>console.error(e));
+    }
+    
+    // Track triggered alarms to avoid loop in same minute
+    let lastTriggeredId = null; 
+
+    function triggerFullAlarm(w) {
+        if(lastTriggeredId === w.id) return; // Already triggered this minute
+        lastTriggeredId = w.id;
+        
+        // Show Modal
+        const modal = document.getElementById('alarmModal');
+        document.getElementById('alarmCustomerName').textContent = w.customerName;
+        document.getElementById('alarmAmount').textContent = fmt(w.amount) + ' تومان';
+        modal.classList.add('show');
+        
+        // Play Sound Loop
+        startAlarmSound();
+        
+        // Vibration
+        if(navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]);
+    }
+
+    function notify(w) {
         if('Notification'in window&&Notification.permission==='granted') {
              new Notification('🔔 یادآوری سررسید چک',{body:`چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`, vibrate: [200, 100, 200]});
-             playAlarmSound();
              if(navigator.vibrate) navigator.vibrate([300, 100, 300]);
         }
-        toast(`⏰ یادآوری: چک ${w.customerName} - ${fmt(w.amount)} تومان`);
-    }})}).catch(e=>console.error(e))}
+        toast(`⏰ یادآوری: چک ${w.customerName}`);
+    }
 
     async function exportData(){try{const ws=await getWorks(),t=db.transaction([CUSTOMERS],'readonly'),s=t.objectStore(CUSTOMERS),r=s.getAll();r.onsuccess=()=>{const cs=r.result,d={version:3,exportDate:new Date().toISOString(),workTypes,works:ws.map(w=>{const{id,...rest}=w;return rest}),customers:cs},b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`backup-جرثقیل-${new Date().toISOString().split('T')[0]}.json`;document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(u);toast(`✅ بکاپ ${ws.length} کار ذخیره شد`)}}catch(e){console.error(e);toast('❌ خطا در ذخیره بکاپ')}}
 
@@ -978,10 +1102,15 @@ const APP = (function() {
 
     async function init(){try{console.log('🚀 Initializing...');await initDB();console.log('✅ DB ready');loadTypes();console.log('✅ Types loaded');await updateStats();console.log('✅ Stats updated');
     console.log('✅ Date set to empty');
-    await setupAuto();console.log('✅ Auto setup');if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();checkAlarms();setInterval(checkAlarms,60*60*1000);console.log('✅ Alarms setup');console.log('✅✅✅ App ready!');
+    await setupAuto();console.log('✅ Auto setup');if('Notification'in window&&Notification.permission==='default')Notification.requestPermission();
+    
+    // Check alarms every 30 seconds for precision
+    setInterval(checkAlarms, 30000); 
+    console.log('✅ Alarms setup (Every 30s)');
+    console.log('✅✅✅ App ready!');
     }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
-    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal}
+    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm}
 })();
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
