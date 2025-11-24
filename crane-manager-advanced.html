@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 8.0 - گزارش‌گیری جامع)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 8.5 - گزارش‌گیری دقیق)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -727,75 +727,158 @@ const APP = (function() {
         if(window.alarmInterval) clearInterval(window.alarmInterval);
     }
 
+    // --- Invoice Generation Logic (Updated Text) ---
     function generateInvoice(workId) {
         getWork(workId).then(w => {
             if (!w) return;
+            
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            const width = 800; const height = 1000;
-            canvas.width = width; canvas.height = height;
-            ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, width, height);
-            ctx.fillStyle = '#2563eb'; ctx.fillRect(0, 0, width, 150);
-            ctx.fillStyle = '#ffffff'; ctx.font = 'bold 40px Tahoma, "Segoe UI", sans-serif';
-            ctx.textAlign = 'center'; ctx.fillText('فاکتور خدمات جرثقیل', width / 2, 70);
-            ctx.font = 'bold 25px Tahoma'; ctx.fillText('حسین کُرد', width / 2, 120);
-            ctx.fillStyle = '#1e293b'; ctx.textAlign = 'right'; ctx.font = 'bold 24px Tahoma'; ctx.direction = 'rtl';
-            const startY = 220; const lineHeight = 50; const rightX = width - 50; const leftX = 50;
-            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 2; ctx.strokeRect(40, 180, width - 80, 160);
+            const width = 800;
+            const height = 1000;
+            canvas.width = width;
+            canvas.height = height;
+
+            // Background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+
+            // Header Background
+            ctx.fillStyle = '#2563eb';
+            ctx.fillRect(0, 0, width, 150);
+
+            // Header Text
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 40px Tahoma, "Segoe UI", sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('فاکتور خدمات جرثقیل', width / 2, 70);
+            ctx.font = 'bold 25px Tahoma';
+            ctx.fillText('حسین کُرد', width / 2, 120);
+
+            // Info Section
+            ctx.fillStyle = '#1e293b';
+            ctx.textAlign = 'right';
+            ctx.font = 'bold 24px Tahoma';
+            ctx.direction = 'rtl';
+            
+            const startY = 220;
+            const lineHeight = 50;
+            const rightX = width - 50;
+            const leftX = 50;
+
+            // Customer Info Box
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(40, 180, width - 80, 160);
+            
             ctx.fillText(`نام مشتری: ${w.customerName}`, rightX - 20, startY);
             ctx.fillText(`شماره تماس: ${w.customerPhone}`, rightX - 20, startY + lineHeight);
             ctx.fillText(`تاریخ انجام کار: ${w.date}`, rightX - 20, startY + lineHeight * 2);
-            const detailsY = 380; ctx.strokeRect(40, detailsY, width - 80, 300);
-            ctx.fillStyle = '#f8fafc'; ctx.fillRect(42, detailsY + 2, width - 84, 60);
-            ctx.fillStyle = '#1e293b'; ctx.font = 'bold 26px Tahoma';
+
+            // Work Details Box
+            const detailsY = 380;
+            ctx.strokeRect(40, detailsY, width - 80, 300);
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(42, detailsY + 2, width - 84, 60);
+            
+            ctx.fillStyle = '#1e293b';
+            ctx.font = 'bold 26px Tahoma';
             ctx.fillText('شرح خدمات', rightX - 30, detailsY + 40);
-            ctx.textAlign = 'left'; ctx.fillText('مبلغ', leftX + 30, detailsY + 40);
-            ctx.font = '24px Tahoma'; ctx.textAlign = 'right';
+            ctx.textAlign = 'left';
+            ctx.fillText('مبلغ', leftX + 30, detailsY + 40);
+
+            // Row Data
+            ctx.font = '24px Tahoma';
+            ctx.textAlign = 'right';
             ctx.fillText(w.workType, rightX - 30, detailsY + 110);
-            ctx.textAlign = 'left'; ctx.font = 'bold 24px Tahoma'; ctx.fillStyle = '#059669';
+            
+            ctx.textAlign = 'left';
+            ctx.font = 'bold 24px Tahoma';
+            ctx.fillStyle = '#059669';
             ctx.fillText(fmt(w.amount) + ' تومان', leftX + 30, detailsY + 110);
+
+            // Payment Info
             let payStatusText = `وضعیت: ${w.paymentStatus}`;
-            if (w.paymentStatus === 'نسیه') { const remaining = w.debtAmount ? fmt(w.debtAmount) : '0'; payStatusText += ` (باقیمانده: ${remaining})`; }
-            ctx.textAlign = 'center'; ctx.fillStyle = '#64748b'; ctx.font = '20px Tahoma';
+            if (w.paymentStatus === 'نسیه') {
+                const remaining = w.debtAmount ? fmt(w.debtAmount) : '0';
+                payStatusText += ` (باقیمانده: ${remaining})`;
+            }
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#64748b';
+            ctx.font = '20px Tahoma';
             ctx.fillText(payStatusText, width / 2, detailsY + 250);
-            ctx.fillStyle = '#eff6ff'; ctx.fillRect(40, 700, width - 80, 100);
-            ctx.fillStyle = '#1e40af'; ctx.font = 'bold 35px Tahoma';
+
+            // Total Box
+            ctx.fillStyle = '#eff6ff';
+            ctx.fillRect(40, 700, width - 80, 100);
+            ctx.fillStyle = '#1e40af';
+            ctx.font = 'bold 35px Tahoma';
             ctx.fillText(`مبلغ قابل پرداخت: ${fmt(w.amount)} تومان`, width / 2, 765);
-            ctx.fillStyle = '#64748b'; ctx.font = 'bold 20px Tahoma';
+
+            // Footer (Updated Professional Text)
+            ctx.fillStyle = '#64748b';
+            ctx.font = 'bold 20px Tahoma';
             ctx.fillText('از حسن اعتماد و انتخاب شما سپاسگزاریم', width / 2, 900);
-            ctx.font = '18px Tahoma'; ctx.fillStyle = '#94a3b8';
+            
+            ctx.font = '18px Tahoma';
+            ctx.fillStyle = '#94a3b8';
             ctx.fillText('تعهد ما، دقت و ایمنی در انجام پروژه‌های شماست', width / 2, 940);
+
+            // Output
             const dataUrl = canvas.toDataURL('image/png');
             document.getElementById('invoiceImage').src = dataUrl;
-            canvas.toBlob(blob => { currentInvoiceBlob = blob; });
+            
+            // Store blob for sharing
+            canvas.toBlob(blob => {
+                currentInvoiceBlob = blob;
+            });
+
             document.getElementById('invoiceModal').classList.add('show');
         });
     }
 
     function downloadInvoice() {
-        const link = document.createElement('a'); link.download = 'invoice.png';
-        link.href = document.getElementById('invoiceImage').src; link.click();
+        const link = document.createElement('a');
+        link.download = 'invoice.png';
+        link.href = document.getElementById('invoiceImage').src;
+        link.click();
     }
 
     async function shareInvoice() {
         if (!currentInvoiceBlob) return;
         if (navigator.share && navigator.canShare) {
             const file = new File([currentInvoiceBlob], 'invoice.png', { type: 'image/png' });
-            const data = { files: [file], title: 'فاکتور خدمات', text: 'فاکتور خدمات جرثقیل حسین کُرد' };
-            if (navigator.canShare(data)) { try { await navigator.share(data); } catch (err) { console.error('Share failed:', err); } } 
-            else { toast('⚠️ مرورگر شما اشتراک‌گذاری فایل را پشتیبانی نمی‌کند'); }
-        } else { toast('⚠️ اشتراک‌گذاری در این مرورگر پشتیبانی نمی‌شود'); }
+            const data = {
+                files: [file],
+                title: 'فاکتور خدمات',
+                text: 'فاکتور خدمات جرثقیل حسین کُرد'
+            };
+            if (navigator.canShare(data)) {
+                try {
+                    await navigator.share(data);
+                } catch (err) {
+                    console.error('Share failed:', err);
+                }
+            } else {
+                toast('⚠️ مرورگر شما اشتراک‌گذاری فایل را پشتیبانی نمی‌کند');
+            }
+        } else {
+            toast('⚠️ اشتراک‌گذاری در این مرورگر پشتیبانی نمی‌شود');
+        }
     }
 
-    // --- Reporting Logic ---
+    // --- Reporting Logic (FIXED) ---
     async function generateReport() {
         const startVal = document.getElementById('reportStartVal').value;
         const endVal = document.getElementById('reportEndVal').value;
         
         if(!startVal || !endVal) { toast('⚠️ لطفاً بازه زمانی را انتخاب کنید'); return; }
         
-        const sDate = parseInt(startVal.replace(/-/g, ''));
-        const eDate = parseInt(endVal.replace(/-/g, ''));
+        // Fix: Ensure we compare Apples to Apples (Jalali Int to Jalali Int)
+        // reportStartVal is now populated with pure Jalali Integer (e.g. 14040901) by selectDate
+        const sDate = parseInt(startVal);
+        const eDate = parseInt(endVal);
         
         if(sDate > eDate) { toast('⚠️ تاریخ شروع نباید بعد از پایان باشد'); return; }
         
@@ -804,7 +887,7 @@ const APP = (function() {
         let total = 0, cash = 0, check = 0, credit = 0, count = 0;
         
         ws.forEach(w => {
-            const wDateVal = getDateValue(w.date);
+            const wDateVal = getDateValue(w.date); // Converts "1 Azar 1404" -> 14040901
             if(wDateVal >= sDate && wDateVal <= eDate) {
                 count++;
                 const am = parseFloat(w.amount.replace(/,/g,'')||0);
@@ -819,10 +902,6 @@ const APP = (function() {
                         cash += paid;
                         credit += (am - paid);
                     }
-                } else {
-                    // Settlement adds to cash/check but reduces credit, doesn't affect Total Revenue of work done
-                    // But for "Cash Flow" report, it matters. Here we calculate "Revenue Generated".
-                    // Let's keep it simple: Revenue based on work date.
                 }
             }
         });
@@ -934,7 +1013,6 @@ const APP = (function() {
         }
         f.value=c;
         if(voiceField==='amount'||voiceField==='paidAmount'){formatAmount(f);calcRemaining()}
-        // Update hidden inputs for reports if necessary, handled by showCal logic mostly
         toast(`✅ "${c}" ثبت شد`);
         stopVoice()
     }
@@ -1029,6 +1107,9 @@ const APP = (function() {
         const gd = String(gDateObj.getDate()).padStart(2, '0');
         const gDateIso = `${gy}-${gm}-${gd}`;
         
+        // FIXED: Jalali Integer for correct comparison in Reports
+        const jDateIso = `${window.dpCurY}${String(window.dpCurM).padStart(2,'0')}${String(d).padStart(2,'0')}`;
+
         if(window.dpTarget === 'date') {
             document.getElementById('date').value = pDateStr;
         } else if (window.dpTarget === 'dueDate') {
@@ -1041,10 +1122,10 @@ const APP = (function() {
             document.getElementById('reminderDate').value = gDateIso;
         } else if (window.dpTarget === 'reportStartDate') {
             document.getElementById('reportStartDate').value = pDateStr;
-            document.getElementById('reportStartVal').value = gDateIso;
+            document.getElementById('reportStartVal').value = jDateIso; // Store Jalali Int
         } else if (window.dpTarget === 'reportEndDate') {
             document.getElementById('reportEndDate').value = pDateStr;
-            document.getElementById('reportEndVal').value = gDateIso;
+            document.getElementById('reportEndVal').value = jDateIso; // Store Jalali Int
         }
         window.closeCal();
     }
