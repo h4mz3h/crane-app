@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
-    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 7.0 - فاکتور دیجیتال)</title>
+    <title>مدیریت مشتریان - جرثقیل حسین کُرد (نسخه 8.5 - گزارش‌گیری دقیق)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -20,13 +20,14 @@
         .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .stat-box { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 10px; border-radius: 12px; text-align: center; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .stat-box.debt { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); }
+        .stat-box.report-result { background: linear-gradient(135deg, #10b981 0%, #059669 100%); }
         .stat-box .label { font-size: 11px; opacity: 0.9; margin-bottom: 5px; white-space: nowrap; }
         .stat-box .value { font-size: 18px; font-weight: bold; }
         
         /* Navigation */
-        .navigation { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; margin-bottom: 15px; }
-        .nav-btn { flex: 1; padding: 12px 5px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-family: inherit; color: #64748b; background: white; display: flex; flex-direction: column; align-items: center; gap: 5px; }
-        .nav-btn span { font-size: 20px; margin-bottom: 2px; } 
+        .navigation { display: flex; justify-content: space-between; gap: 5px; margin-top: 20px; margin-bottom: 15px; overflow-x: auto; }
+        .nav-btn { flex: 1; padding: 10px 2px; border: 2px solid #e2e8f0; border-radius: 12px; font-size: 11px; font-weight: bold; cursor: pointer; transition: all 0.2s; font-family: inherit; color: #64748b; background: white; display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 60px; }
+        .nav-btn span { font-size: 18px; margin-bottom: 2px; } 
         .nav-btn:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-2px); }
         .nav-btn.active { background: #eff6ff; color: #2563eb; border-color: #2563eb; box-shadow: 0 4px 6px rgba(37,99,235,0.1); }
         
@@ -292,6 +293,7 @@
                 <button class="nav-btn active" onclick="APP.showPage('add-work')"><span>➕</span>ثبت کار</button>
                 <button class="nav-btn" onclick="APP.showPage('customers')"><span>👥</span>مشتریان</button>
                 <button class="nav-btn" onclick="APP.showPage('debtors')"><span>💰</span>بدهکاران</button>
+                <button class="nav-btn" onclick="APP.showPage('reports')"><span>📊</span>گزارش</button>
             </div>
 
             <div class="action-buttons">
@@ -409,6 +411,35 @@
             <div class="customer-list">
                 <div class="section-header"><span>💰 بدهکاران</span><span id="debtorListCount">0 مورد</span></div>
                 <div id="debtorsList"></div>
+            </div>
+        </div>
+
+        <div id="page-reports" class="page">
+            <div class="form-card">
+                <h3 style="text-align:center;color:#1e293b;margin-bottom:15px;">📊 گزارش‌گیری پیشرفته</h3>
+                <div class="form-group">
+                    <label>از تاریخ:</label>
+                    <input type="text" id="reportStartDate" class="date-input" readonly placeholder="انتخاب کنید..." onclick="APP.showCal('reportStartDate')">
+                    <input type="hidden" id="reportStartVal">
+                </div>
+                <div class="form-group">
+                    <label>تا تاریخ:</label>
+                    <input type="text" id="reportEndDate" class="date-input" readonly placeholder="انتخاب کنید..." onclick="APP.showCal('reportEndDate')">
+                    <input type="hidden" id="reportEndVal">
+                </div>
+                <button class="btn btn-primary" onclick="APP.generateReport()">🔎 محاسبه گزارش</button>
+                
+                <div id="reportResults" style="display:none; margin-top:20px;">
+                    <div class="stats">
+                        <div class="stat-box report-result"><div class="label">💰 درآمد کل بازه</div><div class="value" id="repTotal">0</div></div>
+                        <div class="stat-box"><div class="label">💵 نقد و کارت</div><div class="value" id="repCash">0</div></div>
+                        <div class="stat-box"><div class="label">📝 چک‌های دریافتی</div><div class="value" id="repCheck">0</div></div>
+                        <div class="stat-box debt"><div class="label">⏳ نسیه (مانده)</div><div class="value" id="repCredit">0</div></div>
+                    </div>
+                    <div style="margin-top:10px; text-align:center; color:#64748b; font-size:14px;">
+                        تعداد کل سرویس‌ها: <span id="repCount" style="font-weight:bold; color:#1e293b;">0</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -570,7 +601,7 @@ const APP = (function() {
     let recognition=null, voiceField=null, allCustomers=[];
     const pMonths=['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
     let audioCtx = null, osc = null;
-    let currentInvoiceBlob = null; // Store generated invoice blob
+    let currentInvoiceBlob = null; 
 
     // --- توابع دقیق تقویم جلالی (الگوریتم خیام) ---
     function toJalaali(gy, gm, gd) {
@@ -696,7 +727,7 @@ const APP = (function() {
         if(window.alarmInterval) clearInterval(window.alarmInterval);
     }
 
-    // --- Invoice Generation Logic (Native Canvas) ---
+    // --- Invoice Generation Logic (Updated Text) ---
     function generateInvoice(workId) {
         getWork(workId).then(w => {
             if (!w) return;
@@ -785,11 +816,14 @@ const APP = (function() {
             ctx.font = 'bold 35px Tahoma';
             ctx.fillText(`مبلغ قابل پرداخت: ${fmt(w.amount)} تومان`, width / 2, 765);
 
-            // Footer
-            ctx.fillStyle = '#94a3b8';
-            ctx.font = '18px Tahoma';
+            // Footer (Updated Professional Text)
+            ctx.fillStyle = '#64748b';
+            ctx.font = 'bold 20px Tahoma';
             ctx.fillText('از حسن اعتماد و انتخاب شما سپاسگزاریم', width / 2, 900);
-            ctx.fillText('تعهد ما، دقت و ایمنی در انجام پروژه‌های شماست؛', width / 2, 930);
+            
+            ctx.font = '18px Tahoma';
+            ctx.fillStyle = '#94a3b8';
+            ctx.fillText('تعهد ما، دقت و ایمنی در انجام پروژه‌های شماست', width / 2, 940);
 
             // Output
             const dataUrl = canvas.toDataURL('image/png');
@@ -832,6 +866,53 @@ const APP = (function() {
         } else {
             toast('⚠️ اشتراک‌گذاری در این مرورگر پشتیبانی نمی‌شود');
         }
+    }
+
+    // --- Reporting Logic (FIXED) ---
+    async function generateReport() {
+        const startVal = document.getElementById('reportStartVal').value;
+        const endVal = document.getElementById('reportEndVal').value;
+        
+        if(!startVal || !endVal) { toast('⚠️ لطفاً بازه زمانی را انتخاب کنید'); return; }
+        
+        // Fix: Ensure we compare Apples to Apples (Jalali Int to Jalali Int)
+        // reportStartVal is now populated with pure Jalali Integer (e.g. 14040901) by selectDate
+        const sDate = parseInt(startVal);
+        const eDate = parseInt(endVal);
+        
+        if(sDate > eDate) { toast('⚠️ تاریخ شروع نباید بعد از پایان باشد'); return; }
+        
+        const ws = await getWorks();
+        
+        let total = 0, cash = 0, check = 0, credit = 0, count = 0;
+        
+        ws.forEach(w => {
+            const wDateVal = getDateValue(w.date); // Converts "1 Azar 1404" -> 14040901
+            if(wDateVal >= sDate && wDateVal <= eDate) {
+                count++;
+                const am = parseFloat(w.amount.replace(/,/g,'')||0);
+                if(!w.isSettlement) {
+                    if(w.paymentStatus === 'نقدی' || w.paymentStatus === 'کارت به کارت' || w.paymentStatus === 'کارتخوان') {
+                        total += am; cash += am;
+                    } else if (w.paymentStatus === 'چک') {
+                        total += am; check += am;
+                    } else if (w.paymentStatus === 'نسیه') {
+                        total += am;
+                        const paid = w.paidAmount ? parseFloat(w.paidAmount.replace(/,/g,'')||0) : 0;
+                        cash += paid;
+                        credit += (am - paid);
+                    }
+                }
+            }
+        });
+        
+        document.getElementById('repTotal').textContent = fmt(total);
+        document.getElementById('repCash').textContent = fmt(cash);
+        document.getElementById('repCheck').textContent = fmt(check);
+        document.getElementById('repCredit').textContent = fmt(credit);
+        document.getElementById('repCount').textContent = count;
+        
+        document.getElementById('reportResults').style.display = 'block';
     }
 
     // --- Database Functions ---
@@ -921,7 +1002,7 @@ const APP = (function() {
         const f=document.getElementById(voiceField);
         if(!f)return;
         let c=t.trim();
-        if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount' || voiceField === 'settleDate') {
+        if(voiceField === 'date' || voiceField === 'phone' || voiceField === 'amount' || voiceField === 'paidAmount' || voiceField === 'settleDate' || voiceField.includes('report')) {
             c = normalizePersianNumbers(c);
         }
         if(voiceField==='phone')c=c.replace(/\s+/g,'').replace(/[۰-۹]/g,d=>'۰۱۲۳۴۵۶۷۸۹'.indexOf(d)).replace(/[٠-٩]/g,d=>'٠١٢٣٤٥٦٧٨٩'.indexOf(d));
@@ -941,7 +1022,7 @@ const APP = (function() {
 
     // --- Logic تقویم ---
     function showCal(target){
-        let el = document.getElementById(target.includes('reminder') ? target + 'Display' : (target==='dueDate'?'dueDateDisplay':target));
+        let el = document.getElementById(target.includes('reminder') || target.includes('report') ? target : (target==='dueDate'?'dueDateDisplay':target));
         let initialVal = el.value;
         let jy, jm, jd;
         if(initialVal && initialVal.split(' ').length === 3) {
@@ -1026,6 +1107,9 @@ const APP = (function() {
         const gd = String(gDateObj.getDate()).padStart(2, '0');
         const gDateIso = `${gy}-${gm}-${gd}`;
         
+        // FIXED: Jalali Integer for correct comparison in Reports
+        const jDateIso = `${window.dpCurY}${String(window.dpCurM).padStart(2,'0')}${String(d).padStart(2,'0')}`;
+
         if(window.dpTarget === 'date') {
             document.getElementById('date').value = pDateStr;
         } else if (window.dpTarget === 'dueDate') {
@@ -1036,6 +1120,12 @@ const APP = (function() {
         } else if (window.dpTarget === 'reminderDate') {
             document.getElementById('reminderDateDisplay').value = pDateStr;
             document.getElementById('reminderDate').value = gDateIso;
+        } else if (window.dpTarget === 'reportStartDate') {
+            document.getElementById('reportStartDate').value = pDateStr;
+            document.getElementById('reportStartVal').value = jDateIso; // Store Jalali Int
+        } else if (window.dpTarget === 'reportEndDate') {
+            document.getElementById('reportEndDate').value = pDateStr;
+            document.getElementById('reportEndVal').value = jDateIso; // Store Jalali Int
         }
         window.closeCal();
     }
@@ -1274,24 +1364,81 @@ const APP = (function() {
     
     let lastTriggeredId = null; 
 
+// متغیر جهت جلوگیری از تکرار هشدار در یک لحظه
+    let lastTriggeredId = null;
+
+    function checkAlarms() {
+        const now = new Date();
+        const currentH = now.getHours();
+        const currentM = now.getMinutes();
+
+        getWorks().then(ws => {
+            // 1. چک کردن سررسیدهای معمولی (چک‌های روز - ساعت 7 صبح)
+            const td = new Date();
+            td.setHours(7, 0, 0, 0);
+            ws.filter(w => w.paymentStatus === 'چک' && w.dueDate).forEach(w => {
+                // پارس کردن دستی برای جلوگیری از خطای اختلاف زمانی
+                const dParts = w.dueDate.split('-');
+                if (dParts.length === 3) {
+                    // ماه در جاوااسکریپت از 0 شروع می‌شود پس 1 واحد کم می‌کنیم
+                    const wDate = new Date(parseInt(dParts[0]), parseInt(dParts[1]) - 1, parseInt(dParts[2]));
+                    wDate.setHours(7, 0, 0, 0);
+                    
+                    if (wDate.getTime() === td.getTime() && currentH === 7 && currentM === 0) {
+                        notify(w);
+                    }
+                }
+            });
+
+            // 2. چک کردن یادآوری‌های دقیق (آلارم قرمز رنگ)
+            ws.filter(w => w.paymentStatus === 'چک' && w.reminderDate && w.reminderTime).forEach(w => {
+                // روش اصلاح شده: تفکیک دستی تاریخ برای اطمینان از یکی بودن روز
+                const dParts = w.reminderDate.split('-');
+                const rYear = parseInt(dParts[0]);
+                const rMonth = parseInt(dParts[1]) - 1; // ماه - 1
+                const rDay = parseInt(dParts[2]);
+
+                const [rH, rM] = w.reminderTime.split(':').map(Number);
+
+                // مقایسه دقیق اجزای زمان با زمان فعلی گوشی
+                if (rYear === now.getFullYear() &&
+                    rMonth === now.getMonth() &&
+                    rDay === now.getDate() &&
+                    rH === currentH &&
+                    rM === currentM) {
+                    
+                    triggerFullAlarm(w);
+                }
+            });
+
+        }).catch(e => console.error(e));
+    }
+
     function triggerFullAlarm(w) {
-        if(lastTriggeredId === w.id) return;
+        // اگر این آلارم همین الان پخش شده، دوباره پخشش نکن (برای جلوگیری از لوپ)
+        if (lastTriggeredId === w.id) return;
         lastTriggeredId = w.id;
-        
+
         const modal = document.getElementById('alarmModal');
         document.getElementById('alarmCustomerName').textContent = w.customerName;
         document.getElementById('alarmAmount').textContent = fmt(w.amount) + ' تومان';
         modal.classList.add('show');
-        
+
+        // تلاش برای پخش صدا و ویبره
         startAlarmSound();
-        if(navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]);
+        if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 1000]);
     }
 
     function notify(w) {
-        if('Notification'in window&&Notification.permission==='granted') {
-             new Notification('🔔 یادآوری سررسید چک',{body:`چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`, vibrate: [200, 100, 200]});
-             if(navigator.vibrate) navigator.vibrate([300, 100, 300]);
+        // اگر مرورگر اجازه نوتیفیکیشن داده باشد
+        if ('Notification' in window && Notification.permission === 'granted') {
+            new Notification('🔔 یادآوری سررسید چک', {
+                body: `چک ${w.customerName} به مبلغ ${fmt(w.amount)} تومان امروز سررسید دارد!`,
+                vibrate: [200, 100, 200]
+            });
+            if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
         }
+        // نمایش پیام تست (Toast) در پایین صفحه
         toast(`⏰ یادآوری: چک ${w.customerName}`);
     }
 
@@ -1321,7 +1468,7 @@ const APP = (function() {
     console.log('✅✅✅ App ready!');
     }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
-    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice}
+    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice, generateReport}
 })();
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
