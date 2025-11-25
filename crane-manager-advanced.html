@@ -325,7 +325,7 @@
                     <div class="form-group">
                         <label>📞 شماره تلفن</label>
                         <div class="input-wrapper">
-                            <input type="tel" id="phone" required maxlength="11" pattern="09[0-9]{9}">
+                            <input type="tel" id="phone" required oninput="APP.formatPhone(this)">
                             <div class="button-group">
                                 <button type="button" class="voice-btn" onclick="APP.startVoice('phone')">🎤</button>
                             </div>
@@ -633,7 +633,7 @@
             <div class="modal-header">📞 افزودن شماره جدید</div>
             <div style="margin: 20px 0;">
                 <label style="font-weight: bold; color: #1e293b; margin-bottom: 10px; display: block;">شماره تلفن</label>
-                <input type="tel" id="newPhoneNumber" placeholder="09123456789" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 16px;" maxlength="11" pattern="09[0-9]{9}">
+                <input type="tel" id="newPhoneNumber" placeholder="09123456789" style="width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-family: inherit; font-size: 16px;" oninput="APP.formatPhone(this)">
             </div>
             <div class="modal-actions">
                 <button class="btn btn-primary" style="background: #94a3b8;" onclick="APP.closeModal('addPhoneModal')">انصراف</button>
@@ -907,14 +907,14 @@ const APP = (function() {
 
             ctx.font = 'bold 22px Tahoma';
             ctx.textAlign = 'right';
-            ctx.fillText(`👤 نام مشتری: ${w.customerName}`, width - 60, textY);
+            ctx.fillText(`نام مشتری: ${w.customerName}`, width - 60, textY);
 
             ctx.font = '20px Tahoma';
-            ctx.fillText(`📞 تماس: ${w.customerPhone}`, width - 350, textY);
+            ctx.fillText(`تماس: ${w.customerPhone}`, width - 350, textY);
 
             ctx.textAlign = 'left';
             ctx.font = 'bold 20px Tahoma';
-            ctx.fillText(`📅 تاریخ: ${w.date}`, 60, textY);
+            ctx.fillText(`تاریخ: ${w.date}`, 60, textY);
 
             const detailsY = 320;
             const detailsHeight = 350;
@@ -1366,7 +1366,34 @@ const APP = (function() {
         toast(`✅ "${c}" ثبت شد`);
         stopVoice()
     }
-
+     
+	 // --- تابع جدید برای اصلاح شماره تلفن (حذف فاصله، +98 و ...) ---
+    function formatPhone(input) {
+        let val = input.value;
+        
+        // 1. تبدیل اعداد فارسی به انگلیسی
+        val = normalizePersianNumbers(val);
+        
+        // 2. حذف تمام کاراکترها به جز عدد و علامت +
+        val = val.replace(/[^0-9+]/g, '');
+        
+        // 3. اصلاح پیش‌شماره‌های مختلف
+        if (val.startsWith('+98')) val = '0' + val.substring(3);
+        else if (val.startsWith('0098')) val = '0' + val.substring(4);
+        else if (val.startsWith('98')) val = '0' + val.substring(2);
+        
+        // 4. حالا فقط اعداد رو نگه دار (پلاس‌های وسط رو هم حذف کن)
+        val = val.replace(/[^0-9]/g, '');
+        
+        // 5. اگر شماره بدون صفر شروع شده (مثلا 912...) یه صفر به اولش اضافه کن
+        if (val.startsWith('9')) val = '0' + val;
+        
+        // 6. حالا اگر طولش بیشتر از 11 شد، اضافه‌ها رو حذف کن
+        if (val.length > 11) val = val.substring(0, 11);
+        
+        input.value = val;
+    }
+	 
     function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
     function calcRemaining(){const t=parseFloat(document.getElementById('amount').value.replace(/,/g,'')||0),p=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0),r=t-p;document.getElementById('remainingAmount').value=r>=0?fmt(r):'0'}
 
@@ -1957,10 +1984,14 @@ async function showCustomerDetail(ph){try{console.log('showCustomerDetail called
     console.log('✅✅✅ App ready!');
     }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
-    return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice, generateReport,
-    submitExpense, openExpenseTypeModal, addExpTypeFromModal, deleteExpType, selectExpType, confirmDeleteExpense, renderExpenses,
-    // Lock Exports
-    enterPin, clearPin
+    return {
+        init, showPage, exportData, importData, submitWork, addWorkTypeFromModal, deleteType, openWorkTypeModal, selectWorkType, startVoice, showCal, 
+        
+        formatPhone,   // <---- دقیقا اینو بنویس (ویرگول هم حتما بذار)
+        
+        formatAmount, calcRemaining, selectPayment, selectSettlePayment, showSettleModal, confirmSettle, saveNote, showAddPhoneModal, confirmAddPhone, closeModal, confirmDeleteWork, confirmDeleteCustomer, renderCustomers, showCustomerDetail, editWork, showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice, generateReport,
+        submitExpense, openExpenseTypeModal, addExpTypeFromModal, deleteExpType, selectExpType, confirmDeleteExpense, renderExpenses,
+        enterPin, clearPin
     }
 })();
 
