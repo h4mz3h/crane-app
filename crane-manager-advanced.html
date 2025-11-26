@@ -1462,25 +1462,32 @@ const APP = (function() {
             'سی': '30', 'چهل': '40', 'پنجاه': '50',
             'یکم': '1', 'دوی': '2', 'سوم': '3', 'چهارم': '4', 'پنجم': '5',
             'ششم': '6', 'هفتم': '7', 'هشتم': '8', 'نهم': '9', 'دهم': '10',
-            'یه': '1', 'نیم': '0.5', // اضافه شده برای حالت محاوره
+            'یه': '1', 'نیم': '0.5',
             '۱': '1', '۲': '2', '۳': '3', '۴': '4', '۵': '5', '۶': '6', '۷': '7', '۸': '8', '۹': '9', '۰': '0'
         };
-        
-        // اول کلمات طولانی‌تر رو تبدیل میکنیم که تداخل پیش نیاد (مثلا یازده قبل از یک)
-        let words = text.split(' ');
-        let newText = words.map(word => {
-            // حذف "و" اضافی اگر چسبیده بود (اختیاری)
-            for (let key in map) {
-                if (word === key) return map[key];
-            }
-            return word;
-        }).join(' ');
 
-        // برای اطمینان یک بار هم کلی جایگزین میکنیم
-        for (let word in map) {
-             let regex = new RegExp(word, 'g');
-             newText = newText.replace(regex, map[word]);
+        let newText = text;
+
+        // 1. تبدیل کلمات به عدد (با رعایت مرز کلمات تا "هفته" خراب نشود)
+        // ما کلیدها را بر اساس طول مرتب می‌کنیم تا اول کلمات طولانی‌تر (مثل یازده) چک شوند
+        const sortedKeys = Object.keys(map).sort((a, b) => b.length - a.length);
+
+        for (let key of sortedKeys) {
+             // این ریجکس میگه: کلمه رو پیدا کن اگر قبل و بعدش فاصله بود یا اول/آخر جمله بود
+             // این باعث میشه "هفت" داخل "هفته" مچ نشه
+             const regex = new RegExp(`(^|[\\s،\\.\\-])${key}(?=[\\s،\\.\\-]|$)`, 'g');
+             newText = newText.replace(regex, `$1${map[key]}`);
         }
+
+        // 2. هندل کردن "و نیم" (مثلاً: 2 و 0.5 -> 2.5)
+        // الگوی: عدد + فاصله + و + فاصله + 0.5
+        newText = newText.replace(/(\d+)\s*و\s*0\.5/g, function(match, number) {
+            return parseFloat(number) + 0.5;
+        });
+
+        // 3. هندل کردن فاصله‌های اضافی احتمالی
+        newText = newText.replace(/\s+/g, ' ').trim();
+
         return newText;
     }
 
