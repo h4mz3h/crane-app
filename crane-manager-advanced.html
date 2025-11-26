@@ -929,7 +929,7 @@ function generateInvoice(workId) {
             ctx.fillText('فاکتور خدمات جرثقیل', width / 2, 80);
             ctx.shadowBlur = 0;
 
-            ctx.font = `bold 32px ${mainFont}`;
+            ctx.font = `bold 40px ${mainFont}`;
             ctx.fillText('حسین کُرد', width / 2, 135);
 
             // 4. باکس اطلاعات مشتری
@@ -1041,7 +1041,7 @@ function generateInvoice(workId) {
 
             // آدرس
             ctx.fillStyle = '#ffffff'; 
-            ctx.font = `bold 20px ${mainFont}`;
+            ctx.font = `bold 22px ${mainFont}`;
             ctx.fillText('آدرس: جاده ساوه، به‌طرف رباط کریم، نبش ورودی شهرک صنعتی نصیرآباد', width / 2, currentY);
             
             currentY += 75; 
@@ -1056,12 +1056,12 @@ function generateInvoice(workId) {
             // شبا (دو خطی)
             ctx.fillStyle = '#ffffff';
             ctx.font = `bold 22px ${mainFont}`;
-            ctx.fillText('💳 شماره شبا (حسین کُرد):', width / 2, currentY);
+            ctx.fillText('💳 شماره شبا (حسین کرمی):', width / 2, currentY);
             
             currentY += 40; 
             ctx.fillStyle = '#4ade80'; // سبز روشن
             ctx.font = `bold 28px Consolas, monospace, ${mainFont}`;
-            ctx.fillText('IR58 0170 0000 0001 0636 3246 007', width / 2, currentY);
+            ctx.fillText('IR5801700000000106363246007', width / 2, currentY);
 
             // جملات پایانی
             const finalTextY = height - 100;
