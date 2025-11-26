@@ -893,38 +893,36 @@ const APP = (function() {
         if(navigator.vibrate) navigator.vibrate(0);
     }
 
-// --- تابع نهایی تولید فاکتور (اصلاح عکس، فونت و چیدمان) ---
+// --- تابع نهایی و اصلاح شده (فوتر یک خطی) ---
     function generateInvoice(workId) {
         getWork(workId).then(w => {
             if (!w) return;
 
-            // نمایش پیام "در حال ساخت فاکتور" برای اینکه کاربر بداند سیستم در حال کار است
             toast('⏳ در حال آماده‌سازی فاکتور...');
 
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const width = 800;
-            const height = 1350; // ارتفاع بیشتر برای چیدمان دلبازتر
+            const height = 1300; // ارتفاع متناسب
             canvas.width = width;
             canvas.height = height;
 
             const mainFont = '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
 
-            // لود کردن عکس با مکانیزم تضمینی
+            // لود عکس
             const img = new Image();
-            img.crossOrigin = "Anonymous"; // برای جلوگیری از مشکلات امنیتی مرورگر
+            img.crossOrigin = "Anonymous";
             img.src = 'crane.jpg'; 
 
-            // وقتی عکس لود شد (یا اگر ارور داد)، فاکتور رو بکش
             img.onload = () => drawInvoice(img);
-            img.onerror = () => drawInvoice(null); // اگر عکس نبود، بدون عکس بکش
+            img.onerror = () => drawInvoice(null);
 
             function drawInvoice(loadedImg) {
-                // 1. پس‌زمینه سفید کل صفحه
+                // 1. پس‌زمینه سفید
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, width, height);
 
-                // 2. هدر آبی رنگ
+                // 2. هدر آبی
                 const headerHeight = 180;
                 const gradient = ctx.createLinearGradient(0, 0, width, 0);
                 gradient.addColorStop(0, '#1e3a8a');
@@ -932,7 +930,7 @@ const APP = (function() {
                 ctx.fillStyle = gradient;
                 ctx.fillRect(0, 0, width, headerHeight);
 
-                // 3. رسم عکس (اگر لود شده باشد)
+                // 3. رسم عکس
                 ctx.save();
                 ctx.beginPath();
                 ctx.arc(100, 90, 70, 0, Math.PI * 2, true);
@@ -942,25 +940,19 @@ const APP = (function() {
                 if (loadedImg) {
                     ctx.drawImage(loadedImg, 30, 20, 140, 140);
                 } else {
-                    // اگر عکس لود نشد، یک دایره سفید جاش بذار
                     ctx.fillStyle = '#f8fafc';
                     ctx.fill();
-                    // یک متن کوچک هم بنویس که عکس نیست
-                    ctx.fillStyle = '#94a3b8';
-                    ctx.font = '12px Tahoma';
-                    ctx.textAlign = 'center';
-                    ctx.fillText('بدون عکس', 100, 95);
                 }
                 ctx.restore();
 
-                // حلقه سفید دور عکس
+                // حلقه دور عکس
                 ctx.beginPath();
                 ctx.arc(100, 90, 70, 0, Math.PI * 2);
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 5;
                 ctx.stroke();
 
-                // 4. عنوان فاکتور
+                // 4. عناوین هدر
                 ctx.fillStyle = '#ffffff';
                 ctx.font = `bold 45px ${mainFont}`;
                 ctx.textAlign = 'center';
@@ -969,10 +961,10 @@ const APP = (function() {
                 ctx.fillText('فاکتور خدمات جرثقیل', width / 2, 80);
                 ctx.shadowBlur = 0;
 
-                ctx.font = `bold 38px ${mainFont}`;
+                ctx.font = `bold 39px ${mainFont}`;
                 ctx.fillText('حسین کُرد', width / 2, 135);
 
-                // 5. باکس اطلاعات مشتری (با فونت‌های بولد شده)
+                // 5. باکس اطلاعات مشتری
                 const boxTop = 220;
                 const boxHeight = 120;
                 
@@ -986,30 +978,26 @@ const APP = (function() {
                 ctx.fillStyle = '#1e293b';
                 const textY = boxTop + 45;
 
-                // سطر اول باکس
-                ctx.font = `bold 22px ${mainFont}`; // بولد
+                ctx.font = `bold 22px ${mainFont}`;
                 ctx.textAlign = 'right';
                 ctx.fillText(`نام مشتری: ${w.customerName}`, width - 70, textY);
                 
                 ctx.textAlign = 'left';
                 ctx.fillText(`تاریخ: ${w.date}`, 70, textY);
 
-                // سطر دوم باکس (اصلاح شده: الان اینها هم بولد هستند)
                 if(w.duration) {
                      ctx.textAlign = 'right';
-                     ctx.font = `bold 20px ${mainFont}`; // بولد شد
+                     ctx.font = `bold 20px ${mainFont}`;
                      ctx.fillText(`مدت کار: ${w.duration}`, width - 70, textY + 45);
                 }
 
                 ctx.textAlign = 'left';
-                ctx.font = `bold 20px ${mainFont}`; // بولد شد
-                ctx.fillStyle = '#334155'; // رنگش رو کمی تیره‌تر کردم که خوانا باشه
+                ctx.font = `bold 20px ${mainFont}`;
+                ctx.fillStyle = '#334155';
                 ctx.fillText(`تماس: ${w.customerPhone}`, 70, textY + 45);
 
                 // 6. جدول جزئیات
                 const detailsY = 380;
-                
-                // هدر جدول
                 ctx.fillStyle = '#e2e8f0';
                 ctx.fillRect(40, detailsY, width - 80, 60);
                 
@@ -1021,7 +1009,6 @@ const APP = (function() {
                 ctx.textAlign = 'left';
                 ctx.fillText('مبلغ کل', 60, detailsY + 40);
 
-                // محتوای جدول
                 const contentY = detailsY + 100;
                 
                 ctx.beginPath();
@@ -1041,7 +1028,6 @@ const APP = (function() {
                 ctx.fillStyle = '#059669';
                 ctx.fillText(fmt(w.amount) + ' تومان', 60, contentY + 20);
 
-                // وضعیت پرداخت
                 let payStatusText = `وضعیت: ${w.paymentStatus}`;
                 if (w.paymentStatus === 'نسیه') {
                     const remaining = w.debtAmount ? fmt(w.debtAmount) : '0';
@@ -1062,7 +1048,6 @@ const APP = (function() {
 
                 ctx.fillText(payStatusText, width / 2, contentY + 140);
 
-                // باکس مبلغ نهایی
                 const finalBoxY = 680;
                 ctx.fillStyle = '#eff6ff';
                 ctx.fillRect(40, finalBoxY, width - 80, 100);
@@ -1075,8 +1060,8 @@ const APP = (function() {
                 ctx.font = `bold 34px ${mainFont}`;
                 ctx.fillText(`مبلغ قابل پرداخت: ${fmt(w.amount)} تومان`, width / 2, finalBoxY + 60);
 
-                // === فوتر جدید (چیدمان خط به خط) ===
-                const footerY = 860;
+                // === فوتر جدید (همه چیز در یک خط) ===
+                const footerY = 850;
                 const footerBgHeight = height - footerY;
                 
                 ctx.fillStyle = '#1e293b';
@@ -1084,57 +1069,37 @@ const APP = (function() {
 
                 ctx.textAlign = 'center';
                 
-                // --- سطر 1: آدرس ---
-                let currentY = footerY + 50;
-                ctx.fillStyle = '#ffffff';
-                ctx.font = `bold 22px ${mainFont}`;
-                ctx.fillText('📍 آدرس:', width / 2, currentY);
-                
-                currentY += 35; // فاصله خط بعدی
-                ctx.fillStyle = '#e2e8f0';
-                ctx.font = `19px ${mainFont}`;
-                ctx.fillText('جاده ساوه، به‌طرف رباط کریم، نبش ورودی شهرک صنعتی نصیرآباد', width / 2, currentY);
+                let currentY = footerY + 60;
 
-                // --- سطر 2: تلفن ---
-                currentY += 70; // فاصله بیشتر برای بخش بعدی
-                ctx.fillStyle = '#ffffff';
-                ctx.font = `bold 22px ${mainFont}`;
-                ctx.fillText('📞 شماره‌های تماس:', width / 2, currentY);
+                // --- سطر 1: آدرس (یک خطی) ---
+                ctx.fillStyle = '#ffffff'; 
+                ctx.font = `bold 20px ${mainFont}`;
+                // متن آدرس کامل در یک خط
+                ctx.fillText('📍 آدرس: جاده ساوه، به‌طرف رباط کریم، نبش ورودی شهرک صنعتی نصیرآباد', width / 2, currentY);
                 
-                currentY += 40;
-                ctx.fillStyle = '#fbbf24'; // طلایی
-                ctx.font = `bold 26px ${mainFont}`;
-                ctx.fillText('09125060456   -   09126398186', width / 2, currentY);
+                // --- سطر 2: تلفن (یک خطی) ---
+                currentY += 50;
+                ctx.fillStyle = '#fbbf24'; // طلایی برای دیده شدن بهتر
+                ctx.font = `bold 24px ${mainFont}`;
+                ctx.fillText('📞 شماره‌های تماس: 09125060456  -  09126398186', width / 2, currentY);
 
-                // --- سطر 3: شبا ---
-                currentY += 70;
-                ctx.fillStyle = '#ffffff';
-                ctx.font = `bold 22px ${mainFont}`;
-                ctx.fillText('💳 شماره شبا (حسین کرمی):', width / 2, currentY);
-                
-                currentY += 20;
-                // باکس پس‌زمینه شبا
-                ctx.fillStyle = 'rgba(255,255,255,0.1)';
-                const shebaBoxWidth = 550;
-                ctx.roundRect ? ctx.roundRect((width - shebaBoxWidth)/2, currentY, shebaBoxWidth, 60, 10) : ctx.fillRect((width - shebaBoxWidth)/2, currentY, shebaBoxWidth, 60);
-                ctx.fill();
-                
-                currentY += 40;
-                ctx.font = 'bold 30px Consolas, monospace'; 
+                // --- سطر 3: شبا (یک خطی) ---
+                currentY += 50;
                 ctx.fillStyle = '#4ade80'; // سبز روشن
-                ctx.fillText('IR58 0170 0000 0001 0636 3246 007', width / 2, currentY);
+                // از فونت معمولی استفاده کردیم تا با بقیه متن‌ها همخوانی داشته باشد، اما درشت‌تر
+                ctx.font = `bold 22px ${mainFont}`;
+                ctx.fillText('💳 شماره شبا (حسین کُرد): IR58 0170 0000 0001 0636 3246 007', width / 2, currentY);
 
-                // --- جملات پایانی (درشت‌تر و روشن‌تر) ---
-                const finalTextY = height - 100;
-                ctx.fillStyle = '#f1f5f9'; // تقریبا سفید (خیلی روشن)
-                ctx.font = `bold 22px ${mainFont}`; // فونت بزرگتر
+                // --- جملات پایانی ---
+                const finalTextY = height - 90;
+                ctx.fillStyle = '#f1f5f9'; 
+                ctx.font = `bold 22px ${mainFont}`;
                 ctx.fillText('از حسن اعتماد و انتخاب شما سپاسگزاریم', width / 2, finalTextY);
                 
-                ctx.fillStyle = '#cbd5e1'; // کمی تیره‌تر برای جمله دوم
+                ctx.fillStyle = '#cbd5e1';
                 ctx.font = `bold 19px ${mainFont}`;
                 ctx.fillText('تعهد ما، دقت و ایمنی در انجام پروژه‌های شماست', width / 2, finalTextY + 35);
 
-                // تبدیل به عکس و نمایش
                 const dataUrl = canvas.toDataURL('image/png');
                 document.getElementById('invoiceImage').src = dataUrl;
                 
