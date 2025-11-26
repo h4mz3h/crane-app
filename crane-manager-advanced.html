@@ -893,7 +893,7 @@ const APP = (function() {
         if(navigator.vibrate) navigator.vibrate(0);
     }
 
-// --- تابع نهایی و اصلاح شده (فوتر یک خطی) ---
+// --- تابع نهایی فاکتور (با فاصله بیشتر در فوتر) ---
     function generateInvoice(workId) {
         getWork(workId).then(w => {
             if (!w) return;
@@ -903,13 +903,12 @@ const APP = (function() {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const width = 800;
-            const height = 1300; // ارتفاع متناسب
+            const height = 1350; // ارتفاع را کمی بیشتر کردم تا جا باز شود
             canvas.width = width;
             canvas.height = height;
 
             const mainFont = '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
 
-            // لود عکس
             const img = new Image();
             img.crossOrigin = "Anonymous";
             img.src = 'crane.jpg'; 
@@ -918,7 +917,7 @@ const APP = (function() {
             img.onerror = () => drawInvoice(null);
 
             function drawInvoice(loadedImg) {
-                // 1. پس‌زمینه سفید
+                // 1. پس‌زمینه
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, width, height);
 
@@ -930,13 +929,12 @@ const APP = (function() {
                 ctx.fillStyle = gradient;
                 ctx.fillRect(0, 0, width, headerHeight);
 
-                // 3. رسم عکس
+                // 3. عکس
                 ctx.save();
                 ctx.beginPath();
                 ctx.arc(100, 90, 70, 0, Math.PI * 2, true);
                 ctx.closePath();
                 ctx.clip();
-
                 if (loadedImg) {
                     ctx.drawImage(loadedImg, 30, 20, 140, 140);
                 } else {
@@ -945,14 +943,13 @@ const APP = (function() {
                 }
                 ctx.restore();
 
-                // حلقه دور عکس
                 ctx.beginPath();
                 ctx.arc(100, 90, 70, 0, Math.PI * 2);
                 ctx.strokeStyle = '#fff';
                 ctx.lineWidth = 5;
                 ctx.stroke();
 
-                // 4. عناوین هدر
+                // 4. عناوین
                 ctx.fillStyle = '#ffffff';
                 ctx.font = `bold 45px ${mainFont}`;
                 ctx.textAlign = 'center';
@@ -964,7 +961,7 @@ const APP = (function() {
                 ctx.font = `bold 39px ${mainFont}`;
                 ctx.fillText('حسین کُرد', width / 2, 135);
 
-                // 5. باکس اطلاعات مشتری
+                // 5. باکس مشتری
                 const boxTop = 220;
                 const boxHeight = 120;
                 
@@ -996,7 +993,7 @@ const APP = (function() {
                 ctx.fillStyle = '#334155';
                 ctx.fillText(`تماس: ${w.customerPhone}`, 70, textY + 45);
 
-                // 6. جدول جزئیات
+                // 6. جدول
                 const detailsY = 380;
                 ctx.fillStyle = '#e2e8f0';
                 ctx.fillRect(40, detailsY, width - 80, 60);
@@ -1060,7 +1057,7 @@ const APP = (function() {
                 ctx.font = `bold 34px ${mainFont}`;
                 ctx.fillText(`مبلغ قابل پرداخت: ${fmt(w.amount)} تومان`, width / 2, finalBoxY + 60);
 
-                // === فوتر جدید (همه چیز در یک خط) ===
+                // === فوتر جدید (با فاصله بیشتر) ===
                 const footerY = 850;
                 const footerBgHeight = height - footerY;
                 
@@ -1071,27 +1068,29 @@ const APP = (function() {
                 
                 let currentY = footerY + 60;
 
-                // --- سطر 1: آدرس (یک خطی) ---
+                // --- سطر 1: آدرس ---
                 ctx.fillStyle = '#ffffff'; 
                 ctx.font = `bold 20px ${mainFont}`;
-                // متن آدرس کامل در یک خط
-                ctx.fillText('📍 آدرس: جاده ساوه، به‌طرف رباط کریم، نبش ورودی شهرک صنعتی نصیرآباد', width / 2, currentY);
+                ctx.fillText('آدرس: جاده ساوه، به‌طرف رباط کریم، نبش ورودی شهرک صنعتی نصیرآباد', width / 2, currentY);
                 
-                // --- سطر 2: تلفن (یک خطی) ---
-                currentY += 50;
-                ctx.fillStyle = '#fbbf24'; // طلایی برای دیده شدن بهتر
-                ctx.font = `bold 24px ${mainFont}`;
-                ctx.fillText('📞 شماره‌های تماس: 09125060456  -  09126398186', width / 2, currentY);
+                // اضافه کردن فاصله (قبلا 50 بود، الان 75 شد)
+                currentY += 75; 
 
-                // --- سطر 3: شبا (یک خطی) ---
-                currentY += 50;
+                // --- سطر 2: تلفن ---
+                ctx.fillStyle = '#fbbf24'; // طلایی
+                ctx.font = `bold 24px ${mainFont}`;
+                ctx.fillText('شماره‌های تماس: 09125060456  -  09126398186', width / 2, currentY);
+
+                // اضافه کردن فاصله (قبلا 50 بود، الان 75 شد)
+                currentY += 75;
+
+                // --- سطر 3: شبا ---
                 ctx.fillStyle = '#4ade80'; // سبز روشن
-                // از فونت معمولی استفاده کردیم تا با بقیه متن‌ها همخوانی داشته باشد، اما درشت‌تر
                 ctx.font = `bold 22px ${mainFont}`;
-                ctx.fillText('💳 شماره شبا (حسین کُرد): IR58 0170 0000 0001 0636 3246 007', width / 2, currentY);
+                ctx.fillText(' شماره شبا (حسین کرمی): IR580170000000106363246007', width / 2, currentY);
 
                 // --- جملات پایانی ---
-                const finalTextY = height - 90;
+                const finalTextY = height - 100;
                 ctx.fillStyle = '#f1f5f9'; 
                 ctx.font = `bold 22px ${mainFont}`;
                 ctx.fillText('از حسن اعتماد و انتخاب شما سپاسگزاریم', width / 2, finalTextY);
