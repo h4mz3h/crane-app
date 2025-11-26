@@ -893,7 +893,7 @@ const APP = (function() {
         if(navigator.vibrate) navigator.vibrate(0);
     }
 
-// --- تابع نهایی فاکتور (با فاصله بیشتر در فوتر) ---
+// --- تابع نهایی و فیکس شده (عکس + اصلاح متن شبا) ---
     function generateInvoice(workId) {
         getWork(workId).then(w => {
             if (!w) return;
@@ -903,18 +903,23 @@ const APP = (function() {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             const width = 800;
-            const height = 1350; // ارتفاع را کمی بیشتر کردم تا جا باز شود
+            const height = 1350;
             canvas.width = width;
             canvas.height = height;
 
             const mainFont = '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
 
+            // --- اصلاح بخش لود عکس ---
             const img = new Image();
-            img.crossOrigin = "Anonymous";
-            img.src = 'crane.jpg'; 
+            // نکته: crossOrigin را برداشتیم چون گاهی باعث بلاک شدن عکس لوکال می‌شود
+            // یک عدد رندوم به ته فایل اضافه کردیم تا کش مرورگر را دور بزند
+            img.src = 'crane.jpg?v=' + new Date().getTime(); 
 
             img.onload = () => drawInvoice(img);
-            img.onerror = () => drawInvoice(null);
+            img.onerror = () => {
+                console.log('Image failed to load'); // جهت بررسی در کنسول
+                drawInvoice(null);
+            };
 
             function drawInvoice(loadedImg) {
                 // 1. پس‌زمینه
@@ -929,20 +934,27 @@ const APP = (function() {
                 ctx.fillStyle = gradient;
                 ctx.fillRect(0, 0, width, headerHeight);
 
-                // 3. عکس
+                // 3. رسم عکس
                 ctx.save();
                 ctx.beginPath();
                 ctx.arc(100, 90, 70, 0, Math.PI * 2, true);
                 ctx.closePath();
                 ctx.clip();
+                
                 if (loadedImg) {
                     ctx.drawImage(loadedImg, 30, 20, 140, 140);
                 } else {
+                    // حالت جایگزین اگر عکس نیامد
                     ctx.fillStyle = '#f8fafc';
                     ctx.fill();
+                    ctx.fillStyle = '#64748b';
+                    ctx.font = '12px Tahoma';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('بدون عکس', 100, 95);
                 }
                 ctx.restore();
 
+                // حلقه دور عکس
                 ctx.beginPath();
                 ctx.arc(100, 90, 70, 0, Math.PI * 2);
                 ctx.strokeStyle = '#fff';
@@ -1073,21 +1085,26 @@ const APP = (function() {
                 ctx.font = `bold 20px ${mainFont}`;
                 ctx.fillText('آدرس: جاده ساوه، به‌طرف رباط کریم، نبش ورودی شهرک صنعتی نصیرآباد', width / 2, currentY);
                 
-                // اضافه کردن فاصله (قبلا 50 بود، الان 75 شد)
                 currentY += 75; 
 
                 // --- سطر 2: تلفن ---
-                ctx.fillStyle = '#fbbf24'; // طلایی
+                ctx.fillStyle = '#fbbf24'; 
                 ctx.font = `bold 24px ${mainFont}`;
                 ctx.fillText('شماره‌های تماس: 09125060456  -  09126398186', width / 2, currentY);
 
-                // اضافه کردن فاصله (قبلا 50 بود، الان 75 شد)
                 currentY += 75;
 
-                // --- سطر 3: شبا ---
-                ctx.fillStyle = '#4ade80'; // سبز روشن
+                // --- سطر 3: شبا (اصلاح جهت متن) ---
+                ctx.fillStyle = '#4ade80';
                 ctx.font = `bold 22px ${mainFont}`;
-                ctx.fillText(' شماره شبا (حسین کرمی): IR580170000000106363246007', width / 2, currentY);
+                
+                // نکته مهم: اینجا جای متن و عدد را برعکس نوشتیم تا در رندر درست دیده شود
+                // اول عدد شبا رو مینویسیم، بعد متن فارسی رو
+                const shebaNum = 'IR58 0170 0000 0001 0636 3246 007';
+                const shebaLabel = ' :شماره شبا (حسین کُرد)';
+                
+                // ترکیب اینطوری باعث میشه عدد بیفته چپ، متن بیفته راست (درست مثل استاندارد فارسی)
+                ctx.fillText(shebaNum + shebaLabel, width / 2, currentY);
 
                 // --- جملات پایانی ---
                 const finalTextY = height - 100;
