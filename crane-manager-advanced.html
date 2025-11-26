@@ -893,7 +893,7 @@ const APP = (function() {
         if(navigator.vibrate) navigator.vibrate(0);
     }
 
-// --- تابع نهایی و فیکس شده (عکس + اصلاح متن شبا) ---
+// --- تابع نهایی فاکتور (اصلاح عکس + اصلاح چیدمان شبا) ---
     function generateInvoice(workId) {
         getWork(workId).then(w => {
             if (!w) return;
@@ -909,20 +909,16 @@ const APP = (function() {
 
             const mainFont = '"Segoe UI", Tahoma, Geneva, Verdana, sans-serif';
 
-            // --- اصلاح بخش لود عکس ---
+            // --- لود عکس با تکنیک ضد کش قوی ---
             const img = new Image();
-            // نکته: crossOrigin را برداشتیم چون گاهی باعث بلاک شدن عکس لوکال می‌شود
-            // یک عدد رندوم به ته فایل اضافه کردیم تا کش مرورگر را دور بزند
-            img.src = 'crane.jpg?v=' + new Date().getTime(); 
+            // اضافه کردن عدد تصادفی به انتهای آدرس برای جلوگیری از کش شدن عکس خراب
+            img.src = 'crane.jpg?' + new Date().getTime(); 
 
             img.onload = () => drawInvoice(img);
-            img.onerror = () => {
-                console.log('Image failed to load'); // جهت بررسی در کنسول
-                drawInvoice(null);
-            };
+            img.onerror = () => drawInvoice(null);
 
             function drawInvoice(loadedImg) {
-                // 1. پس‌زمینه
+                // 1. پس‌زمینه سفید
                 ctx.fillStyle = '#ffffff';
                 ctx.fillRect(0, 0, width, height);
 
@@ -944,13 +940,14 @@ const APP = (function() {
                 if (loadedImg) {
                     ctx.drawImage(loadedImg, 30, 20, 140, 140);
                 } else {
-                    // حالت جایگزین اگر عکس نیامد
+                    // دایره سفید اگر عکس نبود
                     ctx.fillStyle = '#f8fafc';
                     ctx.fill();
-                    ctx.fillStyle = '#64748b';
-                    ctx.font = '12px Tahoma';
+                    // متن راهنما
+                    ctx.fillStyle = '#94a3b8';
+                    ctx.font = '14px Tahoma';
                     ctx.textAlign = 'center';
-                    ctx.fillText('بدون عکس', 100, 95);
+                    ctx.fillText('لوگو', 100, 95);
                 }
                 ctx.restore();
 
@@ -970,7 +967,7 @@ const APP = (function() {
                 ctx.fillText('فاکتور خدمات جرثقیل', width / 2, 80);
                 ctx.shadowBlur = 0;
 
-                ctx.font = `bold 39px ${mainFont}`;
+                ctx.font = `bold 32px ${mainFont}`;
                 ctx.fillText('حسین کُرد', width / 2, 135);
 
                 // 5. باکس مشتری
@@ -1069,7 +1066,7 @@ const APP = (function() {
                 ctx.font = `bold 34px ${mainFont}`;
                 ctx.fillText(`مبلغ قابل پرداخت: ${fmt(w.amount)} تومان`, width / 2, finalBoxY + 60);
 
-                // === فوتر جدید (با فاصله بیشتر) ===
+                // === فوتر جدید (تمیز و خوانا) ===
                 const footerY = 850;
                 const footerBgHeight = height - footerY;
                 
@@ -1094,17 +1091,17 @@ const APP = (function() {
 
                 currentY += 75;
 
-                // --- سطر 3: شبا (اصلاح جهت متن) ---
-                ctx.fillStyle = '#4ade80';
+                // --- سطر 3: شبا (به صورت دو خطی برای رفع مشکل چیدمان) ---
+                // خط اول: عنوان
+                ctx.fillStyle = '#ffffff';
                 ctx.font = `bold 22px ${mainFont}`;
+                ctx.fillText('💳 شماره شبا (حسین کُرد):', width / 2, currentY);
                 
-                // نکته مهم: اینجا جای متن و عدد را برعکس نوشتیم تا در رندر درست دیده شود
-                // اول عدد شبا رو مینویسیم، بعد متن فارسی رو
-                const shebaNum = 'IR58 0170 0000 0001 0636 3246 007';
-                const shebaLabel = ' :شماره شبا (حسین کُرد)';
-                
-                // ترکیب اینطوری باعث میشه عدد بیفته چپ، متن بیفته راست (درست مثل استاندارد فارسی)
-                ctx.fillText(shebaNum + shebaLabel, width / 2, currentY);
+                // خط دوم: کد شبا (با فاصله کم زیر عنوان)
+                currentY += 40; 
+                ctx.fillStyle = '#4ade80'; // سبز روشن
+                ctx.font = `bold 28px Consolas, monospace, ${mainFont}`; // فونت مخصوص اعداد
+                ctx.fillText('IR58 0170 0000 0001 0636 3246 007', width / 2, currentY);
 
                 // --- جملات پایانی ---
                 const finalTextY = height - 100;
