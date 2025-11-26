@@ -1509,7 +1509,23 @@ function generateInvoice(workId) {
         stopVoice();
     }
 
-    function formatAmount(inp){let v=inp.value.replace(/,/g,'');if(v&&!isNaN(v))inp.value=fmt(v)}
+    function formatAmount(inp) {
+        let v = inp.value;
+        
+        // 1. تبدیل اعداد فارسی به انگلیسی
+        v = v.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+             .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+             
+        // 2. حذف کاماهای قبلی برای محاسبه
+        let cleanV = v.replace(/,/g, '');
+        
+        // 3. فرمت کردن (سه رقم سه رقم)
+        if (cleanV && !isNaN(cleanV)) {
+            inp.value = fmt(cleanV);
+        } else {
+            inp.value = v; // اگر عدد نبود (مثلا خالی شد) همون مقدار تمیز شده رو بذار
+        }
+    }
     function calcRemaining(){const t=parseFloat(document.getElementById('amount').value.replace(/,/g,'')||0),p=parseFloat(document.getElementById('paidAmount').value.replace(/,/g,'')||0),r=t-p;document.getElementById('remainingAmount').value=r>=0?fmt(r):'0'}
 
     // --- Logic تقویم ---
@@ -2078,7 +2094,30 @@ async function showCustomerDetail(ph){try{console.log('showCustomerDetail called
     }
 
     function closeModal(id){document.getElementById(id).classList.remove('show')}
-
+    
+	// تابع جدید برای تبدیل اتوماتیک اعداد فارسی به انگلیسی در هنگام تایپ
+    function setupTextFixes() {
+        // لیست فیلدهایی که می‌خوایم اعدادشون انگلیسی بشه
+        const fields = ['customerName', 'workDuration', 'expNote', 'customerNote', 'newPhoneNumber'];
+        
+        fields.forEach(id => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            
+            el.addEventListener('input', function() {
+                let v = this.value;
+                // تبدیل اعداد فارسی به انگلیسی
+                v = v.replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+                     .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+                
+                // جایگزینی در اینپوت (فقط اگه تغییری کرده باشه)
+                if (this.value !== v) {
+                    this.value = v;
+                }
+            });
+        });
+    }
+	
     async function init(){try{console.log('🚀 Initializing...');await initDB();console.log('✅ DB ready');loadTypes();console.log('✅ Types loaded');await updateStats();console.log('✅ Stats updated');
     console.log('✅ Date set to empty');
 await setupAuto();console.log('✅ Auto setup');
@@ -2105,7 +2144,8 @@ await setupAuto();console.log('✅ Auto setup');
         });
     }
     
-    setupPhoneFix(); // <--- این خط حیاتی فراموش شده بود! حتما اضافه کن
+    setupPhoneFix();
+	setupTextFixes();
     
     const hSel = document.getElementById('alarmHour');
     const mSel = document.getElementById('alarmMinute');
