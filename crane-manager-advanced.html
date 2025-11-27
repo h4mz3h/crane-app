@@ -2222,6 +2222,13 @@ await setupAuto();console.log('✅ Auto setup');
 })();
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
+
+if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('sw.js')
+            .then(() => console.log('Service Worker Registered'))
+            .catch(err => console.error('SW Error:', err));
+    }
+	
 </script>
 <img id="preloadCraneImage" src="crane.jpg" style="display: none;" alt="preload label">
 </body>
