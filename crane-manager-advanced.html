@@ -6,12 +6,6 @@
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="مدیریت مشتریان جرثقیل">
     <title>مدیریت جرثقیل حسین کُرد (نسخه 9.5 - امنیتی)</title>
-	
-	<link rel="manifest" href="manifest.json">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <link rel="apple-touch-icon" href="icon-192.png">
-	
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 15px; padding-bottom: 80px; user-select: none; -webkit-user-select: none; }
@@ -253,7 +247,6 @@
         .lock-msg { margin-bottom: 30px; font-size: 16px; opacity: 0.8; text-align: center; }
     </style>
 </head>
-
 <body>
     <div id="lockScreen" class="show">
         <div class="lock-icon">🔒</div>
@@ -2222,13 +2215,6 @@ await setupAuto();console.log('✅ Auto setup');
 })();
 
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',APP.init);else APP.init();
-
-if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('sw.js')
-            .then(() => console.log('Service Worker Registered'))
-            .catch(err => console.error('SW Error:', err));
-    }
-	
 </script>
 <img id="preloadCraneImage" src="crane.jpg" style="display: none;" alt="preload label">
 </body>
