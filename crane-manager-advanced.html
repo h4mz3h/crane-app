@@ -197,6 +197,22 @@
         .autocomplete-item:hover { background: #f8fafc; }
         .autocomplete-item strong { color: #2563eb; }
         .btn-small { padding: 6px 12px; border: none; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; font-family: inherit; font-weight: bold; }
+		/* استایل جدید برای دکمه‌های آیکونی (مربعی و هم‌اندازه) */
+        .btn-icon { 
+            width: 40px; 
+            height: 40px; 
+            padding: 0; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            font-size: 18px; 
+            border-radius: 12px; 
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1); 
+            border: none; 
+            cursor: pointer; 
+            transition: all 0.2s; 
+        }
+        .btn-icon:active { transform: scale(0.90); }
         .btn-call { background: #10b981; color: white; }
         .btn-settle { background: #2563eb; color: white; }
         .btn-delete { background: #ef4444; color: white; }
@@ -654,7 +670,7 @@
 <script>
 const APP = (function() {
     const DB_NAME='CraneManagerProDB', DB_VERSION=4, WORKS='works', CUSTOMERS='customers', EXPENSES='expenses';
-    let db, editWorkId=null, deleteWorkId=null, deleteCustomerPhone=null, currentCustomerPhone=null, settleData=null, settlePayment=null;
+    let db, editWorkId=null, editExpenseId=null, deleteWorkId=null, deleteCustomerPhone=null, currentCustomerPhone=null, settleData=null, settlePayment=null;
     let workTypes=['تانکر آب','سوله','حمل مصالح','نصب تیرآهن','بلند کردن بار','کانکس','سایر'];
     let expenseTypes=['سوخت','روغن','مکانیک','لاستیک','بیمه','کارواش','لوازم یدکی','سایر'];
     let recognition=null, voiceField=null, allCustomers=[];
@@ -1251,30 +1267,43 @@ function generateInvoice(workId) {
     async function addExpense(ex){return new Promise((res,rej)=>{const t=db.transaction([EXPENSES],'readwrite'),s=t.objectStore(EXPENSES),r=s.add(ex);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
     async function getExpenses(){return new Promise((res,rej)=>{const t=db.transaction([EXPENSES],'readonly'),s=t.objectStore(EXPENSES),r=s.getAll();r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
     async function deleteExpense(id){return new Promise((res,rej)=>{const t=db.transaction([EXPENSES],'readwrite'),s=t.objectStore(EXPENSES),r=s.delete(id);r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
+	async function updateExpense(id,ex){return new Promise((res,rej)=>{const t=db.transaction([EXPENSES],'readwrite'),s=t.objectStore(EXPENSES),r=s.put({...ex,id});r.onsuccess=()=>res();r.onerror=()=>rej(r.error)})}
 
     async function submitExpense(e) {
-        e.preventDefault();
-        const ex = {
-            date: document.getElementById('expDate').value,
-            type: document.getElementById('expType').value,
-            amount: document.getElementById('expAmount').value.replace(/,/g,''),
-            note: document.getElementById('expNote').value
-        };
-        if(!ex.type){toast('⚠️ نوع خرج را انتخاب کنید');return}
-        try {
-            const btn = e.target.querySelector('button[type="submit"]');
-            btn.disabled = true;
-            await addExpense(ex);
-            toast('💸 خرج ثبت شد');
-            document.getElementById('expenseForm').reset();
-            document.getElementById('expTypeDisplay').textContent = 'انتخاب کنید...';
-            renderExpenses();
-            btn.disabled = false;
-        } catch(err) {
-            console.error(err);
-            toast('❌ خطا در ثبت خرج');
-        }
-    }
+        e.preventDefault();
+        const ex = {
+            date: document.getElementById('expDate').value,
+            type: document.getElementById('expType').value,
+            amount: document.getElementById('expAmount').value.replace(/,/g,''),
+            note: document.getElementById('expNote').value
+        };
+        if(!ex.type){toast('⚠️ نوع خرج را انتخاب کنید');return}
+        try {
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+
+            if(editExpenseId !== null) {
+                // حالت ویرایش
+                await updateExpense(editExpenseId, ex);
+                toast('✅ خرج ویرایش شد');
+                editExpenseId = null;
+                btn.innerHTML = '💸 ثبت خرج'; // بازگرداندن متن دکمه
+            } else {
+                // حالت ثبت جدید
+                await addExpense(ex);
+                toast('💸 خرج ثبت شد');
+            }
+
+            document.getElementById('expenseForm').reset();
+            document.getElementById('expTypeDisplay').textContent = 'انتخاب کنید...';
+            document.getElementById('expTypeDisplay').style.color = '#94a3b8';
+            renderExpenses();
+            btn.disabled = false;
+        } catch(err) {
+            console.error(err);
+            toast('❌ خطا در ثبت خرج');
+        }
+    }
 
     async function renderExpenses() {
         try {
@@ -1291,22 +1320,53 @@ function generateInvoice(workId) {
                 const div = document.createElement('div');
                 div.className = 'expense-list-item';
                 div.innerHTML = `
-                    <div class="expense-info">
+                    <div class="expense-info" style="padding-left: 10px;">
                         <div class="expense-date">📅 ${ex.date}</div>
                         <div class="expense-title">🔧 ${ex.type}</div>
                         ${ex.note ? `<div class="expense-note">📝 ${ex.note}</div>` : ''}
                         <div class="expense-amount">${fmt(ex.amount)} تومان</div>
                     </div>
-                    <button class="btn-small btn-delete" onclick="APP.confirmDeleteExpense(${ex.id})">🗑️</button>
+                    
+                    <div style="display:flex; flex-direction: column; gap: 8px; align-items: center; border-right: 1px solid #e2e8f0; padding-right: 10px; min-width: 50px;">
+                        <button class="btn-edit btn-icon" onclick="APP.editExpense(${ex.id})">✏️</button>
+                        <button class="btn-delete btn-icon" onclick="APP.confirmDeleteExpense(${ex.id})">🗑️</button>
+                    </div>
                 `;
-                list.appendChild(div);
-            });
+                list.appendChild(div);
+            });
             
             if(exs.length === 0) list.innerHTML = '<div class="empty-state">هنوز خرجی ثبت نشده</div>';
             totalDiv.textContent = fmt(total);
             
         } catch(e){console.error(e)}
     }
+
+    async function editExpense(id) {
+        try {
+            const exs = await getExpenses();
+            const ex = exs.find(e => e.id === id);
+            if(!ex) return;
+
+            editExpenseId = id; // ذخیره آی‌دی برای ویرایش
+
+            // پر کردن فرم با اطلاعات قبلی
+            document.getElementById('expDate').value = ex.date;
+            document.getElementById('expType').value = ex.type;
+            document.getElementById('expTypeDisplay').textContent = ex.type;
+            document.getElementById('expTypeDisplay').style.color = '#1e293b';
+            document.getElementById('expAmount').value = fmt(ex.amount);
+            document.getElementById('expNote').value = ex.note || '';
+
+            // تغییر ظاهر دکمه ثبت به ویرایش
+            const btn = document.querySelector('#expenseForm button[type="submit"]');
+            btn.innerHTML = '✏️ ویرایش خرج';
+            
+            // باز کردن صفحه مخارج و اسکرول به بالا
+            showPage('expenses');
+            document.querySelector('.container').scrollIntoView({behavior: 'smooth'});
+            toast('💡 در حال ویرایش خرج...');
+        } catch(e) { console.error(e); }
+    }  
 
     async function confirmDeleteExpense(id) {
         if(confirm('آیا از حذف این خرج مطمئن هستید؟')) {
@@ -1766,7 +1826,9 @@ function generateInvoice(workId) {
         cs.forEach(c=>{
             const realWorkCount = c.works.filter(k => !k.isSettlement).length;
             const it=document.createElement('div');it.className='customer-item';const mainDiv=document.createElement('div');mainDiv.style.flex='1';mainDiv.style.cursor='pointer';mainDiv.onclick=()=>{console.log('Clicking customer:',c.phone);showCustomerDetail(c.phone)};const phonesDisplay=c.allPhones?c.allPhones.join(' - '):c.phone;
-            mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;color:#2563eb;font-size:16px;margin-left:5px;">📞</span> ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay || '-'}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${realWorkCount} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');db.className='btn-small btn-delete';db.textContent='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,realWorkCount,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)
+            mainDiv.innerHTML=`<div class="customer-header"><div><div class="customer-name">${c.name}</div><div class="customer-phone"><span onclick="event.stopPropagation();window.location.href='tel:${c.phone}'" style="cursor:pointer;color:#2563eb;font-size:16px;margin-left:5px;">📞</span> ${phonesDisplay}</div><div style="font-size:12px;color:#64748b;margin-top:3px;">📅 آخرین کار: ${c.lastWorkDateDisplay || '-'}</div>${c.note?`<div style="font-size:13px;color:#92400e;margin-top:5px;background:#fef3c7;padding:5px 10px;border-radius:5px;display:inline-block;">📝 ${c.note}</div>`:''}</div>${c.totalDebt>0?`<div class="debt-badge">بدهی: ${fmt(c.totalDebt)}</div>`:''}</div><div class="customer-stats"><div class="customer-stat">🔧 ${realWorkCount} کار</div><div class="customer-stat">💰 ${fmt(c.totalPaid+c.totalDebt)} تومان</div></div>`;it.appendChild(mainDiv);const db=document.createElement('button');
+            db.className='btn-delete btn-icon'; // تغییر کلاس به btn-icon
+            db.innerHTML='🗑️';db.style.marginRight='10px';db.style.alignSelf='center';db.onclick=e=>{e.stopPropagation();showDelCustModal(c.phone,c.name,realWorkCount,c.totalPaid+c.totalDebt)};it.appendChild(db);cn.appendChild(it)
         })
         }catch(e){console.error(e);toast('❌ خطا در بارگذاری لیست مشتریان')}}
 
@@ -2208,7 +2270,7 @@ await setupAuto();console.log('✅ Auto setup');
     }catch(e){console.error('❌ Init failed:',e);toast('❌ خطا در راه‌اندازی برنامه')}}
 
     return{init,showPage,exportData,importData,submitWork,addWorkTypeFromModal,deleteType,openWorkTypeModal,selectWorkType,startVoice:startVoice,showCal,formatAmount,calcRemaining,selectPayment,selectSettlePayment,showSettleModal,confirmSettle,saveNote,showAddPhoneModal,confirmAddPhone,closeModal,confirmDeleteWork,confirmDeleteCustomer,renderCustomers,showCustomerDetail,editWork,showDelWorkModal, stopAlarm, generateInvoice, shareInvoice, downloadInvoice, generateReport,
-    submitExpense, openExpenseTypeModal, addExpTypeFromModal, deleteExpType, selectExpType, confirmDeleteExpense, renderExpenses,
+    submitExpense, openExpenseTypeModal, addExpTypeFromModal, deleteExpType, selectExpType, confirmDeleteExpense, renderExpenses, editExpense,
     // Lock Exports
     enterPin, clearPin
     }
